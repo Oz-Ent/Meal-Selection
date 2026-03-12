@@ -1,0 +1,27 @@
+name: Dev Test
+
+on:
+  pull_request:
+    branches:
+     develop
+    
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:coverage
+
+      - name: Run All tests
+        run: npx start-server-and-test dev http://localhost:5173 "cypress run --config baseUrl=http://localhost:5173"
