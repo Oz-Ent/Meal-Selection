@@ -11,9 +11,12 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:cypress": "cypress run --component",
+    "test:cypress:watch": "cypress open --component",
     "e2e": "cypress open",
     "e2e:run": "cypress run",
-    "test:all": "npm run test:coverage && npm run e2e:run"
+    "test:all": "npm run test:coverage && npm run e2e:run",
+    "test:cypress:all": "npm run test:cypress && npm run e2e:run"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -30,7 +33,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.12.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
