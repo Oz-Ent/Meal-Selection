@@ -4,7 +4,7 @@ import MasterLayout from "../layouts/MasterLayout/MasterLayout";
 import NotFoundPage from "../pages/NotFound/NotFound";
 
 
-const router = createBrowserRouter([{
+export const routes = [{
     path: "/",
     element: <MasterLayout />,
     errorElement: <NotFoundPage />,
@@ -18,7 +18,9 @@ const router = createBrowserRouter([{
             element: <NotFoundPage />,
         },
     ]
-}]);
+}];
+
+const router = createBrowserRouter(routes);
 
 
 export default router;

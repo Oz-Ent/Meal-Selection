@@ -1,22 +1,7 @@
 import { createMemoryRouter, RouterProvider } from "react-router";
-import MasterLayout from "../layouts/MasterLayout/MasterLayout";
-import HomePage from "../pages/HomePage/HomePage";
-import NotFoundPage from "../pages/NotFound/NotFound";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-
-// Define the same routes as your real router
-const routes = [
-  {
-    path: "/",
-    element: <MasterLayout />,
-    errorElement: <NotFoundPage />,
-    children: [
-      { index: true, element: <HomePage /> },
-      { path: "*", element: <NotFoundPage /> },
-    ],
-  },
-];
+import { routes } from "../router";
 
 describe("Router", () => {
   it("renders HomePage on '/'", () => {
