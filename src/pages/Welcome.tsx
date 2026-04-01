@@ -12,7 +12,7 @@ function Welcome() {
 
         <div className="flex flex-col gap-y-3">
         <h1  style={{ fontFamily: "Inter" }} className="text-xl text-black font-semibold" >
-          Welcome to Edziban 
+          Welcome to Edziban.
         </h1>
 
         <p  style={{ fontFamily: "Roboto" }}className="text-sky-950 text-base font-normal">

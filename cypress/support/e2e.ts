@@ -1,3 +1,5 @@
+/// <reference types="cypress" />
+
 // Cypress E2E support file
 // This file runs before each e2e test
 
