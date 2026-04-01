@@ -1,7 +1,8 @@
 import { createBrowserRouter } from "react-router";
-import HomePage from "../pages/HomePage/HomePage";
 import MasterLayout from "../layouts/MasterLayout/MasterLayout";
 import NotFoundPage from "../pages/NotFound/NotFound";
+import Welcome from "../pages/Welcome";
+import Login from "../pages/Login";
 
 
 export const routes = [{
@@ -11,7 +12,11 @@ export const routes = [{
     children: [
         {
             index: true,
-            element: <HomePage />
+            element: <Welcome />
+        },
+        {
+            path: "/login",
+            element: <Login />,
         },
         {
             path: "*",

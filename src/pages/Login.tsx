@@ -28,21 +28,19 @@ function Login() {
 
 
   return (
-    <main className="w-screen h-screen bg-white text-sky-800 flex flex-col  overflow-hidden items-center justify-center ">
-      <section className="w-full max-w-sm flex flex-col  gap-6 font-normal">
+    <div className="flex flex-col gap-6 font-normal">
+      <section className= "flex flex-col gap-2">
+      <h1 style={{ fontFamily: "Inter" }} className="text-3xl text-gray-700 font-semibold text-left">
+        Login 
+      </h1>
+      <p  
+      style={{ fontFamily: "Roboto" }} 
+      className="text-[#313957] text-base font-normal text-left"> 
+      Log in to choose your weekly meals. Create your ideal menu and make every meal a delight.
+      </p>
+       </section>
 
-        <section className= "flex flex-col gap-2">
-        <h1 style={{ fontFamily: "Inter" }} className="text-3xl text-gray-700 font-semibold text-left">
-          Login 
-        </h1>
-        <p  
-        style={{ fontFamily: "Roboto" }} 
-        className="text-[#313957] text-base font-normal text-left"> 
-        Log in to choose your weekly meals. Create your ideal menu and make every meal a delight.
-        </p>
-         </section>
-
-         <section className="flex flex-col gap-4">
+       <section className="flex flex-col gap-4">
         <InputField
         label = "Email"
         placeholder=" " 
@@ -92,8 +90,7 @@ function Login() {
          <AuthLink to="/signup" className="text-blue-600" text="Sign up" onClick={() => {}} />
         </p>
 
-      </section>
-    </main>
+    </div>
   );
 }
 

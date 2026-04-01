@@ -2,17 +2,19 @@ import Button from "../components/Button";
 //import Container from "../components/Container";   
 import HeroImage from "../components/HeroImage";
 import AuthLink from "../components/AuthLink";
+import { useNavigate } from "react-router";
 
 
 function Welcome() {
+  const navigate = useNavigate();
   return (
-    <main className="min-h-screen w-full bg-white text-sky-800 flex flex-col gap-6 justify-center px-4 overflow-hidden ">
+    <div className="flex flex-col gap-6 justify-center px-4 overflow-hidden">
       <section className="w-full max-w-lg flex  flex-col gap-6  items-center justify-center text-center mx-auto">
         <HeroImage />
 
         <div className="flex flex-col gap-y-3">
         <h1  style={{ fontFamily: "Inter" }} className="text-xl text-black font-semibold" >
-          Welcome to Edziban.
+          Welcome to Edziban 
         </h1>
 
         <p  style={{ fontFamily: "Roboto" }}className="text-sky-950 text-base font-normal">
@@ -23,7 +25,7 @@ function Welcome() {
 
       <section className="w-full max-w-sm flex flex-col gap-4 font-normal mx-auto">
         <Button text="Login" 
-        onClick={() => {}} 
+        onClick={() => navigate("/login")} 
         style={{ backgroundColor: "#254e65",
            color: "white", 
            fontFamily:"Roboto",
@@ -35,8 +37,7 @@ function Welcome() {
          style={{ fontFamily: "Roboto"}}
         />
       </section>
-
-    </main>
+    </div>
   );
 }
 
