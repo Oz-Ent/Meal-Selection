@@ -24,7 +24,7 @@ function Welcome() {
       </section>
 
       <section className="w-full max-w-sm flex flex-col gap-4 font-normal mx-auto">
-        <Button text="Login" 
+        <Button  text="Login" 
         onClick={() => navigate("/login")} 
         style={{ backgroundColor: "#254e65",
            color: "white", 
