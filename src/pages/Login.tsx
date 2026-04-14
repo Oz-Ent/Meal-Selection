@@ -30,12 +30,10 @@ function Login() {
   return (
     <div className="flex flex-col gap-6 font-normal">
       <section className= "flex flex-col gap-2">
-      <h1 style={{ fontFamily: "Inter" }} className="text-3xl text-gray-700 font-semibold text-left">
+      <h1 className="text-3xl text-gray-700 font-semibold text-left font-['Inter']">
         Login 
       </h1>
-      <p  
-      style={{ fontFamily: "Roboto" }} 
-      className="text-[#313957] text-base font-normal text-left"> 
+      <p className="text-[#313957] text-base font-normal text-left font-['Roboto']"> 
       Log in to choose your weekly meals. Create your ideal menu and make every meal a delight.
       </p>
        </section>
@@ -76,8 +74,7 @@ function Login() {
          />
 
         <Button text="Login" 
-        className= "w-full py-[14px] rounded-sm text-base "
-        style={{ color: "white", fontFamily: "Roboto" }} 
+        className= "w-full py-[14px] rounded-sm text-base text-white font-['Roboto'] "
         onClick={handleLogin}/>
 
         <Divider  label = "Or login with" />

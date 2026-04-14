@@ -1,5 +1,4 @@
-import Button from "../components/Button";
-//import Container from "../components/Container";   
+import Button from "../components/Button";  
 import HeroImage from "../components/HeroImage";
 import AuthLink from "../components/AuthLink";
 import { useNavigate } from "react-router";
@@ -13,11 +12,11 @@ function Welcome() {
         <HeroImage />
 
         <div className="flex flex-col gap-y-3">
-        <h1  style={{ fontFamily: "Inter" }} className="text-xl text-black font-semibold" >
+        <h1 className="text-xl text-black font-semibold font-['Inter']">
           Welcome to Edziban 
         </h1>
 
-        <p  style={{ fontFamily: "Roboto" }}className="text-sky-950 text-base font-normal">
+        <p className="text-sky-950 text-base font-normal font-['Roboto']">
           Choose what you want to eat this week and see your tasty selections come to life. Let's get started!
         </p>
         </div>
@@ -25,16 +24,12 @@ function Welcome() {
 
       <section className="w-full max-w-sm flex flex-col gap-4 font-normal mx-auto">
         <Button  text="Login" 
-        onClick={() => navigate("/login")} 
-        style={{ backgroundColor: "#254e65",
-           color: "white", 
-           fontFamily:"Roboto",
-         }} 
-        className= "w-full py-[14px] rounded-md text-base "
+        onClick={() => navigate("/login")}  
+        className= " w-full py-[14px] rounded-md text-base bg-[#254e65] text-white font-['Roboto'] "
         />
         <AuthLink text="Create an account" 
         onClick={() => {}} 
-         style={{ fontFamily: "Roboto"}}
+        className="text-sky-950 font-['Roboto']"
         />
       </section>
     </div>
