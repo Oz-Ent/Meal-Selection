@@ -1,0 +1,1 @@
+export type { IModal } from './IModal';
