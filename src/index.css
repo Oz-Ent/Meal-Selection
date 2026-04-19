@@ -86,6 +86,9 @@ button:focus-visible {
   --color-text-alternate: #989595;
   --color-alert-red: #BE3535;
   --background: #FFFFFF;
+      --msDeepBlue: #035176;
+    --msTextPrimary: #3A3A3A;
+    --msListBorder: #F1F1F1;
 
 }
 
@@ -101,4 +104,10 @@ button:focus-visible {
   --color-text-alert: var(--color-alert-red);
   --color-border-grey: var(--color-border)
 
+}
+
+@theme inline{
+    --color-msDeepBlue: var(--msDeepBlue);
+    --color-msTextPrimary: var(--color-msTextSecondary);
+    --color-msListBorder: var(--msListBorder);
 }
