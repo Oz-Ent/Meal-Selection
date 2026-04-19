@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+
+@theme inline{
+    --color-msDeepBlue: var(--msDeepBlue);
+    --color-msTextPrimary: var(--color-msTextSecondary);
+    --color-msListBorder: var(--msListBorder);
+}
+:root{
+    --msDeepBlue: #035176;
+    --msTextPrimary: #3A3A3A;
+    --msListBorder: #F1F1F1;
+}
