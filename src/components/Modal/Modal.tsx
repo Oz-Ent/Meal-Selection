@@ -31,8 +31,8 @@ export default function Modal(
     const isCenter = variant === 'center';
 
     return createPortal(
-        <div className={`fixed inset-0 z-1000 flex  ${isCenter ? 'items-start justify-center pt-50 p-4' : 'items-end justify-center bg-black/40'}`} onClick={onClose}>
-            <div className={`relative flex flex-col bg-white overflow-hidden ${isCenter ? 'w-fit h-fit max-h-[40vh] max-w-[250px] min-h-[20vh] min-w-[200px] rounded-2xl shadow-xl' : 'max-h-[90vh] w-full rounded-t-3xl pb-[env(safe-area-inset-bottom)] pl-2 pt-0.5'}` }
+        <div className={`fixed inset-0 z-1000 flex  ${isCenter ? 'items-start justify-center pt-60 p-4' : 'items-end justify-center bg-black/40'}`} onClick={onClose}>
+            <div className={`relative flex flex-col bg-white overflow-hidden ${isCenter ? 'w-fit h-fit max-h-[40vh] max-w-[350px] min-h-[20vh] min-w-[200px] rounded-xl shadow-xl' : 'max-h-[90vh] w-full rounded-t-3xl pb-[env(safe-area-inset-bottom)]'}` }
             onClick={(e)=>e.stopPropagation()}
             >
             {showCloseButton && (

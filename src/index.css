@@ -1,41 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
-*{
-  margin: 0;
-  padding: 0;
-}
-
-:root{
-  --color-primary: #254E65;
-  --color-secondary: #1B7E9D;
-  --color-border: #D4D7E3;
-  --color-text-primary:#0C1421;
+:root {
+  --color-primary: #254e65;
+  --color-secondary: #1b7e9d;
+  --color-border: #d4d7e3;
+  --color-text-primary: #0c1421;
   --color-text-secondary: #313957;
   --color-text-alternate: #989595;
-  --color-alert-red: #BE3535;
-  --background: #FFFFFF;
-      --msDeepBlue: #035176;
-    --msTextPrimary: #3A3A3A;
-    --msListBorder: #F1F1F1;
-
+  --color-alert-red: #be3535;
+  --background: #ffffff;
+  --msDeepBlue: #035176;
+  --msTextPrimary: #3a3a3a;
+  --msListBorder: #f1f1f1;
+  --msSuccessGreen: #316f42;
+  --msWarningRed: #be3535;
+  --msCardPrimaryText: #162d3a;
+  --msCardSecondaryText: #8f8888;
 }
 
 @theme {
+  --font-sans: "Inter", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
   --color-primary: var(--color-primary);
   --color-secondary: var(--color-secondary);
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-alternate: var(--color-text-alternate);
   --color-text-alert: var(--color-alert-red);
-  --color-border-grey: var(--color-border)
-
+  --color-border-grey: var(--color-border);
 }
 
-@theme inline{
-    --color-msDeepBlue: var(--msDeepBlue);
-    --color-msTextPrimary: var(--color-msTextSecondary);
-    --color-msListBorder: var(--msListBorder);
+@theme inline {
+  --color-msDeepBlue: var(--msDeepBlue);
+  --color-msTextPrimary: var(--msTextPrimary);
+  --color-msListBorder: var(--msListBorder);
+  --color-msSuccessGreen: var(--msSuccessGreen);
+  --color-msWarningRed: var(--msWarningRed);
+  --color-msCardPrimaryText: var(--msCardPrimaryText);
+  --color-msCardSecondaryText: var(--msCardSecondaryText);
+}
+
+body {
+  font-family: var(--font-sans);
 }
