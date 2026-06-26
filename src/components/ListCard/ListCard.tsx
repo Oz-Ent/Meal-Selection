@@ -1,6 +1,8 @@
 import type { IListCard } from "../../utils/interfaces";
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '../../assets/DeleteIcon.svg';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import { useLongPress } from "../../hooks/useLongPress";
+
 
 export default function ListCard({
     id,
@@ -12,11 +14,19 @@ export default function ListCard({
     isCustomInput,
     customInputValue,
     onCustomInputChange,
-    customInputPlaceholder
+    customInputPlaceholder,
+    highlightedColor,
+    onLongPress,
 }: IListCard) {
+    const longPressHandlers = useLongPress(() => onLongPress?.(id), 500);
     const isSelected = selectedValue !== undefined && (Array.isArray(selectedValue) ? (selectedValue as (string | number)[]).includes(id) : selectedValue === id);
-    return (<label className={`relative flex items-center gap-3 px-2 py-3 cursor-pointer transition-colors duration-150 border-b border-msListBorder ${isSelected ? 'bg-gray-50':'bg-white hover:bg-gray-50'} `}>
-        {inputType === "radio" && <input type="radio" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} className="w-5 h-5 shrink-0 accent-msDeepBlue cursor-pointer"/> }
+    const CardContainer = (inputType === "radio" || inputType === "checkbox") ? "label" : "div";
+
+    return (<CardContainer 
+    className={`relative flex items-center gap-3 px-2 py-3 ${inputType === "radio" || inputType === "checkbox" ? "cursor-pointer" : ""} transition-colors duration-150 border-b border-msListBorder ${isSelected ? highlightedColor || 'bg-gray-50' : 'bg-white hover:bg-gray-50'}`}
+    {...longPressHandlers}
+    >
+        {inputType === "radio" && <input type="radio" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} onClick={(e) => e.stopPropagation()} className="w-5 h-5 shrink-0 accent-msDeepBlue cursor-pointer"/> }
         
         {!isCustomInput && imageUrl && <img className="w-14 h-14 shrink-0 rounded-xl object-cover bg-gray-100" src={imageUrl} alt={title}/>}
         {!isCustomInput && <span className={` flex-1 pr-8 text-base text-msTextPrimary leading-snug ${isSelected ? 'font-semibold' : ''}`}>{title}</span>}
@@ -34,10 +44,10 @@ export default function ListCard({
             </div>
         )}
 
-        {inputType === "checkbox" && <input type="checkbox" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} className="w-4.5 h-4.5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer"/> }
-        {inputType === "delete" && <button onClick={(e) => { e.preventDefault(); onChange?.(id.toString()); }} className="w-4.5 h-4.5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer text-red-600"><DeleteIcon/></button> }
+        {inputType === "checkbox" && <input type="checkbox" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} onClick={(e) => e.stopPropagation()} className="w-4.5 h-4.5 absolute right-6 shrink-0 cursor-pointer"/> }
+        {inputType === "delete" && <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange?.(id.toString()); }} className="w-4.5 h-4.5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer"><img src={DeleteIcon} alt="Delete Icon" className="w-4.5 h-4.5" /></button> }
         {inputType === "expand" && <button type="button" onClick={(e) => { e.preventDefault(); onChange?.(id.toString()); }} className="w-5 h-5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer text-gray-400">
             <KeyboardArrowDownIcon className={`transition-transform duration-300 ${isSelected ? '-rotate-180' : 'rotate-0'}`}/>
         </button> }
-    </label>);
+    </CardContainer>);
 }

@@ -1,36 +1,52 @@
-import { useState } from "react";
-
+import  {  useState, type ChangeEvent } from "react";
 
 interface IInputFieldProps{
     disabled?: boolean
     label?: string
     placeholder?: string
     type?: string
+    value: string
     error?: boolean
     errorMessage?: string
-    onChange : () => void
-    value: any
+    onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
     min?: number
     max?: number
+    isBorderVisible?: boolean
+    className?: string
+    multiline?: boolean
 }
 
-export default function InputField({disabled,label,placeholder,type = 'text', value, error, errorMessage, onChange}:IInputFieldProps){
+export default function InputField({disabled,label,placeholder,type = 'text', value, error, errorMessage, onChange,isBorderVisible = true,className,multiline}:IInputFieldProps){
     const [focused, setFocused] = useState<boolean>(false)
     const isFloating = focused || value.length > 0 || (!!placeholder && placeholder?.length > 0)
+    
+    const inputClasses = `w-full h-full ${!isBorderVisible ? "border-none" : "border rounded-md"} px-3 ${label && "pt-5"} pb-2 outline-none ${className} ${error ? "border-red-500" : "border-border-grey"}`
+
     return(
-        <div className="relative h-10">
-            <input 
-            disabled={disabled}
-            placeholder={placeholder} 
-            type={type} 
-            value={value}
-            onChange={onChange}
-            onFocus={()=>setFocused(true)} 
-            onBlur={()=>setFocused(false)}
-            className={`w-full h-full border rounded-md px-3 pt-5 pb-2 outline-none 
-            ${error ? "border-red-500" : "border-border-grey"}
-            `}/>
-            <label
+        <div className="relative h-full">
+            {multiline ? (
+                <textarea
+                    disabled={disabled}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
+                    onFocus={()=>setFocused(true)} 
+                    onBlur={()=>setFocused(false)}
+                    className={`${inputClasses} resize-none`}
+                />
+            ) : (
+                <input 
+                    disabled={disabled}
+                    placeholder={placeholder} 
+                    type={type} 
+                    value={value}
+                    onChange={onChange}
+                    onFocus={()=>setFocused(true)} 
+                    onBlur={()=>setFocused(false)}
+                    className={inputClasses}
+                />
+            )}
+           <label
             className={`absolute left-3 transition-all pointer-events-none
             ${
                 isFloating
@@ -38,6 +54,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
                 : "top-2 text-gray-400"
             }
             `}
+            
         >
         {label}</label>
         <label className="text-text-alert w-full">{errorMessage}</label>

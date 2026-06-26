@@ -10,4 +10,7 @@ export interface IListCard{
     customInputValue?: string;
     onCustomInputChange?: (value: string) => void;
     customInputPlaceholder?: string;
+    className?: string;
+    highlightedColor?: string;
+    onLongPress?: (id: string | number) => void;
 }

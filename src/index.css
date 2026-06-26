@@ -17,6 +17,9 @@
   --msWarningRed: #be3535;
   --msCardPrimaryText: #162d3a;
   --msCardSecondaryText: #8f8888;
+  --msTextArea: #F9F9F9;
+  --msHighlightBlue: #0351760F;
+
 }
 
 @theme {
@@ -40,6 +43,8 @@
   --color-msWarningRed: var(--msWarningRed);
   --color-msCardPrimaryText: var(--msCardPrimaryText);
   --color-msCardSecondaryText: var(--msCardSecondaryText);
+  --color-msTextArea: var(--msTextArea);
+  --color-msHighlightBlue: var(--msHighlightBlue);
 }
 
 body {
