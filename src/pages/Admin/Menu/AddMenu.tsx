@@ -19,7 +19,6 @@ interface IDayMenu{
     title: string
     meals: IMeals[]
 }
-
 export function AddMenu(){
     const Navigate = useNavigate();
     const { menuName } = useParams<{ menuName: string }>();

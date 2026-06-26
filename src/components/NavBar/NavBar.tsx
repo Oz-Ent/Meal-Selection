@@ -9,7 +9,7 @@ interface INavBar {
 }
 export function NavBar({ backUrl, title, onAddButtonClick, onExportClick }: INavBar) {
     return (
-        <nav className="relative flex mx-4 my-3 py-1 border-b border-msListBorder items-center justify-center min-h-10">
+        <nav className="sticky top-0 z-50 bg-white flex mx-4 my-3 py-1 border-b border-msListBorder items-center justify-center min-h-10">
             <NavLink to={backUrl ?? "/"} className="absolute left-0">
                 <ArrowLeft className="text-msDeepBlue"/>
             </NavLink>

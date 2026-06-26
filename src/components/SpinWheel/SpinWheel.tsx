@@ -76,7 +76,7 @@ const spin = () => {
             }}
             >
             <svg viewBox="0 0 300 300" className="w-72 h-72">
-                {options.map((option, i)=>{
+                {options.map((_, i)=>{
                     const startAngle = (i * segmentAngle);
                     const endAngle = (i+1) * segmentAngle;
 
@@ -88,7 +88,6 @@ const spin = () => {
                                 startAngle,
                                 endAngle,
                                 150,
-                                option.label,
                                 150
                             )}`
                         }

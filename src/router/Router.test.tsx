@@ -1,16 +1,18 @@
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { routes } from "../router";
 
 describe("Router", () => {
-  it("renders HomePage on '/'", () => {
+  it("renders HomePage on '/'", async () => {
     const router = createMemoryRouter(routes, {
       initialEntries: ["/"],
     });
     
     render(<RouterProvider router={router} />);
-    expect(screen.getByText(/Home Page/i)).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByText(/Home Page/i)).toBeVisible();
+    });
   });
 
   it("renders NotFoundPage on unknown route", () => {
