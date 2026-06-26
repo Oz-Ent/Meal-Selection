@@ -17,7 +17,6 @@ export function createPieSlice(
     startAngle: number,
     endAngle: number,
     radius: number,
-    label: string,
     center: number
 ){
     const start = polarToCartesian(

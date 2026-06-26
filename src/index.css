@@ -1,5 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
 
 :root {
   --color-primary: #254e65;
@@ -17,13 +17,13 @@
   --msWarningRed: #be3535;
   --msCardPrimaryText: #162d3a;
   --msCardSecondaryText: #8f8888;
-  --msTextArea: #F9F9F9;
-  --msHighlightBlue: #0351760F;
-
+  --msTextArea: #f9f9f9;
+  --msHighlightBlue: #0351760f;
+  --msBoldText: #162d3a;
 }
 
 @theme {
-  --font-sans: "Inter", sans-serif;
+  --font-sans: 'Inter', sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--color-primary);
@@ -36,6 +36,8 @@
 }
 
 @theme inline {
+  --color-msPrimary: var(--color-primary);
+  --color-msSecondary: var(--color-secondary);
   --color-msDeepBlue: var(--msDeepBlue);
   --color-msTextPrimary: var(--msTextPrimary);
   --color-msListBorder: var(--msListBorder);
@@ -45,6 +47,7 @@
   --color-msCardSecondaryText: var(--msCardSecondaryText);
   --color-msTextArea: var(--msTextArea);
   --color-msHighlightBlue: var(--msHighlightBlue);
+  --color-msBoldText: var(--msBoldText);
 }
 
 body {
