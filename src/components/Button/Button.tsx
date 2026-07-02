@@ -39,7 +39,7 @@ export default function Button ({label, icon, children, variant = "primary",type
             {children}</>
             ):
             (
-            <div className="flex flex-1 justify-center cursor-inherit">{pending ? <LoadingSpinner/> : icon }<label>{label}</label>
+            <div className="flex flex-1 justify-center cursor-inherit">{pending ? <LoadingSpinner/> : icon }<span>{label ?? ''}</span>
             </div>
         )}
         </button>

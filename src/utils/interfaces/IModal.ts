@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
+
 export interface IModal {
   isOpen: boolean;
   onClose: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
   variant?: "center" | "bottom";
   showCloseButton?: boolean;
 }
