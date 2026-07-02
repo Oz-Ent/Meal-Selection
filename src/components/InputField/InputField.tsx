@@ -57,7 +57,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
             
         >
         {label}</label>
-        <label className="text-text-alert w-full">{errorMessage}</label>
+        {error && <p className="text-text-alert w-full">{errorMessage}</p>}
         </div>
     )
 }

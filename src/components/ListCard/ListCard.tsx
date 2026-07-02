@@ -28,8 +28,8 @@ export default function ListCard({
     >
         {inputType === "radio" && <input type="radio" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} onClick={(e) => e.stopPropagation()} className="w-5 h-5 shrink-0 accent-msDeepBlue cursor-pointer"/> }
         
-        {!isCustomInput && imageUrl && <img className="w-14 h-14 shrink-0 rounded-xl object-cover bg-gray-100" src={imageUrl} alt={title}/>}
-        {!isCustomInput && <span className={` flex-1 pr-8 text-base text-msTextPrimary leading-snug ${isSelected ? 'font-semibold' : ''}`}>{title}</span>}
+        {!isCustomInput && imageUrl && <img className="w-14 h-14 shrink-0 rounded-xl object-cover bg-gray-100" src={imageUrl} alt={title ?? ''}/>}
+        {!isCustomInput && <span className={` flex-1 pr-8 text-base text-msTextPrimary leading-snug ${isSelected ? 'font-semibold' : ''}`}>{title ?? ''}</span>}
         
         {isCustomInput && (
             <div className="flex-1 pr-1">

@@ -1,53 +1,55 @@
-import { useEffect,} from "react";
-import type { IModal } from "../../utils/interfaces";
-import { createPortal } from "react-dom";
+import { useEffect } from 'react';
+import type { IModal } from '../../utils/interfaces';
+import { createPortal } from 'react-dom';
 import CloseIcon from '@mui/icons-material/Close';
 
-export default function Modal(
-    {
-        isOpen,
-        onClose,
-        children,
-        variant = 'center',
-        showCloseButton = false
-    }: IModal
-){
-    useEffect(()=>{
-        const handleEscape =(e: KeyboardEvent)=>{
-            if(e.key === 'Escape') onClose();
-        }
-        if(isOpen){
-            document.addEventListener('keydown', handleEscape);
-            document.body.style.overflow = "hidden";
-        }
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = "auto";
-        }
-    }, [isOpen, onClose])
+export default function Modal({
+  isOpen,
+  onClose,
+  children,
+  variant = 'center',
+  showCloseButton = false,
+}: IModal) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen, onClose]);
 
-    if (!isOpen)return null;
+  if (!isOpen) return null;
 
-    const isCenter = variant === 'center';
+  const isCenter = variant === 'center';
 
-    return createPortal(
-        <div className={`fixed inset-0 z-1000 flex  ${isCenter ? 'items-start justify-center pt-60 p-4' : 'items-end justify-center bg-black/40'}`} onClick={onClose}>
-            <div className={`relative flex flex-col bg-white overflow-hidden ${isCenter ? 'w-fit h-fit max-h-[40vh] max-w-87.5 min-h-[20vh] min-w-50 rounded-xl shadow-xl' : 'max-h-[95vh] w-full rounded-t-3xl pb-[env(safe-area-inset-bottom)]'}` }
-            onClick={(e)=>e.stopPropagation()}
-            >
-            {showCloseButton && (
-                <button className="absolute z-10 right-4 top-3 flex h-6 w-6 items-center justify-center rounded-full text-msDeepBlue transition-colors hover:bg-slate-100 hover:text-slate-800"
-          onClick={onClose} 
-          aria-label="Close modal"
-        >
-           <CloseIcon/> 
-        </button>
-            )}
-               <div className="flex-1 overflow-y-auto p-1.5">
-          {children}
-           </div>
-            </div>
-        </div>,
-        document.body
-    )
+  return createPortal(
+    <div
+      className={`fixed inset-0 z-1000 flex  ${isCenter ? 'items-start justify-center pt-60 p-4' : 'items-end justify-center bg-black/40'}`}
+      onClick={onClose}
+    >
+      <div
+        className={`relative flex flex-col bg-white overflow-hidden ${isCenter ? 'w-fit h-fit max-h-[40vh] max-w-87.5 min-h-[20vh] min-w-50 rounded-xl shadow-xl' : 'max-h-[95vh] w-full rounded-t-3xl pb-[env(safe-area-inset-bottom)]'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {showCloseButton && (
+          <button
+            className="absolute z-10 right-4 top-3 flex h-6 w-6 items-center justify-center rounded-full text-msDeepBlue transition-colors hover:bg-slate-100 hover:text-slate-800"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <CloseIcon />
+          </button>
+        )}
+        <div className="flex-1 overflow-y-auto p-1.5">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
 }
