@@ -1,0 +1,1 @@
+export const MEAL_APP_CORE = "http://localhost:5000";

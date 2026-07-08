@@ -1,11 +1,11 @@
 import { useState } from "react";
-import Button from "../components/Button"; 
-import InputField from "../components/InputField";
-import PasswordField from "../components/PasswordField";
-import Divider from "../components/Divider";
-import AuthLink from "../components/AuthLink";
-import GoogleButton from "../components/GoogleButton";
-import Checkbox from "../components/Checkbox";  
+import Button from "../../components/Button"; 
+import InputField from "../../components/InputField";
+import PasswordField from "../../components/PasswordField";
+import Divider from "../../components/Divider";
+import AuthLink from "../../components/AuthLink";
+import GoogleButton from "../../components/GoogleButton";
+import Checkbox from "../../components/Checkbox";  
 
 
 
@@ -28,7 +28,7 @@ function Login() {
 
 
   return (
-    <div className="flex flex-col gap-6 font-normal">
+    <div className="flex flex-col gap-6 font-normal justify-center w-full max-w-100 h-full max-h-150 bg-white px-4 py-6">
       <section className= "flex flex-col gap-2">
       <h1 className="text-3xl text-gray-700 font-semibold text-left font-['Inter']">
         Login 

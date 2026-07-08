@@ -1,5 +1,5 @@
 import {render, screen} from "@testing-library/react";
-import Welcome from "../pages/Welcome";
+import Welcome from "../pages/Auth/Welcome";
 
 describe("Welcome Component", () => { 
   it("renders the top image", () => {  

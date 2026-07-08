@@ -1,13 +1,13 @@
-import Button from "../components/Button";  
-import HeroImage from "../components/HeroImage";
-import AuthLink from "../components/AuthLink";
+import Button from "../../components/Button";  
+import HeroImage from "../../components/HeroImage";
+import AuthLink from "../../components/AuthLink";
 import { useNavigate } from "react-router";
 
 
 function Welcome() {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col gap-6 justify-center px-4 overflow-hidden">
+    <div className="flex flex-col gap-6 justify-center px-4 overflow-hidden items-center">
       <section className="w-full max-w-lg flex  flex-col gap-6  items-center justify-center text-center mx-auto">
         <HeroImage />
 
@@ -22,10 +22,10 @@ function Welcome() {
         </div>
       </section>
 
-      <section className="w-full max-w-sm flex flex-col gap-4 font-normal mx-auto">
+      <section className="w-full flex flex-col gap-4 font-normal px-4 max-w-sms">
         <Button  text="Login" 
         onClick={() => navigate("/login")}  
-        className= " w-full py-[14px] rounded-md text-base bg-[#254e65] text-white font-['Roboto'] "
+        className= " w-full py-3.5 rounded-md text-base bg-[#254e65] text-white font-['Roboto'] "
         />
         <AuthLink text="Create an account" 
         onClick={() => {}} 

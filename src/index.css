@@ -1,92 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 
 :root {
-  font-family: Roboto, Inter , Poppins, sans-serif;
+  font-family: Roboto, Inter, Poppins, sans-serif;
   line-height: 1.5;
-  font-weight: 400; 
+  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: #213547;
   background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
 
-a {
-  font-weight: 500;
-  color: #1b7e9d;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  font-family: Roboto, sans-serif;
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 400;
-  font-family: Roboto,Inter, sans-serif;
-  background-color: #254e65;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-/* button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-} */
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-*{
-  margin: 0;
-  padding: 0;
-}
-
-:root{
   --color-primary: #254E65;
   --color-secondary: #1B7E9D;
-  --color-border: #D4D7E3;
-  --color-text-primary:#0C1421;
-  --color-text-secondary: #313957;
-  --color-text-alternate: #989595;
-  --color-alert-red: #be3535;
-  --background: #ffffff;
   --msDeepBlue: #035176;
   --msTextPrimary: #3a3a3a;
   --msListBorder: #f1f1f1;
@@ -96,20 +29,43 @@ button:focus-visible {
   --msCardSecondaryText: #8f8888;
   --msTextArea: #f9f9f9;
   --msHighlightBlue: #0351760f;
-  --msBoldText: #162d3a;
+}
+
+a {
+  font-weight: 500;
+  color: var(--color-secondary);
+  text-decoration: inherit;
+}
+
+body {
+  font-family: 'Inter', Roboto, sans-serif;
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 400;
+  font-family: Roboto, Inter, sans-serif;
+  background-color: var(--color-primary);
+  cursor: pointer;
+  transition: border-color 0.25s;
 }
 
 @theme {
   --font-sans: 'Inter', sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --color-primary: var(--color-primary);
   --color-secondary: var(--color-secondary);
-  --color-text-primary: var(--color-text-primary);
-  --color-text-secondary: var(--color-text-secondary);
-  --color-text-alternate: var(--color-text-alternate);
-  --color-text-alert: var(--color-alert-red);
-  --color-border-grey: var(--color-border);
 }
 
 @theme inline {
@@ -124,9 +80,5 @@ button:focus-visible {
   --color-msCardSecondaryText: var(--msCardSecondaryText);
   --color-msTextArea: var(--msTextArea);
   --color-msHighlightBlue: var(--msHighlightBlue);
-  --color-msBoldText: var(--msBoldText);
-}
-
-body {
-  font-family: var(--font-sans);
+  --color-msBoldText: var(--msCardPrimaryText);
 }
