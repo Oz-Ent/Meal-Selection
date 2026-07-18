@@ -3,15 +3,22 @@ import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { routes } from "../router";
 
+jest.mock("../pages/Auth/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: 1 },
+    token: "fake-token"
+  })
+}));
+
 describe("Router", () => {
-  it("renders HomePage on '/'", async () => {
+  it("renders Welcome on '/welcome'", async () => {
     const router = createMemoryRouter(routes, {
-      initialEntries: ["/"],
+      initialEntries: ["/welcome"],
     });
     
     render(<RouterProvider router={router} />);
     await waitFor(() => {
-      expect(screen.getByText(/Home Page/i)).toBeVisible();
+      expect(screen.getByText(/Welcome to Edziban/i)).toBeVisible();
     });
   });
 

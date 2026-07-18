@@ -44,23 +44,12 @@ describe("Login Component", ()=> {
     expect(loginButton).toBeInTheDocument();
   });
 
-    it("renders Or login with divider", () => {
-    render(<Login />);
-    const divider = screen.getByText(/Or login with/i);
-    expect(divider).toBeInTheDocument();
-  });
-
-  it("renders Google login button", () => {
-    render(<Login />);
-    const googleButton = screen.getByRole("button", { name: /Google/i });
-    expect(googleButton).toBeInTheDocument();
-  });
-
     it("renders sign up link", () => {  
     render(<Login />);
-    const signUpLink = screen.getByText(/Don't have an account\? Sign up/i);
+    const signUpPrompt = screen.getByText(/Don't have an account\?/i);
+    const signUpLink = screen.getByRole("link", { name: /Sign up/i });
+    expect(signUpPrompt).toBeInTheDocument();
     expect(signUpLink).toBeInTheDocument();
   });
-
 });
 

@@ -1,4 +1,4 @@
-import  {  useState, type ChangeEvent } from "react";
+import  {  useState, useId, type ChangeEvent } from "react";
 
 interface IInputFieldProps{
     disabled?: boolean
@@ -18,6 +18,7 @@ interface IInputFieldProps{
 
 export default function InputField({disabled,label,placeholder,type = 'text', value, error, errorMessage, onChange,isBorderVisible = true,className,multiline}:IInputFieldProps){
     const [focused, setFocused] = useState<boolean>(false)
+    const uniqueId = useId();
     const isFloating = focused || value.length > 0 || (!!placeholder && placeholder?.length > 0)
     
     const inputClasses = `w-full h-full ${!isBorderVisible ? "border-none" : "border rounded-md"} px-3 ${label && "pt-5"} pb-2 outline-none ${className} ${error ? "border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`
@@ -26,6 +27,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
         <div className="relative h-full">
             {multiline ? (
                 <textarea
+                    id={uniqueId}
                     disabled={disabled}
                     placeholder={placeholder}
                     value={value}
@@ -36,6 +38,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
                 />
             ) : (
                 <input 
+                    id={uniqueId}
                     disabled={disabled}
                     placeholder={placeholder} 
                     type={type} 
@@ -47,6 +50,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
                 />
             )}
            <label
+            htmlFor={uniqueId}
             className={`absolute left-3 transition-all pointer-events-none
             ${
                 isFloating
