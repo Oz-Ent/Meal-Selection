@@ -61,6 +61,29 @@ export interface RefreshResponse {
     refreshToken: string;
 }
 
+export interface GeneratePasswordTokenRequest {
+  email: string;
+}
+
+export interface VerifyOTPRequest {
+  email: string;
+  token: string;
+}
+
+export interface VerifyOTPResponse {
+  message: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  password: string;
+  token: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
 export const authService = {
   login: async (loginRequest: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>("/auth/login", loginRequest);
@@ -84,6 +107,22 @@ export const authService = {
 
   refresh: async (refreshRequest: RefreshRequest): Promise<RefreshResponse> => {
     const response = await apiClient.post<RefreshResponse>("/auth/refresh", refreshRequest);
+    return response.data;
+  },
+
+  generatePasswordToken: async (
+    data: GeneratePasswordTokenRequest
+  ): Promise<void> => {
+    await apiClient.post("/auth/generate-password-token", data);
+  },
+
+  verifyOtp: async (data: VerifyOTPRequest): Promise<VerifyOTPResponse> => {
+    const response = await apiClient.post<VerifyOTPResponse>("/auth/verify-otp", data);
+    return response.data;
+  },
+
+  resetPassword: async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
+    const response = await apiClient.post<ResetPasswordResponse>("/auth/reset-password", data);
     return response.data;
   },
 

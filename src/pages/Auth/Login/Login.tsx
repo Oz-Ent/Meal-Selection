@@ -1,11 +1,9 @@
 import { useState } from "react";
-import Button from "../../components/Button"; 
-import InputField from "../../components/InputField";
-import PasswordField from "../../components/PasswordField";
-import Divider from "../../components/Divider";
-import AuthLink from "../../components/AuthLink";
-import GoogleButton from "../../components/GoogleButton";
-import Checkbox from "../../components/Checkbox";  
+import Button from "../../../components/Button/Button"; 
+import InputField from "../../../components/InputField/InputField";
+import PasswordField from "../../../components/PasswordField/PasswordField";
+import AuthLink from "../../../components/AuthLink/AuthLink";
+import Checkbox from "../../../components/Checkbox/Checkbox";  
 
 
 
@@ -33,21 +31,17 @@ function Login() {
       <h1 className="text-3xl text-gray-700 font-semibold text-left font-['Inter']">
         Login 
       </h1>
-      <p className="text-[#313957] text-base font-normal text-left font-['Roboto']"> 
+      <p className="text-msDescription text-base font-normal text-left font-['Roboto']"> 
       Log in to choose your weekly meals. Create your ideal menu and make every meal a delight.
       </p>
        </section>
 
        <section className="flex flex-col gap-4">
         <InputField
-        label = "Email"
-        placeholder=" " 
-         style={{ fontFamily: "Poppins", color: " rgba(58, 58, 58, 1)" }}
-         id="Email"
-         fontFamily= "Poppins"
-         value={email}
-         onChange={(e) => setEmail(e.target.value)}
-         />
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
            
         <PasswordField 
@@ -73,13 +67,14 @@ function Login() {
            onChange={setKeepSignedIn}
          />
 
-        <Button text="Login" 
-        className= "w-full py-[14px] rounded-sm text-base text-white font-['Roboto'] "
-        onClick={handleLogin}/>
-
-        <Divider  label = "Or login with" />
-
-        <GoogleButton style={{ backgroundColor: "rgba(237,237,237,1)", fontFamily: "Roboto" }} onClick={() => {}} />
+        <div className="w-full h-12">
+          <Button
+            label="Login"
+            variant="primary"
+            onClick={handleLogin}
+            className="rounded-sm text-base font-['Roboto']"
+          />
+        </div>
         </section>
 
         <p className="text-sm text-gray-700 text-center">

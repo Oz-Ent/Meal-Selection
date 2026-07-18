@@ -1,5 +1,5 @@
 import {render, screen} from "@testing-library/react";
-import Login from "../pages/Auth/Login";
+import Login from "../pages/Auth/Login/Login";
 
 describe("Login Component", ()=> {  
   it("renders login heading", () => {

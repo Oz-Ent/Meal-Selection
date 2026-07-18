@@ -1,4 +1,4 @@
-import bro from "../assets/bro.svg"
+import bro from "../../assets/bro.svg"
 
 function HeroImage() {
   return (

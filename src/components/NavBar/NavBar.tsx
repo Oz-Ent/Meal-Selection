@@ -3,7 +3,7 @@ import { ArrowLeft, Plus, Download } from "lucide-react"
 
 interface INavBar {
     backUrl?: string;
-    title: string;
+    title?: string;
     onAddButtonClick?: () => void;
     onExportClick?: ()  => void;
 }
@@ -14,9 +14,11 @@ export function NavBar({ backUrl, title, onAddButtonClick, onExportClick }: INav
                 <ArrowLeft className="text-msDeepBlue"/>
             </NavLink>
             
-            <h3 className="text-lg font-medium text-msTextPrimary px-12 text-center truncate max-w-full">
-                {title}
-            </h3>
+            {title && (
+                <h3 className="text-lg font-medium text-msTextPrimary px-12 text-center truncate max-w-full">
+                    {title}
+                </h3>
+            )}
             
             {onAddButtonClick && (
                 <button onClick={onAddButtonClick} className="absolute right-0 p-1 text-msDeepBlue flex items-center gap-1" type="button">

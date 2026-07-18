@@ -20,7 +20,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
     const [focused, setFocused] = useState<boolean>(false)
     const isFloating = focused || value.length > 0 || (!!placeholder && placeholder?.length > 0)
     
-    const inputClasses = `w-full h-full ${!isBorderVisible ? "border-none" : "border rounded-md"} px-3 ${label && "pt-5"} pb-2 outline-none ${className} ${error ? "border-red-500" : "border-border-grey"}`
+    const inputClasses = `w-full h-full ${!isBorderVisible ? "border-none" : "border rounded-md"} px-3 ${label && "pt-5"} pb-2 outline-none ${className} ${error ? "border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`
 
     return(
         <div className="relative h-full">

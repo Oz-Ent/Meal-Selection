@@ -1,6 +1,6 @@
-import Button from "../../components/Button";  
-import HeroImage from "../../components/HeroImage";
-import AuthLink from "../../components/AuthLink";
+import Button from "../../components/Button/Button";  
+import HeroImage from "../../components/HeroImage/HeroImage";
+import AuthLink from "../../components/AuthLink/AuthLink";
 import { useNavigate } from "react-router";
 
 
@@ -23,10 +23,14 @@ function Welcome() {
       </section>
 
       <section className="w-full flex flex-col gap-4 font-normal px-4 max-w-sms">
-        <Button  text="Login" 
-        onClick={() => navigate("/login")}  
-        className= " w-full py-3.5 rounded-md text-base bg-[#254e65] text-white font-['Roboto'] "
-        />
+        <div className="w-full h-12">
+          <Button
+            label="Login"
+            variant="primary"
+            onClick={() => navigate("/login")}
+            className="rounded-md text-base font-['Roboto']"
+          />
+        </div>
         <AuthLink text="Create an account" 
         onClick={() => {}} 
         className="text-sky-950 font-['Roboto']"

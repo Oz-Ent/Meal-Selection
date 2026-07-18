@@ -29,6 +29,7 @@
   --msCardSecondaryText: #8f8888;
   --msTextArea: #f9f9f9;
   --msHighlightBlue: #0351760f;
+  --msDescription: #313957;
 }
 
 a {
@@ -37,11 +38,16 @@ a {
   text-decoration: inherit;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   font-family: 'Inter', Roboto, sans-serif;
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -66,6 +72,7 @@ button {
   --font-sans: 'Inter', sans-serif;
   --color-primary: var(--color-primary);
   --color-secondary: var(--color-secondary);
+
 }
 
 @theme inline {
@@ -81,4 +88,5 @@ button {
   --color-msTextArea: var(--msTextArea);
   --color-msHighlightBlue: var(--msHighlightBlue);
   --color-msBoldText: var(--msCardPrimaryText);
+  --color-msDescription: var(--msDescription);
 }
