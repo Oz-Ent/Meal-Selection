@@ -1,17 +1,16 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AddMenu } from './AddMenu';
-import { availableMeals } from '../../../helpers/availableMeals';
 
-jest.mock('../../../helpers/availableMeals', () => ({
-    availableMeals: []
+const meals = [{ id: 1, name: 'Pizza', imagePath: 'pizza.png', foodCode: 'SG-BS-PR-PP', calories: 500, description: null, isActive: true, createdAt: '', updatedAt: '' }];
+
+jest.mock('../../../api/useApiQueries', () => ({
+    useMealsQuery: () => ({ data: { meals }, isLoading: false }),
+    useCreateMenuWithAssignmentsMutation: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }));
 
 describe('AddMenu Component', () => {
     beforeEach(() => {
-        localStorage.clear();
-        availableMeals.length = 0;
-        availableMeals.push({ id: '1', title: 'Pizza', imageUrl: 'pizza.png' });
         jest.clearAllMocks();
     });
 
@@ -47,7 +46,7 @@ describe('AddMenu Component', () => {
         fireEvent.click(addBtns[0]); // Monday
         
         // Modal opens with all meals
-        expect(screen.getByText('All Menu')).toBeInTheDocument();
+        expect(screen.getByText('All Meals')).toBeInTheDocument();
         
         // Click the pizza list card (or its checkbox)
         const checkbox = screen.getAllByRole('checkbox')[0];
@@ -57,7 +56,7 @@ describe('AddMenu Component', () => {
         fireEvent.click(addMealBtn);
         
         // Modal closes and pizza is listed under Monday
-        expect(screen.queryByText('All Menu')).not.toBeInTheDocument();
+        expect(screen.queryByText('All Meals')).not.toBeInTheDocument();
         expect(screen.getAllByText('Pizza').length).toBeGreaterThan(0);
     });
 });

@@ -1,19 +1,22 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EditMeal } from './EditMeal';
-import { availableMeals } from '../../../helpers/availableMeals';
 
-jest.mock('../../../helpers/availableMeals', () => ({
-    availableMeals: []
+const meals = [
+    { id: 1, name: 'Meal 1', imagePath: 'img1.png', foodCode: 'SG-BS-PR-PP', calories: 100, description: null, isActive: true, createdAt: '', updatedAt: '' },
+    { id: 2, name: 'Meal 2', imagePath: 'img2.png', foodCode: 'SG-BS-PR-PP', calories: 200, description: null, isActive: true, createdAt: '', updatedAt: '' },
+];
+const mockDeleteMeals = jest.fn();
+
+jest.mock('../../../api/useApiQueries', () => ({
+    useMealsQuery: () => ({ data: { meals }, isLoading: false }),
+    useFoodLibraryQuery: () => ({ data: [], isLoading: false }),
+    useUpdateMealMutation: () => ({ mutateAsync: jest.fn() }),
+    useDeleteMealsMutation: () => ({ mutateAsync: mockDeleteMeals }),
 }));
 
 describe('EditMeal Component', () => {
     beforeEach(() => {
-        availableMeals.length = 0;
-        availableMeals.push(
-            { id: '1', title: 'Meal 1', imageUrl: 'img1.png' },
-            { id: '2', title: 'Meal 2', imageUrl: 'img2.png' }
-        );
         jest.clearAllMocks();
     });
 
@@ -76,9 +79,6 @@ describe('EditMeal Component', () => {
         const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
         fireEvent.click(confirmBtn);
         
-        // Meal 1 should be removed
-        expect(availableMeals.length).toBe(1);
-        expect(availableMeals[0].id).toBe('2');
-        expect(screen.getByText('Meal(s) deleted successfully')).toBeInTheDocument();
+        expect(mockDeleteMeals).toHaveBeenCalledWith([1]);
     });
 });

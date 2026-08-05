@@ -37,7 +37,7 @@ export function Meal() {
           calories: mealData.calories ?? undefined,
           description: mealData.description ?? undefined,
         },
-        imageFile: mealData.imageFile ?? null,
+        imageFile: mealData.imageFile,
       });
       setIsAddMealModalOpen(false);
       setStatusModal({ type: 'success', message: 'New meal created successfully' });

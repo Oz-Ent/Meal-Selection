@@ -10,7 +10,7 @@ import type { FoodGroup, FoodItem } from '../../../../api/Services/FoodLibrarySe
 export interface MealFormData {
   id?: number;
   name: string;
-  image: string | null;
+  imagePath: string | null;
   imageFile?: File | null;
   foodCode: string;
   calories: number | null;
@@ -53,7 +53,7 @@ export function MealModal({
 }: IAddMealModal) {
   const [name, setName] = useState(mealData?.name || '');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(
-    mealData?.image || FALLBACK_MEAL_IMAGE_URL,
+    mealData?.imagePath || FALLBACK_MEAL_IMAGE_URL,
   );
   const [calories, setCalories] = useState(mealData?.calories?.toString() || '');
   const [description, setDescription] = useState(mealData?.description || '');
@@ -94,7 +94,7 @@ export function MealModal({
         id: mealData?.id,
         name: name.trim(),
         foodCode,
-        image: mealData?.image ?? null,
+        imagePath: mealData?.imagePath ?? null,
         imageFile,
         calories: calories ? Number(calories) : null,
         description: description.trim() || null,

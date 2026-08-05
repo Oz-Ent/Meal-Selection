@@ -96,8 +96,8 @@ export const useWeeklySelectionsQuery = (userId: number | undefined, date: strin
 export const useCreateMealMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (variables: { data: CreateMealRequest; imageFile?: File | null }) =>
-      mealService.create(variables.data, variables.imageFile),
+    mutationFn: ({ data, imageFile }: { data: CreateMealRequest; imageFile?: File | null }) =>
+      mealService.create(data, imageFile),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meals }),
   });
 };
@@ -105,8 +105,15 @@ export const useCreateMealMutation = () => {
 export const useUpdateMealMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (variables: { id: number; data: UpdateMealRequest; imageFile?: File | null }) =>
-      mealService.update(variables.id, variables.data, variables.imageFile),
+    mutationFn: ({
+      id,
+      data,
+      imageFile,
+    }: {
+      id: number;
+      data: UpdateMealRequest;
+      imageFile?: File | null;
+    }) => mealService.update(id, data, imageFile),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meals }),
   });
 };

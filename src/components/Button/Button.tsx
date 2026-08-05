@@ -11,6 +11,7 @@ export type ButtonVariant =
   | 'none';
 
 interface IButtonProps {
+  'aria-label'?: string;
   label?: string;
   icon?: React.ReactNode;
   children?: React.ReactNode;
@@ -34,6 +35,7 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 export default function Button({
+  'aria-label': ariaLabel,
   label,
   icon,
   children,
@@ -46,6 +48,7 @@ export default function Button({
 }: IButtonProps) {
   return (
     <button
+      aria-label={ariaLabel}
       type={type}
       disabled={disabled || pending}
       onClick={onClick}

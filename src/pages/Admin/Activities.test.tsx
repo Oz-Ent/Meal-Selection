@@ -2,6 +2,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Activities } from './Activities';
 
+jest.mock('../../components/TitleBar/TitleBar', () => ({
+    TitleBar: () => <div>Hi Test User,</div>,
+}));
+
 describe('Activities Component', () => {
     it('renders the header and all activity cards', () => {
         render(

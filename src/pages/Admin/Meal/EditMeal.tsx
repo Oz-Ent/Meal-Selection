@@ -52,10 +52,11 @@ export function EditMeal() {
           data: {
             name: mealData.name,
             foodCode: mealData.foodCode,
+            imagePath: mealData.imagePath ?? undefined,
             calories: mealData.calories ?? undefined,
             description: mealData.description ?? undefined,
           },
-          imageFile: mealData.imageFile ?? null,
+          imageFile: mealData.imageFile,
         });
         setShowEditMealModal(false);
         setEditMealData(null);
@@ -130,7 +131,7 @@ export function EditMeal() {
                     ? {
                         id: meal.id,
                         name: meal.name,
-                        image: meal.imagePath,
+                        imagePath: meal.imagePath,
                         foodCode: meal.foodCode,
                         calories: meal.calories,
                         description: meal.description,

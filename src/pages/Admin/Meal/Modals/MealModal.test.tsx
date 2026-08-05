@@ -12,7 +12,7 @@ const foodItems: FoodItem[] = [
 const editMealData: MealFormData = {
   id: 1,
   name: 'Pizza',
-  image: 'pizza.png',
+  imagePath: 'pizza.png',
   foodCode: 'SG-BS-PR-PP',
   calories: 200,
   description: 'Cheesy',

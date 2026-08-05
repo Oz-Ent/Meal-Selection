@@ -116,7 +116,7 @@ export function EditMenu() {
   };
 
   return (
-    <div className="min-h-screen pb-22">
+    <div className="min-h-screen pb-18">
       <NavBar title="Edit Menu" backUrl="/admin/menu" />
       {isLoading && <LoadingState message="Loading menu details..." />}
       {!isLoading && (
@@ -138,6 +138,15 @@ export function EditMenu() {
                 multiline
               />
             </div>
+            <div className="h-10">
+              <Button
+                variant="outline"
+                pending={isSaving}
+                disabled={!title.trim()}
+                onClick={() => void updateMetadata()}
+                label="Save details"
+              />
+            </div>
           </section>
           {days.map((day) => (
             <EditMenuDaySection
@@ -148,19 +157,6 @@ export function EditMenu() {
               onToggle={toggleAssignment}
             />
           ))}
-        </div>
-      )}
-      {!isLoading && (
-        <div className="fixed inset-x-0 bottom-0 z-10 mx-auto w-full max-w-md border-t border-msListBorder bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="h-10">
-            <Button
-              variant="outline"
-              pending={isSaving}
-              disabled={!title.trim()}
-              onClick={() => void updateMetadata()}
-              label="Save details"
-            />
-          </div>
         </div>
       )}
       <StatusModal
@@ -285,7 +281,7 @@ function EditMealSelectionModal({
 
   return (
     <Modal isOpen variant="bottom" onClose={onClose} showCloseButton>
-      <div className="flex h-[90vh] flex-col">
+      <div className="flex h-[90vh] flex-col pb-16">
         <h2 className="mb-2 shrink-0 px-3 pt-1 text-lg font-semibold text-msTextPrimary">
           All Meals
         </h2>
@@ -303,7 +299,7 @@ function EditMealSelectionModal({
             />
           ))}
         </div>
-        <div className="h-14 shrink-0 border-t border-msListBorder bg-white p-2">
+        <div className="absolute bottom-0 left-0 h-14 w-full border-t border-msListBorder bg-white p-2">
           <Button
             variant="primary"
             pending={isSaving}
