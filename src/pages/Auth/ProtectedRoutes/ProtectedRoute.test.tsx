@@ -1,13 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
-import { AuthContext } from './AuthContext';
-import type { IAuthContextType } from '../../utils/interfaces/IAuthContextType';
+import { AuthContext } from '../AuthContext/AuthContext';
+import type { IAuthContextType } from '../../../utils/interfaces/IAuthContextType';
 
 describe('ProtectedRoute Component', () => {
     it('renders children when user is authenticated', () => {
         const mockContext: IAuthContextType = {
-            user: null,
+            profile: null,
             token: 'valid-token',
             refreshToken: 'valid-refresh',
             login: jest.fn(),
@@ -29,7 +29,7 @@ describe('ProtectedRoute Component', () => {
 
     it('redirects to login when user is not authenticated', () => {
         const mockContext: IAuthContextType = {
-            user: null,
+            profile: null,
             token: null,
             refreshToken: null,
             login: jest.fn(),

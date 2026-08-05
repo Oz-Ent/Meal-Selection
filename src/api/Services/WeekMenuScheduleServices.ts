@@ -1,4 +1,4 @@
-import apiClient from "../axios";
+import apiClient from '../axios';
 
 export interface WeekMenuSchedule {
   id: number;
@@ -6,9 +6,9 @@ export interface WeekMenuSchedule {
   year: number;
   menu: {
     id: number;
-    name: string;
+    title: string;
   };
-  status: "DRAFT" | "ACTIVE" | "LOCKED" | "CLOSED";
+  status: 'DRAFT' | 'ACTIVE' | 'LOCKED' | 'CLOSED';
 }
 
 export interface CreateWeekMenuScheduleRequest {
@@ -18,15 +18,13 @@ export interface CreateWeekMenuScheduleRequest {
 }
 
 export interface UpdateWeekMenuScheduleRequest {
-  week?: number;
-  year?: number;
   menuId?: number;
-  status?: "DRAFT" | "ACTIVE" | "LOCKED" | "CLOSED";
+  status?: 'DRAFT' | 'ACTIVE' | 'LOCKED' | 'CLOSED';
 }
 
 export const weekMenuScheduleService = {
   getAll: async (): Promise<WeekMenuSchedule[]> => {
-    const response = await apiClient.get<WeekMenuSchedule[]>("/week-menu-schedules");
+    const response = await apiClient.get<WeekMenuSchedule[]>('/week-menu-schedules');
     return response.data;
   },
 
@@ -36,21 +34,21 @@ export const weekMenuScheduleService = {
   },
 
   getByWeekYear: async (week: number, year: number): Promise<WeekMenuSchedule> => {
-    const response = await apiClient.get<WeekMenuSchedule>("/week-menu-schedules/by-week-year", {
+    const response = await apiClient.get<WeekMenuSchedule>('/week-menu-schedules/by-week-year', {
       params: { week, year },
     });
     return response.data;
   },
 
   getByMenu: async (menuId: number): Promise<WeekMenuSchedule[]> => {
-    const response = await apiClient.get<WeekMenuSchedule[]>("/week-menu-schedules/by-menu", {
+    const response = await apiClient.get<WeekMenuSchedule[]>('/week-menu-schedules/by-menu', {
       params: { menuId },
     });
     return response.data;
   },
 
   create: async (data: CreateWeekMenuScheduleRequest): Promise<WeekMenuSchedule> => {
-    const response = await apiClient.post<WeekMenuSchedule>("/week-menu-schedules", data);
+    const response = await apiClient.post<WeekMenuSchedule>('/week-menu-schedules', data);
     return response.data;
   },
 

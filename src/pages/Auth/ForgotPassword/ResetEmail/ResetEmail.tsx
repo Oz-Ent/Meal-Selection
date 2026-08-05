@@ -4,6 +4,7 @@ import EmailImage from "../../../../assets/Email.svg";
 import { NavBar } from "../../../../components/NavBar/NavBar";
 import InputField from "../../../../components/InputField/InputField";
 import Button from "../../../../components/Button/Button";
+import { useGeneratePasswordTokenMutation } from "../../../../api/useApiQueries";
 
 export interface IResetEmailNavState {
   email: string;
@@ -15,17 +16,27 @@ export function ResetEmail() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const generatePasswordTokenMutation = useGeneratePasswordTokenMutation();
 
-  const isDisabled = email.trim() === "";
+  const isDisabled = email.trim() === "" || isLoading;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!EMAIL_REGEX.test(email)) {
       setError("Invalid email.");
       return;
     }
     setError("");
-    const state: IResetEmailNavState = { email };
-    navigate("/forgot-password/otp", { state });
+    setIsLoading(true);
+    try {
+      await generatePasswordTokenMutation.mutateAsync({ email });
+      const state: IResetEmailNavState = { email };
+      navigate("/forgot-password/otp", { state });
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to send reset link.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -54,7 +65,7 @@ export function ResetEmail() {
 
         <div className="w-full h-12 mt-8">
           <Button
-            label="Continue"
+            label={isLoading ? "Sending..." : "Continue"}
             variant="primary"
             disabled={isDisabled}
             onClick={handleContinue}

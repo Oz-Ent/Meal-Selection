@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { useAuth } from './useAuth';
-import { AuthContext } from './AuthContext';
-import type { IAuthContextType } from '../../utils/interfaces/IAuthContextType';
+import { AuthContext } from '../AuthContext/AuthContext';
+import type { IAuthContextType } from '../../../utils/interfaces/IAuthContextType';
 
 describe('useAuth Hook', () => {
     it('throws an error when used outside AuthProvider', () => {
@@ -17,7 +17,7 @@ describe('useAuth Hook', () => {
 
     it('returns the auth context when used within AuthProvider', () => {
         const mockContext: IAuthContextType = {
-            user: null,
+            profile: null,
             token: 'test-token',
             refreshToken: 'test-refresh',
             login: jest.fn(),
@@ -34,7 +34,7 @@ describe('useAuth Hook', () => {
 
         expect(result.current.token).toBe('test-token');
         expect(result.current.refreshToken).toBe('test-refresh');
-        expect(result.current.user).toBeNull();
+        expect(result.current.profile).toBeNull();
         expect(result.current.login).toBeDefined();
         expect(result.current.logout).toBeDefined();
     });

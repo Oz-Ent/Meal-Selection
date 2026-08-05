@@ -1,9 +1,10 @@
-import apiClient from "../axios";
+import apiClient from '../axios';
 
 export interface Menu {
   id: number;
   title: string;
   description: string | null;
+  isActive: boolean;
 }
 
 export interface MenuDetail extends Menu {
@@ -44,7 +45,7 @@ export interface AssignMealsRequest {
 
 export const menuService = {
   getAll: async (): Promise<Menu[]> => {
-    const response = await apiClient.get<Menu[]>("/menus");
+    const response = await apiClient.get<Menu[]>('/menus');
     return response.data;
   },
 
@@ -64,12 +65,12 @@ export const menuService = {
   },
 
   create: async (data: CreateMenuRequest): Promise<Menu> => {
-    const response = await apiClient.post<Menu>("/menus", data);
+    const response = await apiClient.post<Menu>('/menus', data);
     return response.data;
   },
 
   assignMeals: async (data: AssignMealsRequest[]): Promise<{ count: number }> => {
-    const response = await apiClient.post<{ count: number }>("/menus/meals", data);
+    const response = await apiClient.post<{ count: number }>('/menus/meals', data);
     return response.data;
   },
 

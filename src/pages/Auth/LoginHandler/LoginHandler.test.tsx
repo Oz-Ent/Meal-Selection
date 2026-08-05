@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { useLoginHandler } from './LoginHandler';
-import { AuthContext } from './AuthContext';
-import type { IAuthContextType } from '../../utils/interfaces/IAuthContextType';
+import { AuthContext } from '../AuthContext/AuthContext';
+import type { IAuthContextType } from '../../../utils/interfaces/IAuthContextType';
 
 // Mock the authService
 jest.mock('../../api/Services/AuthServices', () => ({
@@ -10,14 +10,14 @@ jest.mock('../../api/Services/AuthServices', () => ({
     },
 }));
 
-import { authService } from '../../api/Services/AuthServices';
+import { authService } from '../../../api/Services/AuthServices';
 
 const mockedAuthService = authService as jest.Mocked<typeof authService>;
 
 describe('useLoginHandler Hook', () => {
     const mockLogin = jest.fn();
     const mockContext: IAuthContextType = {
-        user: null,
+        profile: null,
         token: null,
         refreshToken: null,
         login: mockLogin,

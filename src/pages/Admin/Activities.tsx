@@ -14,7 +14,7 @@ export function Activities() {
             <img src={MealForeground} className="absolute inset-0 w-full h-full object-cover opacity-90" />
             <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/40 to-black/80"></div>
             <div className="absolute inset-0 pt-6.5 pb-4 flex flex-col text-white">
-                <TitleBar/>
+                <TitleBar iconColor="white"/>
                 <div className="mt-auto">
                     <h1 className="text-[24px] font-medium leading-snug tracking-tight px-5">Manage and<br/>coordinate lunch effortlessly.</h1>
                 </div>
@@ -41,7 +41,7 @@ export function Activities() {
         title="Choose Meals"
         description="Select meals you want to eat for the week."
         imageUrl={ChooseMeals}
-        onButtonClick={() => {}}
+        onButtonClick={() => {navigate('/select-meal')}}
     />    <Card
         type="activity"
         title="Reports"

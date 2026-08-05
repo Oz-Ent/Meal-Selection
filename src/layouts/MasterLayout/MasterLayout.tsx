@@ -1,9 +1,9 @@
-import { Outlet } from "react-router";
+import { Outlet } from 'react-router';
 
 export default function MasterLayout() {
-    return (
-        <main className="flex flex-col items-center justify-center w-screen h-screen bg-white text-sky-800 px-8">
-                <Outlet /> 
-        </main>
-    );
+  return (
+    <main className="flex min-h-screen w-full flex-col bg-white text-sky-800">
+      <Outlet />
+    </main>
+  );
 }

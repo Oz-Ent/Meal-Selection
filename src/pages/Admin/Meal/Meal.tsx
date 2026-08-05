@@ -1,27 +1,52 @@
 import { EmptyPage } from '../../../components/EmptyPage/EmptyPage';
 import { NavBar } from '../../../components/NavBar/NavBar';
 import { useState } from 'react';
-import { availableMeals } from '../../../helpers/availableMeals';
 import ListCard from '../../../components/ListCard/ListCard';
 import { useNavigate } from 'react-router-dom';
 import { BottomStatusModal } from './Modals/BottomStatusModal';
-import { MealModal } from './Modals/MealModal';
+import { MealModal, type MealFormData } from './Modals/MealModal';
+import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
+import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
+import {
+  useCreateMealMutation,
+  useFoodLibraryQuery,
+  useMealsQuery,
+} from '../../../api/useApiQueries';
+
 export function Meal() {
   const navigate = useNavigate();
+  const mealsQuery = useMealsQuery();
+  const foodLibraryQuery = useFoodLibraryQuery();
+  const createMealMutation = useCreateMealMutation();
   const [isAddMealModalOpen, setIsAddMealModalOpen] = useState(false);
   const [statusModal, setStatusModal] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
-  const handleMealAddition = (mealData: { title: string; imageUrl: string }) => {
-    const newMeal = {
-      id: (availableMeals.length + 1).toString(),
-      title: mealData.title,
-      imageUrl: mealData.imageUrl || 'https://placehold.co/150x150/f3f4f6/a1a1aa?text=Meal',
-    };
-    availableMeals.unshift(newMeal);
-    setIsAddMealModalOpen(false);
-    setStatusModal({ type: 'success', message: 'New meal created successfully' });
+
+  const meals = (mealsQuery.data?.meals ?? []).filter((meal) => meal.isActive);
+  const foodItems = foodLibraryQuery.data ?? [];
+  const isLoading = mealsQuery.isLoading || foodLibraryQuery.isLoading;
+
+  const handleMealAddition = async (mealData: MealFormData) => {
+    try {
+      await createMealMutation.mutateAsync({
+        data: {
+          name: mealData.name,
+          foodCode: mealData.foodCode,
+          calories: mealData.calories ?? undefined,
+          description: mealData.description ?? undefined,
+        },
+        imageFile: mealData.imageFile ?? null,
+      });
+      setIsAddMealModalOpen(false);
+      setStatusModal({ type: 'success', message: 'New meal created successfully' });
+    } catch {
+      setStatusModal({
+        type: 'error',
+        message: 'Unable to create meal. Ensure the food code is unique.',
+      });
+    }
   };
   return (
     <div className="h-full">
@@ -30,20 +55,25 @@ export function Meal() {
         onAddButtonClick={() => setIsAddMealModalOpen(true)}
         backUrl="/admin/activities"
       />
-      {availableMeals.length === 0 && <EmptyPage item="meal" />}
-      {availableMeals.length > 0 &&
-        availableMeals.map((meal) => (
+      {isLoading && <LoadingState message="Loading meals..." />}
+      {!isLoading && meals.length === 0 && <EmptyPage item="meal" />}
+      {!isLoading &&
+        meals.map((meal) => (
           <ListCard
             id={meal.id}
             inputType="none"
             key={meal.id}
-            title={meal.title}
-            imageUrl={meal.imageUrl}
+            title={meal.name}
+            imageUrl={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
             onLongPress={(id) => navigate(`/admin/meal/edit/${id}`)}
           />
         ))}
       {isAddMealModalOpen && (
-        <MealModal onAddMeal={handleMealAddition} onClose={() => setIsAddMealModalOpen(false)} />
+        <MealModal
+          foodItems={foodItems}
+          onAddMeal={handleMealAddition}
+          onClose={() => setIsAddMealModalOpen(false)}
+        />
       )}
       {statusModal && (
         <BottomStatusModal
@@ -57,4 +87,13 @@ export function Meal() {
   );
 }
 
-
+function LoadingState({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-48 flex-col items-center justify-center gap-3" role="status">
+      <div className="h-8 w-8">
+        <LoadingSpinner />
+      </div>
+      <p className="text-sm text-msCardSecondaryText">{message}</p>
+    </div>
+  );
+}

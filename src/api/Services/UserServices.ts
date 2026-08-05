@@ -2,6 +2,7 @@ import apiClient from "../axios";
 
 export interface User {
   id: number;
+  name: string;
   email: string;
   referenceEmail: string;
   status: "ACTIVE" | "INACTIVE" | "RETIRED";

@@ -1,1 +1,1 @@
-export const MEAL_APP_CORE = "http://localhost:5000";
+export const MEAL_APP_CORE = "https://meal-app-core.onrender.com";

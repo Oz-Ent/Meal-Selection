@@ -1,24 +1,43 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../../components/Button/Button"; 
 import InputField from "../../../components/InputField/InputField";
 import PasswordField from "../../../components/PasswordField/PasswordField";
 import AuthLink from "../../../components/AuthLink/AuthLink";
 import Checkbox from "../../../components/Checkbox/Checkbox";  
-
+import { useLoginHandler } from "../LoginHandler/LoginHandler";
 
 
 function Login() {
+  const navigate = useNavigate();
+  const handleLoginSubmit = useLoginHandler();
   const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
-    if (email !== "test@email.com" || password !== "password123") {
-      setError("Invalid email or password.");
+    if (!email || !password) {
+      setError("Email and password are required.");
       return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await handleLoginSubmit(email, password, keepSignedIn);
+      const roleName = response.user.roleName.toLowerCase();
+      if (roleName === "admin" || roleName === "hr") {
+        navigate("/admin/activities");
+      } else {
+        navigate("/activities");
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,9 +88,10 @@ function Login() {
 
         <div className="w-full h-12">
           <Button
-            label="Login"
+            label={isLoading ? "Logging in..." : "Login"}
             variant="primary"
             onClick={handleLogin}
+            disabled={isLoading}
             className="rounded-sm text-base font-['Roboto']"
           />
         </div>

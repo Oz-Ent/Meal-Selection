@@ -4,13 +4,16 @@ import OtpImage from "../../../../assets/OTP.svg";
 import { NavBar } from "../../../../components/NavBar/NavBar";
 import { OtpInput } from "../../../../components/OtpInput/OtpInput";
 import Button from "../../../../components/Button/Button";
+import {
+  useGeneratePasswordTokenMutation,
+  useVerifyOtpMutation,
+} from "../../../../api/useApiQueries";
 
 interface IOtpLocationState {
   email?: string;
 }
 
 const OTP_LENGTH = 5;
-const VALID_OTP = "99999";
 
 export function OtpVerification() {
   const navigate = useNavigate();
@@ -19,21 +22,36 @@ export function OtpVerification() {
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const verifyOtpMutation = useVerifyOtpMutation();
+  const generatePasswordTokenMutation = useGeneratePasswordTokenMutation();
 
-  const isDisabled = otp.length < OTP_LENGTH;
+  const isDisabled = otp.length < OTP_LENGTH || isLoading;
 
-  const handleVerify = () => {
-    if (otp !== VALID_OTP) {
-      setError("Invalid code.");
-      return;
-    }
+  const handleVerify = async () => {
     setError("");
-    navigate("/forgot-password/reset");
+    setIsLoading(true);
+    try {
+      await verifyOtpMutation.mutateAsync({ email, token: otp });
+      navigate("/forgot-password/reset", { state: { email, token: otp } });
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Invalid or expired OTP.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setError("");
+    setSuccessMsg("");
     setOtp("");
+    try {
+      await generatePasswordTokenMutation.mutateAsync({ email });
+      setSuccessMsg("OTP resent successfully.");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to resend OTP.");
+    }
   };
 
   return (
@@ -58,11 +76,12 @@ export function OtpVerification() {
             hasError={!!error}
           />
           {error && <p className="text-msWarningRed text-center text-xs mt-2">{error}</p>}
+          {successMsg && <p className="text-green-500 text-center text-xs mt-2">{successMsg}</p>}
         </div>
 
         <div className="w-full h-12 mt-8">
           <Button
-            label="Verify"
+            label={isLoading ? "Verifying..." : "Verify"}
             variant="primary"
             disabled={isDisabled}
             onClick={handleVerify}

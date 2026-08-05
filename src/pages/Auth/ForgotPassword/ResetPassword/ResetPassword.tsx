@@ -1,25 +1,43 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ResetPasswordImage from "../../../../assets/Reset Password.svg";
 import { NavBar } from "../../../../components/NavBar/NavBar";
 import PasswordField from "../../../../components/PasswordField/PasswordField";
 import Button from "../../../../components/Button/Button";
+import { useResetPasswordMutation } from "../../../../api/useApiQueries";
 
 export function ResetPassword() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as { email?: string; token?: string } | undefined;
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const resetPasswordMutation = useResetPasswordMutation();
 
-  const isDisabled = password.trim() === "" || confirmPassword.trim() === "";
+  const isDisabled = password.trim() === "" || confirmPassword.trim() === "" || isLoading;
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (password !== confirmPassword) {
       setError("Passwords don't match.");
       return;
     }
+    if (!state?.email || !state?.token) {
+      setError("Missing reset token or email. Please restart the process.");
+      return;
+    }
     setError("");
-    navigate("/forgot-password/success");
+    setIsLoading(true);
+    try {
+      await resetPasswordMutation.mutateAsync({ email: state.email, password, token: state.token });
+      navigate("/forgot-password/success");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to reset password.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -61,7 +79,7 @@ export function ResetPassword() {
 
         <div className="w-full h-12 mt-8">
           <Button
-            label="Reset Password"
+            label={isLoading ? "Resetting..." : "Reset Password"}
             variant="primary"
             disabled={isDisabled}
             onClick={handleReset}

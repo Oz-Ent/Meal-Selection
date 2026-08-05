@@ -1,8 +1,8 @@
-import apiClient from "../axios";
+import apiClient from '../axios';
 
 export interface Meal {
   id: number;
-  image: string | null;
+  imagePath: string | null;
   name: string;
   description: string | null;
   isActive: boolean;
@@ -14,7 +14,7 @@ export interface Meal {
 
 export interface CreateMealRequest {
   name: string;
-  image?: string;
+  imagePath?: string | null;
   isActive?: boolean;
   foodCode: string;
   calories?: number;
@@ -23,7 +23,7 @@ export interface CreateMealRequest {
 
 export interface UpdateMealRequest {
   name?: string;
-  image?: string;
+  imagePath?: string | null;
   isActive?: boolean;
   foodCode?: string;
   calories?: number;
@@ -45,9 +45,28 @@ export interface BatchMealResponse {
   meal: { count: number };
 }
 
+// Builds a multipart payload when an image file must be uploaded alongside the
+// meal fields. The backend meal endpoints accept the file under the "image"
+// field and store the resulting public URL as imagePath.
+const buildMealFormData = (
+  data: CreateMealRequest | UpdateMealRequest,
+  imageFile: File,
+): FormData => {
+  const formData = new FormData();
+  if (data.name !== undefined) formData.append('name', data.name);
+  if (data.foodCode !== undefined) formData.append('foodCode', data.foodCode);
+  if (data.calories !== undefined && data.calories !== null)
+    formData.append('calories', String(data.calories));
+  if (data.description !== undefined && data.description !== null)
+    formData.append('description', data.description);
+  if (data.isActive !== undefined) formData.append('isActive', String(data.isActive));
+  formData.append('image', imageFile);
+  return formData;
+};
+
 export const mealService = {
   getAll: async (): Promise<MealListResponse> => {
-    const response = await apiClient.get<MealListResponse>("/meals");
+    const response = await apiClient.get<MealListResponse>('/meals');
     return response.data;
   },
 
@@ -56,17 +75,41 @@ export const mealService = {
     return response.data;
   },
 
-  create: async (data: CreateMealRequest): Promise<MealResponse> => {
-    const response = await apiClient.post<MealResponse>("/meals", data);
+  create: async (data: CreateMealRequest, imageFile?: File | null): Promise<MealResponse> => {
+    if (imageFile) {
+      const response = await apiClient.post<MealResponse>(
+        '/meals',
+        buildMealFormData(data, imageFile),
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
+      );
+      return response.data;
+    }
+    const response = await apiClient.post<MealResponse>('/meals', data);
     return response.data;
   },
 
   createBatch: async (data: CreateMealRequest[]): Promise<BatchMealResponse> => {
-    const response = await apiClient.post<BatchMealResponse>("/meals/batch", data);
+    const response = await apiClient.post<BatchMealResponse>('/meals/batch', data);
     return response.data;
   },
 
-  update: async (id: number, data: UpdateMealRequest): Promise<MealResponse> => {
+  update: async (
+    id: number,
+    data: UpdateMealRequest,
+    imageFile?: File | null,
+  ): Promise<MealResponse> => {
+    if (imageFile) {
+      const response = await apiClient.put<MealResponse>(
+        `/meals/${id}`,
+        buildMealFormData(data, imageFile),
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
+      );
+      return response.data;
+    }
     const response = await apiClient.put<MealResponse>(`/meals/${id}`, data);
     return response.data;
   },

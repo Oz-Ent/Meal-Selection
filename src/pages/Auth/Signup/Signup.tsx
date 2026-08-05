@@ -1,25 +1,71 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../../components/Button/Button"; 
 import InputField from "../../../components/InputField/InputField";
 import PasswordField from "../../../components/PasswordField/PasswordField";
 import AuthLink from "../../../components/AuthLink/AuthLink";
 import Checkbox from "../../../components/Checkbox/Checkbox";  
-
+import { useLoginHandler } from "../LoginHandler/LoginHandler";
+import { useOnboardingMutation, useRegisterMutation } from "../../../api/useApiQueries";
 
 
 function Signup() {
+  const navigate = useNavigate();
+  const handleLoginSubmit = useLoginHandler();
+  const onboardingMutation = useOnboardingMutation();
+  const registerMutation = useRegisterMutation();
   const [keepSignedIn, setKeepSignedIn] = useState(false);
+  const [noToken, setNoToken] = useState(false);
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = () => {
+  const handleNoTokenChange = async (checked: boolean) => {
+    setNoToken(checked);
     setError("");
+    setSuccessMsg("");
+    if (checked) {
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setError("Please enter a valid email address first.");
+        setNoToken(false);
+        return;
+      }
+      try {
+        await onboardingMutation.mutateAsync({ email });
+        setSuccessMsg("Token sent! Please check your email.");
+      } catch (error: unknown) {
+        setError(error instanceof Error ? error.message : "Failed to send token.");
+        setNoToken(false);
+      }
+    }
+  };
 
-    if (email !== "test@email.com" || password !== "password123") {
-      setError("Invalid email or password.");
+  const handleSignup = async () => {
+    setError("");
+    setSuccessMsg("");
+
+    if (!email || !password || !token) {
+      setError("Email, password, and token are required.");
       return;
+    }
+
+    setIsLoading(true);
+    try {
+      await registerMutation.mutateAsync({ email, password, token });
+      const response = await handleLoginSubmit(email, password, keepSignedIn);
+      const roleName = response.user.roleName.toLowerCase();
+      if (roleName === "admin" || roleName === "hr") {
+        navigate("/admin/activities");
+      } else {
+        navigate("/activities");
+      }
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to register. Invalid token or details.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,11 +108,19 @@ function Signup() {
          {error && (
           <p className="text-red-500 text-right text-xs">{error}</p>
           )}
+         {successMsg && (
+          <p className="text-green-500 text-right text-xs">{successMsg}</p>
+          )}
 
         <AuthLink to="/forgot-password" className="text-xs text-right text-blue-600" text="Forgot Password?" onClick={() => {}} />
        </section>
 
        <section className="flex flex-col gap-8">
+         <Checkbox
+           label="I don't have a token."
+           checked={noToken}
+           onChange={handleNoTokenChange}
+         />
          <Checkbox
            label="Keep me signed in."
            checked={keepSignedIn}
@@ -75,9 +129,10 @@ function Signup() {
 
         <div className="w-full h-12">
           <Button
-            label="Sign Up"
+            label={isLoading ? "Signing up..." : "Sign Up"}
             variant="primary"
             onClick={handleSignup}
+            disabled={isLoading}
             className="rounded-sm text-base font-['Roboto']"
           />
         </div>

@@ -9,7 +9,7 @@ function AuthConsumer() {
     return (
         <div>
             <span data-testid="token">{context.token ?? 'null'}</span>
-            <span data-testid="user">{context.user ? JSON.stringify(context.user) : 'null'}</span>
+            <span data-testid="user">{context.profile ? JSON.stringify(context.profile) : 'null'}</span>
             <button onClick={() => context.login(
                 {
                     user: { id: 1, email: 'test@test.com', name: 'Test', roleId: 1, roleName: 'Admin' },

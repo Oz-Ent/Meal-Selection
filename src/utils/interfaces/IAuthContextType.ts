@@ -2,9 +2,9 @@ import type { IAuthUser } from "./IAuthUser";
 
 
 export interface IAuthContextType {
-  user: IAuthUser | null;
+  profile: IAuthUser | null;
   token: string | null;
   refreshToken: string | null;
-login: (user: IAuthUser, token: string, refreshToken: string) => void;
+login: (profile: IAuthUser, token: string, refreshToken: string, isPersistent?: boolean) => void;
 logout: () => void;
 }

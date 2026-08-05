@@ -1,37 +1,106 @@
-import { useRef, useState } from "react";
-import Modal from "../../../../components/Modal/Modal";
-import Button from "../../../../components/Button/Button";
-import { Pencil, Plus } from "lucide-react";
-import InputField from "../../../../components/InputField/InputField";
-import StatusModal from "../../../../components/StatusModal/StatusModal";
-import MealPlaceholder from '../../../../assets/MealPlaceholder.svg';
+import { useRef, useState } from 'react';
+import Modal from '../../../../components/Modal/Modal';
+import Button from '../../../../components/Button/Button';
+import InputField from '../../../../components/InputField/InputField';
+import StatusModal from '../../../../components/StatusModal/StatusModal';
+import { Pencil, Plus } from 'lucide-react';
+import { FALLBACK_MEAL_IMAGE_URL } from '../../../../helpers/mealDefaults';
+import type { FoodGroup, FoodItem } from '../../../../api/Services/FoodLibraryServices';
+
+export interface MealFormData {
+  id?: number;
+  name: string;
+  image: string | null;
+  imageFile?: File | null;
+  foodCode: string;
+  calories: number | null;
+  description: string | null;
+}
 
 export interface IAddMealModal {
-  mealData?:{id: string, title: string; imageUrl: string }
-  onAddMeal: (mealData: { id?: string, title: string; imageUrl: string }) => void;
+  mealData?: MealFormData;
+  foodItems: FoodItem[];
+  onAddMeal: (mealData: MealFormData) => void | Promise<void>;
   isEditMode?: boolean;
   onClose: () => void;
 }
 
-export function MealModal({ onAddMeal, onClose, isEditMode = false, mealData }: IAddMealModal) {
-  const [name, setName] = useState(mealData?.title || '');
-  const [mealImage, setMealImage] = useState<string>(mealData?.imageUrl || MealPlaceholder);
+const FOOD_CODE_GROUPS: Array<{ group: FoodGroup; label: string }> = [
+  { group: 'SUPERGROUP', label: 'Supergroup' },
+  { group: 'BASE', label: 'Base' },
+  { group: 'PROTEIN', label: 'Protein' },
+  { group: 'PREP', label: 'Preparation' },
+];
+
+const getInitialSelection = (
+  foodCode: string | undefined,
+  foodItems: FoodItem[],
+  group: FoodGroup,
+) => {
+  const codeIndex = FOOD_CODE_GROUPS.findIndex((item) => item.group === group);
+  const code = foodCode?.split('-')[codeIndex];
+  return (
+    foodItems.find((item) => item.foodGroup === group && item.foodCode === code)?.foodCode || ''
+  );
+};
+
+export function MealModal({
+  onAddMeal,
+  onClose,
+  isEditMode = false,
+  mealData,
+  foodItems,
+}: IAddMealModal) {
+  const [name, setName] = useState(mealData?.name || '');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(
+    mealData?.image || FALLBACK_MEAL_IMAGE_URL,
+  );
+  const [calories, setCalories] = useState(mealData?.calories?.toString() || '');
+  const [description, setDescription] = useState(mealData?.description || '');
+  const [foodCodes, setFoodCodes] = useState<Record<FoodGroup, string>>({
+    SUPERGROUP: getInitialSelection(mealData?.foodCode, foodItems, 'SUPERGROUP'),
+    BASE: getInitialSelection(mealData?.foodCode, foodItems, 'BASE'),
+    PROTEIN: getInitialSelection(mealData?.foodCode, foodItems, 'PROTEIN'),
+    PREP: getInitialSelection(mealData?.foodCode, foodItems, 'PREP'),
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusModal, setStatusModal] = useState<{
     isOpen: boolean;
     type: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [showOptionModal,setShowOptionModal] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasChanges = Boolean(name || calories || description || imageFile);
+  const foodCode = FOOD_CODE_GROUPS.map(({ group }) => foodCodes[group]).join('-');
+  const hasCompleteFoodCode = FOOD_CODE_GROUPS.every(({ group }) => foodCodes[group]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setMealImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (file?.type.startsWith('image/')) {
+      setImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onAddMeal({
+        id: mealData?.id,
+        name: name.trim(),
+        foodCode,
+        image: mealData?.image ?? null,
+        imageFile,
+        calories: calories ? Number(calories) : null,
+        description: description.trim() || null,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -40,7 +109,7 @@ export function MealModal({ onAddMeal, onClose, isEditMode = false, mealData }: 
       <Modal
         isOpen={true}
         onClose={() => {
-          if (name.length !== 0 || mealImage !== MealPlaceholder) {
+          if (hasChanges) {
             setStatusModal({
               isOpen: true,
               type: 'error',
@@ -54,43 +123,35 @@ export function MealModal({ onAddMeal, onClose, isEditMode = false, mealData }: 
         showCloseButton={true}
       >
         <div className="p-2">
-          <h2 className="text-msTextPrimary font-semibold text-lg">{isEditMode ? 'Edit Meal' : 'New Meal'}</h2>
+          <h2 className="text-msTextPrimary font-semibold text-lg">
+            {isEditMode ? 'Edit Meal' : 'New Meal'}
+          </h2>
           <div className="mt-5">
-            <h3 className="text-msTextPrimary font-medium text-[14px] ">Meal Image</h3>
-            <div className="relative w-26.25 h-21 my-1 rounded-[10px]">
+            <h3 className="text-msTextPrimary font-medium text-[14px] mb-1">Meal Image</h3>
+            <div className="relative h-21 w-26.25 rounded-[10px]">
               <img
-                className="w-full h-full object-cover rounded-[10px]"
-                alt="Meal Image"
-                src={mealImage}
+                className="h-full w-full rounded-[10px] object-cover"
+                alt="Meal preview"
+                src={imagePreviewUrl}
               />
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleImageUpload}
+                onChange={handleImageSelection}
               />
               <Button
                 variant="none"
-                className="absolute bottom-0 right-0 p-1 text-white flex items-center justify-center rounded-full bg-msDeepBlue h-7 w-7"
-                onClick={() => {
-                  if (!isEditMode) {
-                     fileInputRef.current?.click();
-                     return;
-                  }
-                  setShowOptionModal(true);
-                }}
+                className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-msDeepBlue p-1 text-white"
+                onClick={() => fileInputRef.current?.click()}
               >
-                {mealImage === MealPlaceholder ? (
-                  <Plus className="stroke-current h-5 w-5 text-center " />
+                {imagePreviewUrl === FALLBACK_MEAL_IMAGE_URL ? (
+                  <Plus className="h-5 w-5" />
                 ) : (
-                  <Pencil className="stroke-current h-4 w-4 text-center " />
+                  <Pencil className="h-4 w-4" />
                 )}
               </Button>
-              {showOptionModal && <div className="absolute top-[65%] -right-33.5 z-10 mt-1 w-40 rounded-lg bg-white shadow-md border border-msListBorder py-2">
-                <Button variant="none" className="w-full text-left px-4 py-2 text-sm text-msTextPrimary hover:bg-gray-50 border-b border-msListBorder" onClick={()=>{fileInputRef.current?.click(); setShowOptionModal(false);}}>Change Image</Button>
-                <Button variant="none" className="w-full text-left px-4 py-2 text-sm text-msTextPrimary hover:bg-gray-50" onClick={()=>{setMealImage(MealPlaceholder); setShowOptionModal(false);}}>Delete Image</Button>
-              </div>}
             </div>
           </div>
           <div className="mt-7">
@@ -109,14 +170,65 @@ export function MealModal({ onAddMeal, onClose, isEditMode = false, mealData }: 
               />
             </div>
           </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {FOOD_CODE_GROUPS.map(({ group, label }) => (
+              <label
+                key={group}
+                className="flex flex-col gap-1 text-[14px] font-medium text-msTextPrimary"
+              >
+                {label}
+                <select
+                  value={foodCodes[group]}
+                  onChange={(event) =>
+                    setFoodCodes((currentCodes) => ({
+                      ...currentCodes,
+                      [group]: event.target.value,
+                    }))
+                  }
+                  className="h-11 rounded-md border border-gray-300 bg-white px-3 text-sm font-normal outline-none focus:border-msDeepBlue"
+                >
+                  <option value="">Select {label.toLowerCase()}</option>
+                  {foodItems
+                    .filter((item) => item.foodGroup === group)
+                    .map((item) => (
+                      <option key={item.id} value={item.foodCode}>
+                        {item.name} ({item.foodCode})
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-msCardSecondaryText">
+            Food code: {hasCompleteFoodCode ? foodCode : 'Select all four food groups'}
+          </p>
+          <div className="mt-4">
+            <h3 className="text-msTextPrimary font-medium text-[14px] mb-1">Calories</h3>
+            <InputField
+              placeholder="Optional"
+              value={calories}
+              onChange={(event) => setCalories(event.target.value)}
+              className="bg-msTextArea"
+              isBorderVisible={false}
+            />
+          </div>
+          <div className="mt-4">
+            <h3 className="text-msTextPrimary font-medium text-[14px] mb-1">Description</h3>
+            <InputField
+              placeholder="Optional description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="bg-msTextArea"
+              isBorderVisible={false}
+              multiline={true}
+            />
+          </div>
           <div className="h-11 mt-4">
             <Button
               variant="primary"
-              onClick={() => {
-                onAddMeal({ id: mealData?.id, title: name, imageUrl: mealImage });
-              }}
+              onClick={handleSubmit}
               label={isEditMode ? 'Edit Meal' : 'Add New Meal'}
-              disabled={name.length === 0}
+              disabled={!name.trim() || !hasCompleteFoodCode || isSubmitting}
             />
           </div>
         </div>

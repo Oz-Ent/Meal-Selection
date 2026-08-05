@@ -1,24 +1,30 @@
 import { NavLink, useParams } from 'react-router-dom';
 import ListCard from '../../../components/ListCard/ListCard';
-import { availableMeals } from '../../../helpers/availableMeals';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import EditIcon from '../../../assets/EditIcon.svg';
 import Button from '../../../components/Button/Button';
 import DeleteIcon from '../../../assets/DeleteIcon.svg';
-import { MealModal } from './Modals/MealModal';
+import { MealModal, type MealFormData } from './Modals/MealModal';
 import { BottomStatusModal } from './Modals/BottomStatusModal';
 import Modal from '../../../components/Modal/Modal';
 import StatusModal from '../../../components/StatusModal/StatusModal';
+import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
+import {
+  useDeleteMealsMutation,
+  useFoodLibraryQuery,
+  useMealsQuery,
+  useUpdateMealMutation,
+} from '../../../api/useApiQueries';
 
 export function EditMeal() {
   const { cardId } = useParams<{ cardId: string }>();
   const [selectedIds, setSelectedIds] = useState<string[]>(cardId ? [cardId] : []);
-  const [editMealData, setEditMealData] = useState<{
-    id: string;
-    title: string;
-    imageUrl: string;
-  } | null>(null);
+  const mealsQuery = useMealsQuery();
+  const foodLibraryQuery = useFoodLibraryQuery();
+  const updateMealMutation = useUpdateMealMutation();
+  const deleteMealsMutation = useDeleteMealsMutation();
+  const [editMealData, setEditMealData] = useState<MealFormData | null>(null);
   const [showEditMealModal, setShowEditMealModal] = useState(false);
   const [bottomStatusModal, setBottomStatusModal] = useState<{
     type: 'success' | 'error';
@@ -26,36 +32,48 @@ export function EditMeal() {
   } | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [statusModal, setStatusModal] = useState<{
-    isOpen : boolean;
-    message : string;
-    type : 'success' | 'error';
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error';
   }>({
-    isOpen : false,
-    message : '',
-    type : 'success'
+    isOpen: false,
+    message: '',
+    type: 'success',
   });
 
-  const handleEditMeal = (mealData: { id?: string; title: string; imageUrl: string }) => {
+  const meals = (mealsQuery.data?.meals ?? []).filter((meal) => meal.isActive);
+  const foodItems = foodLibraryQuery.data ?? [];
+
+  const handleEditMeal = async (mealData: MealFormData) => {
     if (mealData.id) {
-      const index = availableMeals.findIndex((meal) => meal.id === mealData.id);
-      if (index !== -1) {
-        availableMeals[index] = {
+      try {
+        await updateMealMutation.mutateAsync({
           id: mealData.id,
-          title: mealData.title,
-          imageUrl: mealData.imageUrl,
-        };
+          data: {
+            name: mealData.name,
+            foodCode: mealData.foodCode,
+            calories: mealData.calories ?? undefined,
+            description: mealData.description ?? undefined,
+          },
+          imageFile: mealData.imageFile ?? null,
+        });
+        setShowEditMealModal(false);
+        setEditMealData(null);
+        setBottomStatusModal({ type: 'success', message: 'Meal updated successfully' });
+      } catch {
+        setBottomStatusModal({
+          type: 'error',
+          message: 'Unable to update meal. Ensure the food code is unique.',
+        });
       }
-      setShowEditMealModal(false);
-      setEditMealData(null);
-      setBottomStatusModal({ type: 'success', message: 'New meal updated successfully' });
     }
   };
   const handleSelectAll = () => {
     setSelectedIds((prevIds) => {
-      if (prevIds.length === availableMeals.length) {
+      if (prevIds.length === meals.length) {
         return [];
       }
-      return availableMeals.map((meal) => meal.id);
+      return meals.map((meal) => meal.id.toString());
     });
   };
 
@@ -68,18 +86,26 @@ export function EditMeal() {
     });
   };
 
-  const handleRemoveMeals = () => {
-    const updatedMeals = availableMeals.filter((meal) => !selectedIds.includes(meal.id));
-    availableMeals.length = 0;
-    availableMeals.push(...updatedMeals);
-    setSelectedIds([]);
+  const handleRemoveMeals = async () => {
+    try {
+      await deleteMealsMutation.mutateAsync(selectedIds.map(Number));
+      setSelectedIds([]);
+      setIsDeleteModalOpen(false);
+      setStatusModal({ isOpen: true, message: 'Meal(s) deleted successfully', type: 'success' });
+    } catch {
+      setIsDeleteModalOpen(false);
+      setBottomStatusModal({
+        type: 'error',
+        message: 'Unable to delete the selected meals. Please try again.',
+      });
+    }
   };
 
-  const isAllSelected = selectedIds.length === availableMeals.length;
+  const isAllSelected = meals.length > 0 && selectedIds.length === meals.length;
 
   return (
     <div>
-      <nav className="mx-4 my-3 py-1 border-b border-msListBorder min-h-10">
+      <nav className="sticky top-0 z-50 min-h-13 w-full border-b border-msListBorder bg-white px-4 py-3">
         <section className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
             <NavLink to="/admin/meal">
@@ -96,19 +122,28 @@ export function EditMeal() {
               className="cursor-pointer"
               onClick={() => {
                 setShowEditMealModal(true);
+                const meal = meals.find(
+                  (currentMeal) => currentMeal.id.toString() === selectedIds[0],
+                );
                 setEditMealData(
-                  availableMeals.find((meal) => meal.id === selectedIds[0]) || null,
+                  meal
+                    ? {
+                        id: meal.id,
+                        name: meal.name,
+                        image: meal.imagePath,
+                        foodCode: meal.foodCode,
+                        calories: meal.calories,
+                        description: meal.description,
+                      }
+                    : null,
                 );
               }}
             >
-              <img
-                src={EditIcon}
-                className="stroke-msDeepBlue h-4.5 w-4.5"
-              />
+              <img src={EditIcon} className="stroke-msDeepBlue h-4.5 w-4.5" />
             </Button>
-            <Button 
-              variant="none" 
-              disabled={selectedIds.length === 0} 
+            <Button
+              variant="none"
+              disabled={selectedIds.length === 0}
               className="cursor-pointer"
               onClick={() => setIsDeleteModalOpen(true)}
             >
@@ -126,21 +161,21 @@ export function EditMeal() {
           <span className="pl-3">Select All</span>
         </section>
       </nav>
-      {availableMeals.length > 0 &&
-        availableMeals.map((meal) => (
-          <ListCard
-            id={meal.id}
-            inputType="checkbox"
-            key={meal.id}
-            title={meal.title}
-            imageUrl={meal.imageUrl}
-            selectedValue={selectedIds}
-            onChange={(id) => handleSelectionChange(id)}
-            highlightedColor="bg-msHighlightBlue"
-          />
-        ))}
+      {meals.map((meal) => (
+        <ListCard
+          id={meal.id.toString()}
+          inputType="checkbox"
+          key={meal.id}
+          title={meal.name}
+          imageUrl={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
+          selectedValue={selectedIds}
+          onChange={(id) => handleSelectionChange(id)}
+          highlightedColor="bg-msHighlightBlue"
+        />
+      ))}
       {showEditMealModal && (
         <MealModal
+          foodItems={foodItems}
           onAddMeal={handleEditMeal}
           onClose={() => setShowEditMealModal(false)}
           mealData={editMealData ?? undefined}
@@ -148,44 +183,47 @@ export function EditMeal() {
         />
       )}
       {bottomStatusModal && (
-              <BottomStatusModal
-                type={bottomStatusModal.type}
-                message={bottomStatusModal.message}
-                onClose={() => setBottomStatusModal(null)}
-                retry={() => {}}
-              />
-            )}
-      {isDeleteModalOpen && (
-        <DeletModal 
-          isOpen={isDeleteModalOpen} 
-          onClose={() => setIsDeleteModalOpen(false)} 
-          onConfirm={() => {
-            handleRemoveMeals();
-            setIsDeleteModalOpen(false);
-            setStatusModal({ isOpen: true, message: 'Meal(s) deleted successfully', type: 'success' });
-          }}
+        <BottomStatusModal
+          type={bottomStatusModal.type}
+          message={bottomStatusModal.message}
+          onClose={() => setBottomStatusModal(null)}
+          retry={() => {}}
         />
       )}
-      <StatusModal isOpen={statusModal.isOpen} message={statusModal.message} status={statusModal.type} onClose={() => setStatusModal({ isOpen: false, message: '', type: 'success' })}/>
-  </div>
+      {isDeleteModalOpen && (
+        <DeletModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={() => void handleRemoveMeals()}
+        />
+      )}
+      <StatusModal
+        isOpen={statusModal.isOpen}
+        message={statusModal.message}
+        status={statusModal.type}
+        onClose={() => setStatusModal({ isOpen: false, message: '', type: 'success' })}
+      />
+    </div>
   );
 }
-interface IDeleteModal{
-  isOpen : boolean;
-  onClose : () => void;
-  onConfirm : () => void;
+interface IDeleteModal {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
 }
-function DeletModal ({isOpen, onClose, onConfirm}: IDeleteModal){
+function DeletModal({ isOpen, onClose, onConfirm }: IDeleteModal) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <h2 className="font-semibold px-2">Delete Meal</h2>
-        <div className="bg-white p-2 text-msTextPrimary">
-          <p>Please confirm if you want to delete meal(s). Once deleted, this action can't be undone.</p>
-          <div className="flex justify-end mt-4 h-10 gap-4">
-            <Button variant="outline" onClick={onClose} label="Cancel"/>
-            <Button variant="danger" onClick={onConfirm} label="Confirm"/>
-          </div>
+      <div className="bg-white p-2 text-msTextPrimary">
+        <p>
+          Please confirm if you want to delete meal(s). Once deleted, this action can't be undone.
+        </p>
+        <div className="flex justify-end mt-4 h-10 gap-4">
+          <Button variant="outline" onClick={onClose} label="Cancel" />
+          <Button variant="danger" onClick={onConfirm} label="Confirm" />
         </div>
+      </div>
     </Modal>
-  )
+  );
 }

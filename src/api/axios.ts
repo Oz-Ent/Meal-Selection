@@ -4,7 +4,7 @@ import { MEAL_APP_CORE } from "../utils/misc/config";
 import { authService } from "./Services/AuthServices";
 
 const apiClient = axios.create({
-  baseURL: `${MEAL_APP_CORE}/api`,
+  baseURL: `${MEAL_APP_CORE}`,
   headers: {
     "Content-Type": "application/json",
   },
@@ -12,7 +12,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     const existingAuthHeader =
       (config.headers as Record<string, unknown> | undefined)?.["Authorization"] ??
       (config.headers as Record<string, unknown> | undefined)?.["authorization"];
@@ -61,10 +61,14 @@ apiClient.interceptors.response.use(
         });
       }
 
-      const refreshToken = localStorage.getItem("refreshToken");
+      const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+      const isPersistent = !!localStorage.getItem("refreshToken");
+      const storage = isPersistent ? localStorage : sessionStorage;
       if (!refreshToken) {
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("refreshToken");
         window.location.href = "/login";
         return Promise.reject(new Error("No refresh token available"));
       }
@@ -72,8 +76,8 @@ apiClient.interceptors.response.use(
       try {
         const response = await authService.refresh({ refreshToken });
         const { accessToken, refreshToken: newRefreshToken } = response;
-        localStorage.setItem("token", accessToken);
-        localStorage.setItem("refreshToken", newRefreshToken);
+        storage.setItem("token", accessToken);
+        storage.setItem("refreshToken", newRefreshToken);
         processQueue(null, accessToken);
         if (originalRequest.headers) {
           originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
@@ -83,6 +87,9 @@ apiClient.interceptors.response.use(
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("refreshToken");
+        sessionStorage.removeItem("user");
         window.location.href = "/login";
         processQueue(err, null);
         return Promise.reject(err);
@@ -90,6 +97,7 @@ apiClient.interceptors.response.use(
         isRefreshing = false;
       }
     }
+    return Promise.reject(error);
   }
 );
 export default apiClient;
