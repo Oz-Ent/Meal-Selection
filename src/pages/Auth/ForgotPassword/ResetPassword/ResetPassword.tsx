@@ -1,23 +1,23 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import ResetPasswordImage from "../../../../assets/Reset Password.svg";
-import { NavBar } from "../../../../components/NavBar/NavBar";
-import PasswordField from "../../../../components/PasswordField/PasswordField";
-import Button from "../../../../components/Button/Button";
-import { useResetPasswordMutation } from "../../../../api/useApiQueries";
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import ResetPasswordImage from '../../../../assets/Reset Password.svg';
+import { NavBar } from '../../../../components/NavBar/NavBar';
+import PasswordField from '../../../../components/PasswordField/PasswordField';
+import Button from '../../../../components/Button/Button';
+import { useResetPasswordMutation } from '../../../../api/useApiQueries';
 
 export function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as { email?: string; token?: string } | undefined;
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const resetPasswordMutation = useResetPasswordMutation();
 
-  const isDisabled = password.trim() === "" || confirmPassword.trim() === "" || isLoading;
+  const isDisabled = password.trim() === '' || confirmPassword.trim() === '' || isLoading;
 
   const handleReset = async () => {
     if (password !== confirmPassword) {
@@ -25,16 +25,16 @@ export function ResetPassword() {
       return;
     }
     if (!state?.email || !state?.token) {
-      setError("Missing reset token or email. Please restart the process.");
+      setError('Missing reset token or email. Please restart the process.');
       return;
     }
-    setError("");
+    setError('');
     setIsLoading(true);
     try {
       await resetPasswordMutation.mutateAsync({ email: state.email, password, token: state.token });
-      navigate("/forgot-password/success");
+      navigate('/forgot-password/success');
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Failed to reset password.");
+      setError(error instanceof Error ? error.message : 'Failed to reset password.');
     } finally {
       setIsLoading(false);
     }
@@ -55,23 +55,19 @@ export function ResetPassword() {
           <PasswordField
             label="Password"
             id="new-password"
-            fontFamily="Poppins"
-            style={{ fontFamily: "Poppins", color: "rgba(58, 58, 58, 1)" }}
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              if (error) setError("");
+              if (error) setError('');
             }}
           />
           <PasswordField
             label="Confirm Password"
             id="confirm-password"
-            fontFamily="Poppins"
-            style={{ fontFamily: "Poppins", color: "rgba(58, 58, 58, 1)" }}
             value={confirmPassword}
             onChange={(e) => {
               setConfirmPassword(e.target.value);
-              if (error) setError("");
+              if (error) setError('');
             }}
           />
           {error && <p className="text-msWarningRed text-right text-xs">{error}</p>}
@@ -79,7 +75,7 @@ export function ResetPassword() {
 
         <div className="w-full h-12 mt-8">
           <Button
-            label={isLoading ? "Resetting..." : "Reset Password"}
+            label={isLoading ? 'Resetting...' : 'Reset Password'}
             variant="primary"
             disabled={isDisabled}
             onClick={handleReset}

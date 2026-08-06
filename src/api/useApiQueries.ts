@@ -64,6 +64,7 @@ export const useMenuDaysQuery = (menuId: number) =>
     queryFn: () => menuService.getDays(menuId),
     enabled: Number.isInteger(menuId) && menuId > 0,
   });
+  
 
 export const useMenuMealsQuery = (menuId: number) =>
   useQuery({

@@ -83,7 +83,7 @@ export function EditMenu() {
 
   const addMealsToDay = async (menuDayId: number, mealIds: number[]) => {
     const day = days.find((item) => item.id === menuDayId);
-    const existingMealIds = new Set(day?.assignments.map((assignment) => assignment.mealId));
+    const existingMealIds = new Set(day?.assignments.map((assignment) => assignment.meal.id));
     const newMealIds = mealIds.filter((mealId) => !existingMealIds.has(mealId));
     if (newMealIds.length === 0) {
       return;
@@ -206,13 +206,12 @@ function EditMenuDaySection({
   onToggle: (assignment: MenuDayMeal) => Promise<void>;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const mealsById = new Map(meals.map((meal) => [meal.id, meal]));
 
   return (
     <section className="border-b border-msListBorder py-3">
       <h3 className="mb-1 font-medium text-msCardPrimaryText">{day.title}</h3>
       {day.assignments.map((assignment) => {
-        const meal = mealsById.get(assignment.mealId);
+        const meal = assignment.meal;
         if (!meal) {
           return null;
         }
@@ -244,7 +243,7 @@ function EditMenuDaySection({
       {isModalOpen && (
         <EditMealSelectionModal
           meals={meals}
-          selectedMealIds={day.assignments.map((assignment) => assignment.mealId)}
+          selectedMealIds={day.assignments.map((assignment) => assignment.meal.id)}
           onClose={() => setIsModalOpen(false)}
           onSave={async (mealIds) => {
             await onAddMeals(day.id, mealIds);

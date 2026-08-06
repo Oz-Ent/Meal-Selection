@@ -1,8 +1,12 @@
 import Modal from '../../components/Modal/Modal';
-import { availableMeals } from '../../helpers/availableMeals';
 import ListCard from '../../components/ListCard/ListCard';
 
-export function MealOverview({ selectedMeals }: { selectedMeals: Record<string, string> }) {
+export interface OverviewMeal {
+  title: string;
+  imageUrl: string;
+}
+
+export function MealOverview({ selectedMeals }: { selectedMeals: Record<string, OverviewMeal> }) {
   return (
     <Modal isOpen={true} onClose={() => {}} variant={'bottom'}>
       <div className="h-[80vh] overflow-y-auto px-3 py-2">
@@ -14,12 +18,7 @@ export function MealOverview({ selectedMeals }: { selectedMeals: Record<string, 
         {Object.entries(selectedMeals).map(([day, meal]) => (
           <div key={day}>
             <p className="text-[16px] font-medium mt-1 text-msTextPrimary">{day}</p>
-            <ListCard
-              title={availableMeals.find((item) => item.id === meal)?.title || ''}
-              imageUrl={availableMeals.find((item) => item.id === meal)?.imageUrl || ''}
-              id={day}
-              inputType="none"
-            />
+            <ListCard title={meal.title} imageUrl={meal.imageUrl} id={day} inputType="none" />
           </div>
         ))}
       </div>

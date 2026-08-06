@@ -1,4 +1,5 @@
 import apiClient from '../axios';
+import type { Meal } from './MealServices';
 
 export interface Menu {
   id: number;
@@ -23,7 +24,7 @@ export interface MenuDayMeal {
   updatedAt: string;
   isActive: boolean;
   menuDayId: number;
-  mealId: number;
+  meal: Pick<Meal, 'id' | 'imagePath' | 'name' | 'description' | 'foodCode' | 'calories'>;
 }
 
 export interface CreateMenuRequest {

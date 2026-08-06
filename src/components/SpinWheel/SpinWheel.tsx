@@ -1,106 +1,118 @@
-import { useState } from "react";
-import { createPieSlice } from "../../helpers/pieConvertor";
-import Button from "../Button/Button";
+import { useState } from 'react';
+import { createPieSlice } from '../../helpers/pieConvertor';
+import Button from '../Button/Button';
 
-
-interface Options{
-    label: string
-    value: string | number
+interface Options {
+  label: string;
+  value: string | number;
 }
 
-interface ISpinWheelProps{
-    options: Options[]
-    onSpinComplete: (value: string| number)=> void
+interface ISpinWheelProps {
+  options: Options[];
+  onSpinComplete: (value: string | number) => void;
 }
 
-const colors =[
-    'red','yellow','blue','green','purple','amber'
-]
-export default function SpinWheel({options, onSpinComplete}:ISpinWheelProps){
-    const [rotation,setRotation]= useState<number>(0);
-    const [spinning, setSpinning] = useState<boolean>(false)
+const colors = ['red', 'yellow', 'blue', 'green', 'purple', 'amber'];
+const WHEEL_RADIUS = 150;
+const MAX_LABEL_WIDTH = WHEEL_RADIUS * 0.9;
+const LABEL_FONT_SIZE = 13;
+const AVERAGE_CHARACTER_WIDTH = LABEL_FONT_SIZE * 0.6;
+const MAX_LABEL_CHARACTERS = Math.floor(MAX_LABEL_WIDTH / AVERAGE_CHARACTER_WIDTH);
 
-    const segmentAngle = 360 / options.length
+const truncateLabel = (label: string) =>
+  label.length > MAX_LABEL_CHARACTERS
+    ? `${label.slice(0, MAX_LABEL_CHARACTERS - 1).trimEnd()}...`
+    : label;
 
-const spin = () => {
-  if (spinning) return;
+export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) {
+  const [rotation, setRotation] = useState<number>(0);
+  const [spinning, setSpinning] = useState<boolean>(false);
 
-  setSpinning(true);
+  const segmentAngle = 360 / options.length;
 
-  const n = options.length;
-  const segmentAngle = 360 / n;
+  const spin = () => {
+    if (spinning) return;
 
-  const index = Math.floor(Math.random() * n);
+    setSpinning(true);
 
-  const sliceCenter =
-    index * segmentAngle +
-    segmentAngle / 2;
+    const n = options.length;
+    const segmentAngle = 360 / n;
 
-  const targetAngle =
-    360 - sliceCenter;
+    const index = Math.floor(Math.random() * n);
 
-  const currentAngle =
-    rotation % 360;
+    const sliceCenter = index * segmentAngle + segmentAngle / 2;
 
-  const delta =
-    (targetAngle - currentAngle + 360) % 360;
+    const targetAngle = 360 - sliceCenter;
 
-  const spins = 5 * 360;
+    const currentAngle = rotation % 360;
 
-  const rotationDelta =
-    spins + delta;
+    const delta = (targetAngle - currentAngle + 360) % 360;
 
-  setRotation(prev => prev + rotationDelta);
+    const spins = 5 * 360;
 
-  setTimeout(() => {
-    setSpinning(false);
-    onSpinComplete(options[index].value);
-  }, 5000);
-};
+    const rotationDelta = spins + delta;
 
-    return(
-        <>
-            <div className="relative w-72 h-72">
+    setRotation((prev) => prev + rotationDelta);
 
-            {/* POINTER */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
-            ▼
-            </div>
+    setTimeout(() => {
+      setSpinning(false);
+      onSpinComplete(options[index].value);
+    }, 5000);
+  };
 
-            {/* ROTATING WHEEL */}
-            <div
-            className="w-full h-full transition-transform duration-5000 ease-in-out"
-            style={{
+  return (
+    <section className="flex flex-col items-center gap-8">
+      <div className="relative w-72 h-72">
+        {/* POINTER */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">▼</div>
+
+        {/* ROTATING WHEEL */}
+        <div
+          className="w-full h-full transition-transform duration-5000 ease-in-out"
+          style={{
             transform: `rotate(${rotation}deg)`,
-            transformOrigin: `center`
-            }}
-            >
-            <svg viewBox="0 0 300 300" className="w-72 h-72">
-                {options.map((_, i)=>{
-                    const startAngle = (i * segmentAngle);
-                    const endAngle = (i+1) * segmentAngle;
+            transformOrigin: `center`,
+          }}
+        >
+          <svg viewBox="0 0 300 300" className="w-72 h-72">
+            {options.map((option, i) => {
+              const startAngle = i * segmentAngle;
+              const endAngle = (i + 1) * segmentAngle;
+              const sectorCenterAngle = startAngle + segmentAngle / 2;
+              const labelRadius = 82;
+              const labelRadians = (sectorCenterAngle - 90) * (Math.PI / 180);
+              const labelX = Math.round(150 + labelRadius * Math.cos(labelRadians));
+              const labelY = Math.round(150 + labelRadius * Math.sin(labelRadians));
+              const radialAngle = (sectorCenterAngle + 90) % 360;
+              const labelRotation =
+                radialAngle > 90 && radialAngle < 270 ? (radialAngle + 180) % 360 : radialAngle;
 
-                    return(
-                        <path
-                        key={i}
-                        d={
-                            `${createPieSlice(
-                                startAngle,
-                                endAngle,
-                                150,
-                                150
-                            )}`
-                        }
-                        fill={colors[i% colors.length]}
-                        />
-                    )
-                } )}
-            </svg>
-            </div>
+              return (
+                <g key={option.value}>
+                  <path
+                    d={`${createPieSlice(startAngle, endAngle, 150, 150)}`}
+                    fill={colors[i % colors.length]}
+                  />
+                  <text
+                    x={labelX}
+                    y={labelY}
+                    fill="white"
+                    fontSize={LABEL_FONT_SIZE}
+                    fontWeight="600"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    transform={`rotate(${labelRotation} ${labelX} ${labelY})`}
+                  >
+                    {truncateLabel(option.label)}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
 
-            </div>
-
-        <Button label={spinning? 'Spinning': 'Spin'} onClick={spin}/>
-        </>
-    )
+      <Button label={spinning ? 'Spinning' : 'Spin'} pending={spinning} onClick={spin} />
+    </section>
+  );
 }

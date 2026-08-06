@@ -17,21 +17,26 @@ import {
   useCreateMealSelectionsMutation,
   useMenuDaysQuery,
   useMenuMealsQuery,
-  useMealsQuery,
   useUsersQuery,
   useWeekScheduleQuery,
 } from '../../api/useApiQueries';
 
 // Helpers
 import { getISOWeekAndYear } from '../../utils/dateHelpers';
+import { useAuth } from '../Auth/useAuth/useAuth';
+import { type OverviewMeal } from './MealOverview';
+import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
+import { Shuffle } from 'lucide-react';
+import SpinWheel from '../../components/SpinWheel/SpinWheel';
 
 export default function SelectMealPage() {
   const [searchParams] = useSearchParams();
   const isForSomeone = searchParams.get('forSomeone') === 'true';
+  const { profile } = useAuth();
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [randomDrawerOpen, setRandomDrawerOpen] = useState(false);
   const [selections, setSelections] = useState<Record<string, number | 'custom'>>({});
-  const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -43,21 +48,16 @@ export default function SelectMealPage() {
   const menuId = weekMenuScheduleQuery.data?.menu.id ?? 0;
   const menuDaysQuery = useMenuDaysQuery(menuId);
   const menuDayMealsQuery = useMenuMealsQuery(menuId);
-  const mealsQuery = useMealsQuery();
   const createMealSelectionsMutation = useCreateMealSelectionsMutation();
   const users = usersQuery.data ?? [];
   const weekMenuSchedule = weekMenuScheduleQuery.data;
   const menuDays: MenuDay[] = menuDaysQuery.data ?? [];
   const menuDayMeals = menuDayMealsQuery.data ?? [];
-  const allMeals = mealsQuery.data?.meals ?? [];
-
-  // Mocking current user ID (should come from auth context)
-  const currentUserId = 1;
+  const currentUserId = profile?.user.id;
 
   const currentDay = days[currentDayIndex] ?? '';
   const daysLength = days.length;
   const currentSelection = selections[currentDay] || '';
-  const currentCustomInput = customInputs[currentDay] || '';
 
   // Finding meals for current day
   const currentMenuDay = menuDays.find((d) => d.day.toUpperCase() === currentDay.toUpperCase());
@@ -83,15 +83,9 @@ export default function SelectMealPage() {
     setSelections((prev) => ({ ...prev, [currentDay]: id === 'custom' ? 'custom' : Number(id) }));
   };
 
-  const handleCustomInputChange = (value: string) => {
-    setCustomInputs((prev) => ({ ...prev, [currentDay]: value }));
-    if (selections[currentDay] !== 'custom') {
-      setSelections((prev) => ({ ...prev, [currentDay]: 'custom' }));
-    }
-  };
 
   const submitSelections = async () => {
-    if (!weekMenuSchedule) return;
+    if (!weekMenuSchedule || !currentUserId) return;
 
     const payload: CreateSelectionRequest[] = [];
 
@@ -127,7 +121,24 @@ export default function SelectMealPage() {
   };
 
   const isNextDisabled =
-    !currentSelection || (currentSelection === 'custom' && !currentCustomInput);
+    !currentSelection;
+  const overviewMeals = Object.entries(selections).reduce<Record<string, OverviewMeal>>(
+    (mealsByDay, [day, selection]) => {
+      if (selection === 'custom') {
+        return mealsByDay;
+      }
+
+      const meal = menuDayMeals.find((item) => item.id === selection)?.meal;
+      if (meal) {
+        mealsByDay[day] = {
+          title: meal.name,
+          imageUrl: meal.imagePath || FALLBACK_MEAL_IMAGE_URL,
+        };
+      }
+      return mealsByDay;
+    },
+    {},
+  );
 
   return (
     <div className="min-h-screen w-full bg-[#1c1c1e] text-white font-sans flex flex-col relative overflow-hidden max-w-md mx-auto">
@@ -182,8 +193,7 @@ export default function SelectMealPage() {
 
           <div className="flex-1 overflow-y-auto space-y-0.5 mb-6 pr-2">
             {mealsForCurrentDay.map((menuDayMeal) => {
-              const mealDetails = allMeals.find((m) => m.id === menuDayMeal.mealId);
-              if (!mealDetails) return null;
+              const mealDetails = menuDayMeal.meal;
 
               return (
                 <ListCard
@@ -203,30 +213,43 @@ export default function SelectMealPage() {
             {mealsForCurrentDay.length === 0 && (
               <div className="p-4 text-center text-gray-500">No meals available for this day.</div>
             )}
-
-            <ListCard
-              id="custom"
-              selectedValue={String(currentSelection)}
-              inputType="radio"
-              onChange={handleSelectMeal}
-              isCustomInput={true}
-              customInputValue={currentCustomInput}
-              onCustomInputChange={handleCustomInputChange}
-              customInputPlaceholder="Enter your meal"
-            />
           </div>
 
-          <div className="shrink-0 pt-2 h-13">
+
+          <div className="shrink-0 pt-2 h-13 flex flex-row  gap-2">
             <Button
               label={currentDayIndex === daysLength - 1 ? 'Confirm Menu' : 'Next'}
               onClick={handleNext}
               disabled={isNextDisabled}
-              className={`w-full py-4 text-base font-semibold rounded-md transition-all shadow-md active:scale-[0.98] ${isNextDisabled ? 'bg-gray-200 text-gray-400 shadow-none' : 'bg-primary text-white hover:bg-primary/90'}`}
+              className={`w-full py-4 text-base basis-auto font-semibold rounded-md transition-all shadow-md active:scale-[0.98] ${isNextDisabled ? 'bg-gray-200 text-gray-400 shadow-none' : 'bg-primary text-white hover:bg-primary/90'}`}
+            />
+            <Button
+            className='basis-1/4'
+              onClick={() => {setRandomDrawerOpen((prev) => !prev)}}
+              icon={<Shuffle />}
             />
           </div>
         </div>
       </Modal>
-
+            {/*Random Selection Modal*/ }
+      
+      
+      <Modal isOpen={randomDrawerOpen} onClose={() => setRandomDrawerOpen(false)} variant="bottom" showCloseButton={true}>
+        <div className="p-4 flex flex-col gap-4 text-black h-full">
+        <h1>Random Meal</h1>
+        <div className='flex flex-1 flex-col items-center'>
+        <SpinWheel
+          options={mealsForCurrentDay.map(item => ({ value: item.menuDayId, label: item.meal.name }))}
+          onSpinComplete={(selectedValue) => handleSelectMeal(selectedValue)}
+        />
+        </div>
+        {mealsForCurrentDay.length === 0 && (
+          <div className="p-4 text-center text-gray-500">
+            No meals available for this day.
+          </div>
+        )}
+        </div> 
+      </Modal>
       {/* User Selection Modal */}
       <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} variant="center">
         <div className="p-4 flex flex-col items-center text-center w-82.5 max-h-[80vh] overflow-hidden">
@@ -285,7 +308,7 @@ export default function SelectMealPage() {
       </Modal>
 
       {/* Success Modal */}
-      {isConfirmed && <SuccessModal selectedMeals={selections as Record<string, string>} />}
+      {isConfirmed && <SuccessModal selectedMeals={overviewMeals} />}
     </div>
   );
 }
