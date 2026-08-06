@@ -35,13 +35,12 @@ describe('OtpInput Component', () => {
         expect(onChange).toHaveBeenCalled();
     });
 
-    it('ignores non-digit characters', () => {
+    it('accepts arbitrary characters', () => {
         const onChange = jest.fn();
         render(<OtpInput value="" onChange={onChange} />);
         const inputs = screen.getAllByRole('textbox');
         fireEvent.change(inputs[0], { target: { value: 'a' } });
-        // onChange is still called but with empty character stripped
-        expect(onChange).toHaveBeenCalled();
+        expect(onChange).toHaveBeenCalledWith('a');
     });
 
     it('applies error styling when hasError is true', () => {
@@ -58,13 +57,12 @@ describe('OtpInput Component', () => {
         expect(inputs[0]).toHaveClass('border-gray-300');
     });
 
-    it('sets inputMode to numeric on all inputs', () => {
+    it('does not require numeric input', () => {
         const onChange = jest.fn();
         render(<OtpInput value="" onChange={onChange} />);
         const inputs = screen.getAllByRole('textbox');
-        inputs.forEach((input) => {
-            expect(input).toHaveAttribute('inputMode', 'numeric');
-        });
+        fireEvent.change(inputs[0], { target: { value: 'z' } });
+        expect(onChange).toHaveBeenCalledWith('z');
     });
 
     it('handles backspace key down', () => {

@@ -13,14 +13,14 @@ interface IOtpLocationState {
   email?: string;
 }
 
-const OTP_LENGTH = 5;
+const OTP_LENGTH = 8;
 
 export function OtpVerification() {
   const navigate = useNavigate();
   const location = useLocation();
   const email = (location.state as IOtpLocationState)?.email ?? "your email address";
 
-  const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState<string>("");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);

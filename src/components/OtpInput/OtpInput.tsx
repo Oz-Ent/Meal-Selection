@@ -15,12 +15,12 @@ export function OtpInput({ length = 5, value, onChange, hasError = false }: IOtp
   };
 
   const handleChange = (index: number, raw: string) => {
-    const digit = raw.replace(/\D/g, "").slice(-1);
+    const char = raw.slice(-1);
     const chars = value.split("");
-    chars[index] = digit;
+    chars[index] = char;
     const next = chars.join("").slice(0, length);
     onChange(next);
-    if (digit && index < length - 1) focusInput(index + 1);
+    if (char && index < length - 1) focusInput(index + 1);
   };
 
   const handleKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -41,7 +41,7 @@ export function OtpInput({ length = 5, value, onChange, hasError = false }: IOtp
 
   const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
     event.preventDefault();
-    const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
+    const pasted = event.clipboardData.getData("text").slice(0, length);
     if (!pasted) return;
     onChange(pasted);
     focusInput(Math.min(pasted.length, length - 1));
@@ -56,7 +56,6 @@ export function OtpInput({ length = 5, value, onChange, hasError = false }: IOtp
             inputsRef.current[index] = el;
           }}
           type="text"
-          inputMode="numeric"
           maxLength={1}
           value={value[index] ?? ""}
           onChange={(e) => handleChange(index, e.target.value)}
