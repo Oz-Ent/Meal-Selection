@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import Modal from '../../../../components/Modal/Modal';
 import Button from '../../../../components/Button/Button';
+import Dropdown from '../../../../components/Dropdown/Dropdown';
 import InputField from '../../../../components/InputField/InputField';
 import StatusModal from '../../../../components/StatusModal/StatusModal';
 import { Pencil, Plus } from 'lucide-react';
@@ -177,25 +178,23 @@ export function MealModal({
                 className="flex flex-col gap-1 text-[14px] font-medium text-msTextPrimary"
               >
                 {label}
-                <select
+                <Dropdown
+                  ariaLabel={label}
                   value={foodCodes[group]}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     setFoodCodes((currentCodes) => ({
                       ...currentCodes,
-                      [group]: event.target.value,
+                      [group]: value,
                     }))
                   }
-                  className="h-11 rounded-md border border-gray-300 bg-white px-3 text-sm font-normal outline-none focus:border-msDeepBlue"
-                >
-                  <option value="">Select {label.toLowerCase()}</option>
-                  {foodItems
+                  placeholder={`Select ${label.toLowerCase()}`}
+                  options={foodItems
                     .filter((item) => item.foodGroup === group)
-                    .map((item) => (
-                      <option key={item.id} value={item.foodCode}>
-                        {item.name} ({item.foodCode})
-                      </option>
-                    ))}
-                </select>
+                    .map((item) => ({
+                      value: item.foodCode,
+                      label: `${item.name} (${item.foodCode})`,
+                    }))}
+                />
               </label>
             ))}
           </div>

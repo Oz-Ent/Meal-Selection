@@ -55,50 +55,53 @@ export function OtpVerification() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-white">
+    <div className="w-full min-h-screen bg-app-bg flex flex-col">
       <NavBar backUrl="/forgot-password/email" />
-      <section className="flex flex-col items-center w-full max-w-md mx-auto px-4 pt-4">
-        <img className="w-52 h-46.25" src={OtpImage} alt="OTP" />
-        <h3 className="text-2xl font-semibold text-msTextPrimary mt-2">OTP</h3>
-        <p className="text-center text-msDescription w-[85%] mt-2">
-          We&apos;ve sent a code to your email address{" "}
-          <span className="font-semibold">{email}</span>. Check your inbox and input the code.
-        </p>
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <section className="flex flex-col items-center w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100 text-center">
+          <img className="w-48 h-auto max-h-44 object-contain" src={OtpImage} alt="OTP" />
+          <h3 className="text-2xl font-bold text-slate-800 mt-2">OTP</h3>
+          <p className="text-center text-slate-500 text-sm max-w-xs mt-1 leading-relaxed">
+            We&apos;ve sent a code to your email address{" "}
+            <span className="font-semibold text-slate-700">{email}</span>. Check your inbox and input the code.
+          </p>
 
-        <div className="w-full mt-8 flex flex-col items-center">
-          <OtpInput
-            length={OTP_LENGTH}
-            value={otp}
-            onChange={(value) => {
-              setOtp(value);
-              if (error) setError("");
-            }}
-            hasError={!!error}
-          />
-          {error && <p className="text-msWarningRed text-center text-xs mt-2">{error}</p>}
-          {successMsg && <p className="text-green-500 text-center text-xs mt-2">{successMsg}</p>}
-        </div>
+          <div className="w-full mt-6 flex flex-col items-center">
+            <OtpInput
+              length={OTP_LENGTH}
+              value={otp}
+              onChange={(value) => {
+                setOtp(value);
+                if (error) setError("");
+              }}
+              hasError={!!error}
+            />
+            {error && <p className="text-red-500 text-center text-xs mt-2">{error}</p>}
+            {successMsg && <p className="text-green-600 text-center text-xs mt-2">{successMsg}</p>}
+          </div>
 
-        <div className="w-full h-12 mt-8">
-          <Button
-            label={isLoading ? "Verifying..." : "Verify"}
-            variant="primary"
-            disabled={isDisabled}
-            onClick={handleVerify}
-            className="rounded-sm text-base font-['Roboto']"
-          />
-        </div>
+          <div className="w-full h-12 mt-6">
+            <Button
+              label={isLoading ? "Verifying..." : "Verify"}
+              variant="primary"
+              disabled={isDisabled}
+              onClick={handleVerify}
+              className="rounded-xl text-base font-medium font-['Roboto'] w-full shadow-sm hover:shadow transition-all"
+            />
+          </div>
 
-        <p className="text-sm text-msTextPrimary text-center mt-4 flex items-center gap-1">
-          Didn&apos;t receive code?{" "}
-          <Button
-            type="button"
-            onClick={handleResend}
-            className="text-msDeepBlue font-medium hover:opacity-80"
-            label="Resend"
-          />
-        </p>
-      </section>
+          <p className="text-sm text-slate-600 text-center mt-4 flex items-center justify-center gap-1">
+            Didn&apos;t receive code?{" "}
+            <Button
+              type="button"
+              onClick={handleResend}
+              className="text-primary font-semibold hover:underline"
+              label="Resend"
+            />
+          </p>
+        </section>
+      </main>
     </div>
   );
 }
+

@@ -27,7 +27,7 @@ describe('NotFound Page', () => {
                 <NotFoundPage />
             </MemoryRouter>
         );
-        const link = screen.getByRole('link', { name: /go back home/i });
+        const link = screen.getByRole('link', { name: /return to home/i });
         expect(link).toBeInTheDocument();
         expect(link).toHaveAttribute('href', '/');
     });

@@ -7,7 +7,7 @@ describe('MealOverview Component', () => {
       Monday: { title: 'Pizza', imageUrl: 'pizza.png' },
     };
 
-    render(<MealOverview selectedMeals={selectedMeals} />);
+    render(<MealOverview selectedMeals={selectedMeals} onClose={() => {}} />);
 
     expect(screen.getByText('My Meals For The Week')).toBeInTheDocument();
     expect(screen.getByText('Monday')).toBeInTheDocument();
@@ -15,7 +15,7 @@ describe('MealOverview Component', () => {
   });
 
   it('handles empty selections', () => {
-    render(<MealOverview selectedMeals={{}} />);
+    render(<MealOverview selectedMeals={{}} onClose={() => {}} />);
     expect(screen.getByText('My Meals For The Week')).toBeInTheDocument();
     // Should not crash, just empty list
     expect(screen.queryByText('Monday')).not.toBeInTheDocument();

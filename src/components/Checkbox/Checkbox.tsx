@@ -15,12 +15,12 @@ export default function Checkbox({ label, checked, onChange, className }: ICheck
           onChange={(e) => onChange(e.target.checked)} 
           className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         />
-        {/* Unchecked: white bg + blue border */}
-        <div className="w-4 h-4 bg-white border-2 border-cyan-700 rounded-sm peer-checked:hidden" />
-        {/* Checked: white bg + blue border + blue tick */}
-        <div className="hidden w-4 h-4 bg-white border-2 border-cyan-700 rounded-sm items-center justify-center peer-checked:flex">
+        {/* Unchecked: white bg + brand border */}
+        <div className="w-4 h-4 bg-white border-2 border-primary rounded-sm peer-checked:hidden" />
+        {/* Checked: white bg + brand border + brand tick */}
+        <div className="hidden w-4 h-4 bg-white border-2 border-primary rounded-sm items-center justify-center peer-checked:flex">
           <svg
-            className="w-2.5 h-2.5 text-sky-900"
+            className="w-2.5 h-2.5 text-primary"
             viewBox="0 0 12 12"
             fill="none"
             stroke="currentColor"

@@ -1,140 +1,346 @@
-import { useState, useMemo } from 'react';
-import { Card } from '../../components/Card/Card';
-import ChooseMeals from '../../assets/ChooseMeal.svg';
-import AllMeals from '../../assets/AllMeals.svg';
-import { TitleBar } from '../../components/TitleBar/TitleBar';
-import MealForeground from '../../assets/MealForeground.jpg';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Bell, Check, ChevronRight, Search } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+
+import Modal from '../../components/Modal/Modal';
+import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
+import MealForeground from '../../assets/MealForeground.jpg';
+import AppIcon from '../../assets/App Icon.svg';
+import SelectMealIcon from '../../assets/Select Meal.svg';
+import PresetsIcon from '../../assets/Presets.svg';
+import ClockIllustration from '../../assets/Clock Illustration.svg';
+import ChipsIcon from '../../assets/chips.svg';
+import PizzaIcon from '../../assets/pizza.svg';
+
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { days } from '../../utils/Enums/DayOfWeek';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectCoverflow, Pagination } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/effect-coverflow';
-import 'swiper/css/pagination';
-import { useWeeklySelectionsQuery } from '../../api/useApiQueries';
-
-// Predefined vibrant colors to act as dynamic backgrounds if dominant color extraction is too slow
-const bgColors = [
-  '#1c4e80', // Monday
-  '#2E5B53', // Tuesday
-  '#80391E', // Wednesday
-  '#5C2E5D', // Thursday
-  '#1B4332', // Friday
-  '#3B2A50', // Saturday
-  '#4E3B31', // Sunday
-];
+import { useUsersQuery, useWeeklySelectionsQuery } from '../../api/useApiQueries';
+import type { User } from '../../api/Services/UserServices';
 
 export function UserActivities() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const today = new Date().toISOString().split('T')[0];
   const selectionsQuery = useWeeklySelectionsQuery(profile?.user?.id, today);
+  const usersQuery = useUsersQuery();
+  const users = usersQuery.data ?? [];
+
+  const [isSelectionOpen, setIsSelectionOpen] = useState(false);
+  const [isUserPickerOpen, setIsUserPickerOpen] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [selectedUserForPicker, setSelectedUserForPicker] = useState<User | null>(null);
 
   const defaultCarouselIndex = useMemo(() => {
     const currentDayIndex = new Date().getDay() - 1; // 0 for Monday
     return currentDayIndex >= 0 && currentDayIndex < 5 ? currentDayIndex : 0;
   }, []);
 
-  const [activeIndex, setActiveIndex] = useState(defaultCarouselIndex);
-
   const carouselItems = useMemo(() => {
     const mealSelections = selectionsQuery.data?.mealSelections ?? {};
-    return days.map((day) => {
+    return days.map((day, index) => {
       const selection = mealSelections[day.toUpperCase()];
+      const isToday = index === defaultCarouselIndex;
+      const isUnavailable = selection?.selectionType === 'UNAVAILABLE' || selection?.mealName === 'Unavailable';
+      const isHoliday = selection?.selectionType === 'HOLIDAY' || selection?.mealName === 'Holiday';
+
+      let displayName = 'No Meal Selected';
+      if (isUnavailable) displayName = 'Unavailable';
+      else if (isHoliday) displayName = 'Holiday';
+      else if (selection?.mealName) displayName = selection.mealName;
+
       return {
-        day,
-        mealName: selection?.mealName || 'Not Selected',
+        day: isToday ? 'Today' : day,
+        mealName: displayName,
         imageUrl: selection?.mealImagePath || MealForeground,
+        hasSelection: Boolean(selection?.mealName || selection?.selectionType),
+        isUnavailable,
+        isHoliday,
       };
     });
-  }, [selectionsQuery.data]);
+  }, [defaultCarouselIndex, selectionsQuery.data]);
 
-  const activeBgColor = bgColors[activeIndex % bgColors.length];
+  const hasSelections = useMemo(() => {
+    return carouselItems.some((item) => item.hasSelection);
+  }, [carouselItems]);
+
+  const roleName = profile?.user?.roleName?.toLowerCase();
+  const isAdminOrHr = roleName === 'admin' || roleName === 'hr';
+
+  const openGuestSelection = () => {
+    setIsSelectionOpen(false);
+    navigate('/select-meal?isGuest=true');
+  };
+
+  const openSelfSelection = () => {
+    setIsSelectionOpen(false);
+    navigate('/select-meal');
+  };
+
+  const openOtherUserSelection = () => {
+    setIsSelectionOpen(false);
+    setUserSearchTerm('');
+    setSelectedUserForPicker(null);
+    setIsUserPickerOpen(true);
+  };
 
   return (
-    <div
-      className="h-full w-full max-w-md mx-auto bg-white flex flex-col relative overflow-hidden transition-colors duration-500"
-      style={{ backgroundColor: activeBgColor }}
-    >
-      {/* Background color extension for top status bar area on iOS */}
-      <div
-        className="absolute top-0 left-0 right-0 h-10 -translate-y-full transition-colors duration-500"
-        style={{ backgroundColor: activeBgColor }}
-      ></div>
-
-      <section className="h-[55vh] relative shrink-0">
-        {/* TitleBar overlaid so it doesn't slide */}
-        <div className="absolute top-0 left-0 right-0 pt-1.5 z-20 pointer-events-auto text-msTextPrimary drop-shadow-md bg-white pb-2">
-          <TitleBar />
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-28 text-text-primary font-sans">
+      {/* Top Bar Header */}
+      <header className="sticky top-0 z-40 flex items-center justify-between bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <img src={AppIcon} alt="App Icon" className="h-8 w-8 object-contain" />
+          <span className="text-base font-bold tracking-tight text-slate-800">Edziban</span>
         </div>
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+        >
+          <Bell size={18} />
+          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary-hover" />
+        </button>
+      </header>
 
-        <div className="w-full h-full pt-16 pb-4">
-          <Swiper
-            effect={'coverflow'}
-            grabCursor={true}
-            centeredSlides={true}
-            slidesPerView={1.2}
-            initialSlide={defaultCarouselIndex}
-            onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-            coverflowEffect={{
-              rotate: 0,
-              stretch: 10,
-              depth: 100,
-              modifier: 1,
-              slideShadows: true,
-            }}
-            pagination={{ clickable: true }}
-            modules={[EffectCoverflow, Pagination]}
-            className="w-full h-full"
-          >
-            {carouselItems.map((item, i) => (
-              <SwiperSlide key={i} className="rounded-3xl overflow-hidden shadow-xl bg-white">
-                <div className="w-full h-full relative">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.mealName}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
+      <div className="px-4 sm:px-6 pt-4 flex flex-col gap-5">
+        {/* Banner Area */}
+        <section className="w-full">
+          {!hasSelections ? (
+            /* When user HAS NO MEALS SELECTED / needs to plan */
+            <div
+              onClick={() => setIsSelectionOpen(true)}
+              className="relative flex min-h-36.25 items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-xs overflow-hidden cursor-pointer transition-all hover:border-slate-200 hover:shadow-sm"
+            >
+              {/* Chips SVG icon top left */}
+              <img
+                src={ChipsIcon}
+                alt=""
+                className="absolute top-3 left-3.5 h-10 w-10 object-contain"
+              />
 
-                  {/* Content positioned bottom left */}
-                  <div className="absolute inset-0 flex flex-col justify-end p-6 text-white pointer-events-none">
-                    <div className="bg-red-600 text-white text-sm font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded w-fit mb-3 shadow-md">
+              <div className="flex flex-col justify-center pt-8 max-w-50 sm:max-w-md">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                  Time To Plan Your Week!!
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-relaxed">
+                  Choose your meals for the upcoming week before the window closes.
+                </p>
+              </div>
+
+              {/* 3D Clock Illustration right */}
+              <div className="shrink-0 pl-2">
+                <img
+                  src={ClockIllustration}
+                  alt="Clock Illustration"
+                  className="h-24 w-24 sm:h-28 sm:w-28 object-contain"
+                />
+              </div>
+            </div>
+          ) : (
+            /* When meals ARE SELECTED by user (Dark Carousel Banner) */
+            <div className="w-full overflow-hidden rounded-2xl bg-surface-dark shadow-md text-white">
+              <Swiper
+                slidesPerView={1}
+                breakpoints={{
+                  640: { slidesPerView: 2 },
+                  1024: { slidesPerView: 3 },
+                }}
+                initialSlide={defaultCarouselIndex}
+                pagination={{ clickable: true }}
+                modules={[Pagination]}
+                className="w-full pb-8"
+              >
+                {carouselItems.map((item, i) => (
+                  <SwiperSlide key={i} className="flex flex-col items-center p-4 text-center">
+                    <span className="mb-2 rounded-full bg-white/20 px-4 py-0.5 text-xs font-medium text-white backdrop-blur-xs">
                       {item.day}
-                    </div>
-                    <h1 className="text-3xl font-black leading-tight tracking-tight text-white mb-4 drop-shadow-lg line-clamp-2">
+                    </span>
+                    <h2 className="mb-3 text-sm font-bold text-white line-clamp-2 px-4 min-h-10 flex items-center justify-center">
                       {item.mealName}
-                    </h1>
-                  </div>
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
-      </section>
+                    </h2>
+                    <div className="relative flex h-28 w-28 items-center justify-center">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.mealName}
+                        className="h-full w-full object-contain rounded-full drop-shadow-lg"
+                      />
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          )}
+        </section>
 
-      <section className="flex-1 gap-y-6 flex flex-col bg-[#fbfbfb] pt-6 rounded-t-lg shadow-[0_-4px_10px_rgba(0,0,0,0.05)] relative z-10">
-        <h3 className="text-msDeepBlue font-bold text-[18px] mx-4 mb-1.5">Activities</h3>
-        <Card
-          type="activity"
-          title="Select My Meal"
-          description="Select meals you want to eat for the week."
-          imageUrl={ChooseMeals}
-          onButtonClick={() => {
-            navigate('/select-meal');
-          }}
-        />
-        <Card
-          type="activity"
-          title="Select Meal for Someone"
-          description="Choose a meal on behalf of another user."
-          imageUrl={AllMeals}
-          onButtonClick={() => {
-            navigate('/select-meal?forSomeone=true');
-          }}
-        />
-      </section>
-    </div>
+        {/* Activities Section */}
+        <section className="w-full">
+          <h2 className="mb-3 text-base font-bold text-text-primary">Activities</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Card 1: Select Meals */}
+            <button
+              type="button"
+              onClick={() => setIsSelectionOpen(true)}
+              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
+            >
+              <div className="w-full overflow-hidden rounded-xl bg-rose-500/5 flex items-center justify-center">
+                <img
+                  src={SelectMealIcon}
+                  alt="Select Meals"
+                  className="h-24 sm:h-28 w-full object-contain rounded-xl"
+                />
+              </div>
+              <div className="mt-3">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">Select Meals</h3>
+                <p className="mt-1 text-[11px] sm:text-xs leading-tight text-slate-500">
+                  Pick dishes for the upcoming week for yourself or on behalf of other users.
+                </p>
+              </div>
+            </button>
+
+            {/* Card 2: Preset Meals */}
+            <button
+              type="button"
+              onClick={() => navigate('/preset-meals')}
+              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
+            >
+              <div className="w-full overflow-hidden rounded-xl bg-emerald-500/5 flex items-center justify-center">
+                <img
+                  src={PresetsIcon}
+                  alt="Preset Meals"
+                  className="h-24 sm:h-28 w-full object-contain rounded-xl"
+                />
+              </div>
+              <div className="mt-3">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">Preset Meals</h3>
+                <p className="mt-1 text-[11px] sm:text-xs leading-tight text-slate-500">
+                  Create reusable dish combo templates to avoid repetitive meal selections.
+                </p>
+              </div>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      {/* Select Meals Choice Sheet Modal */}
+      <Modal
+        isOpen={isSelectionOpen}
+        onClose={() => setIsSelectionOpen(false)}
+        variant="bottom"
+        showCloseButton
+      >
+        <section className="p-4 py-10 text-msTextPrimary flex flex-col items-center text-center">
+          <div className="mb-4 flex h-28 w-28 items-center justify-center">
+            <img src={PizzaIcon} alt="Pizza" className="h-full w-full object-contain" />
+          </div>
+          <h2 className="mb-3 w-full text-left text-base font-bold text-slate-900">Select meals</h2>
+          <button
+            type="button"
+            onClick={openSelfSelection}
+            className="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-left text-sm font-medium hover:bg-slate-100"
+          >
+            <span>For yourself</span>
+            <ChevronRight size={18} className="text-slate-400" />
+          </button>
+          <button
+            type="button"
+            onClick={openOtherUserSelection}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-left text-sm font-medium hover:bg-slate-100"
+          >
+            <span>For another user</span>
+            <ChevronRight size={18} className="text-slate-400" />
+          </button>
+          {isAdminOrHr && (
+            <button
+              type="button"
+              onClick={openGuestSelection}
+              className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-left text-sm font-medium hover:bg-slate-100"
+            >
+              <span>For guests</span>
+              <ChevronRight size={18} className="text-slate-400" />
+            </button>
+          )}
+        </section>
+      </Modal>
+
+      {/* Select User Modal Sheet */}
+      <Modal
+        isOpen={isUserPickerOpen}
+        onClose={() => setIsUserPickerOpen(false)}
+        variant="bottom"
+        showCloseButton
+      >
+        <section className="p-4 pt-6 text-msTextPrimary flex flex-col font-sans w-full">
+          <h2 className="mb-3 text-base font-bold text-slate-900">Select user</h2>
+
+          <div className="relative mb-3 w-full">
+            <input
+              type="text"
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              placeholder="Search User"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none pr-10 focus:border-slate-400 placeholder:text-slate-400"
+            />
+            <Search
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+              size={18}
+            />
+          </div>
+
+          <div className="w-full flex-1 overflow-y-auto max-h-[50vh] divide-y divide-slate-100 pr-1 space-y-1">
+            {users
+              .filter((u) => {
+                const query = userSearchTerm.trim().toLowerCase();
+                if (!query) return true;
+                return (
+                  u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)
+                );
+              })
+              .map((user) => {
+                const isSelected = selectedUserForPicker?.id === user.id;
+                return (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => setSelectedUserForPicker(user)}
+                    className={`flex w-full items-center justify-between p-3 rounded-xl text-left transition-colors ${
+                      isSelected ? 'bg-slate-100' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                      <p className="text-xs text-slate-500">{user.email}</p>
+                    </div>
+                    {isSelected && <Check size={18} className="text-slate-700 shrink-0" />}
+                  </button>
+                );
+              })}
+            {users.length === 0 && (
+              <p className="text-sm text-slate-500 py-6 text-center">No users found.</p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={!selectedUserForPicker}
+            onClick={() => {
+              if (selectedUserForPicker) {
+                setIsUserPickerOpen(false);
+                navigate(`/select-meal?userId=${selectedUserForPicker.id}`);
+              }
+            }}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity hover:bg-primary-hover disabled:opacity-50"
+          >
+            <ArrowRight size={18} />
+            <span>Continue</span>
+          </button>
+        </section>
+      </Modal>
+
+      {/* Bottom Navigation Bar */}
+      <BottomNavbar activeTab="home" />
+    </main>
   );
 }

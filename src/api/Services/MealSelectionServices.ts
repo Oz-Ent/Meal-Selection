@@ -6,6 +6,7 @@ export interface Selection {
   createdFor: number;
   weekMenuScheduleId: number;
   selectionStatus: 'PENDING' | 'SUBMITTED';
+  selectionType?: 'MEAL' | 'UNAVAILABLE' | 'HOLIDAY';
   createdByUser: {
     id: number;
     name: string;
@@ -26,21 +27,45 @@ export interface Selection {
       id: number;
       name: string;
     };
-  };
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateSelectionRequest {
-  dayMealId: number;
-  createdBy: number;
-  createdFor: number;
+  id?: number;
+  dayMealId?: number | null;
+  selectionType?: 'MEAL' | 'UNAVAILABLE' | 'HOLIDAY';
+  createdFor: number | null;
+  guestCount?: number;
   weekMenuScheduleId: number;
   menuDayId: number;
 }
 
+export interface ReplaceWeeklyMealRequest {
+  weekNumber: number;
+  year: number;
+  unavailableDayMealId: number;
+  replacementDayMealId: number;
+}
+
+export interface ReplaceWeeklyMealResponse {
+  affectedSelections: number;
+  affectedHeadcount: number;
+}
+
+export interface ReplaceWeeklyMealsBatchRequest {
+  weekNumber: number;
+  year: number;
+  replacements: Array<{
+    unavailableDayMealId: number;
+    replacementDayMealId: number;
+  }>;
+}
+
 export interface UpdateSelectionRequest {
-  dayMealId?: number;
+  dayMealId?: number | null;
+  selectionType?: 'MEAL' | 'UNAVAILABLE' | 'HOLIDAY';
   createdBy?: number;
   createdFor?: number;
   weekMenuScheduleId?: number;
@@ -55,10 +80,11 @@ export interface BatchUpdateItem {
 export interface WeeklyUserMealSelection {
   id: number;
   mealName: string;
-  mealID: number;
+  mealID: number | null;
   mealImagePath: string | null;
   foodCode: string;
   calories: number | null;
+  selectionType?: 'MEAL' | 'UNAVAILABLE' | 'HOLIDAY';
 }
 
 export interface WeeklyUserSelections {
@@ -68,6 +94,96 @@ export interface WeeklyUserSelections {
   createdFor: string;
   selectionStatus: 'PENDING' | 'SUBMITTED';
   mealSelections: Partial<Record<string, WeeklyUserMealSelection>>;
+}
+
+export interface UserWithoutWeeklySelections {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface WeeklyReportUser {
+  id: number | null;
+  name: string;
+  quantity: number;
+}
+
+export interface WeeklyReportMeal {
+  id: number;
+  name: string;
+  imagePath: string | null;
+  calories: number | null;
+  foodCode: string;
+  count: number;
+  users: WeeklyReportUser[];
+}
+
+export type WeeklyMealReport = Record<
+  string,
+  {
+    total: number;
+    response: WeeklyReportMeal[];
+  }
+>;
+
+export interface WeeklyHistoryFilterParams {
+  page?: number;
+  limit?: number;
+  startWeek?: number;
+  fromWeek?: number;
+  startYear?: number;
+  fromYear?: number;
+  endWeek?: number;
+  toWeek?: number;
+  endYear?: number;
+  toYear?: number;
+  year?: number;
+  order?: 'asc' | 'desc';
+  userId?: number;
+}
+
+export interface HistoryPagination {
+  page: number;
+  limit: number;
+  totalWeeks: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface WeeklyHistoryReportItem {
+  weekMenuScheduleId: number;
+  week: number;
+  year: number;
+  menu: {
+    id: number;
+    title: string;
+  };
+  status: string;
+  totalResponses: number;
+  selections: WeeklyMealReport;
+}
+
+export interface WeeklyHistoryReportResponse {
+  pagination: HistoryPagination;
+  data: WeeklyHistoryReportItem[];
+}
+
+export interface UserWeeklyHistoryItem {
+  weekMenuScheduleId: number;
+  week: number;
+  year: number;
+  menu: {
+    id: number;
+    title: string;
+  };
+  status: string;
+  selection: WeeklyUserSelections;
+}
+
+export interface UserWeeklyHistoryResponse {
+  pagination: HistoryPagination;
+  data: UserWeeklyHistoryItem[];
 }
 
 export const mealSelectionService = {
@@ -108,8 +224,8 @@ export const mealSelectionService = {
     return response.data;
   },
 
-  getWeekly: async (date: string): Promise<Selection[]> => {
-    const response = await apiClient.get<Selection[]>('/meal-selections/weekly', {
+  getWeekly: async (date: string): Promise<WeeklyMealReport> => {
+    const response = await apiClient.get<WeeklyMealReport>('/meal-selections/weekly', {
       params: { date },
     });
     return response.data;
@@ -132,13 +248,32 @@ export const mealSelectionService = {
     return response.data;
   },
 
-  getWeeklyNoSelections: async (date: string): Promise<{ id: number }[]> => {
-    const response = await apiClient.get<{ id: number }[]>(
+  getWeeklyNoSelections: async (date: string): Promise<UserWithoutWeeklySelections[]> => {
+    const response = await apiClient.get<UserWithoutWeeklySelections[]>(
       '/meal-selections/weekly/no-selections',
       {
         params: { date },
       },
     );
+    return response.data;
+  },
+
+  getWeeklyHistory: async (params?: WeeklyHistoryFilterParams): Promise<WeeklyHistoryReportResponse> => {
+    const response = await apiClient.get<WeeklyHistoryReportResponse>(
+      '/meal-selections/history',
+      { params },
+    );
+    return response.data;
+  },
+
+  getUserWeeklyHistory: async (
+    userId?: number,
+    params?: WeeklyHistoryFilterParams,
+  ): Promise<UserWeeklyHistoryResponse> => {
+    const url = userId
+      ? `/meal-selections/history/by-user/${userId}`
+      : '/meal-selections/history/user';
+    const response = await apiClient.get<UserWeeklyHistoryResponse>(url, { params });
     return response.data;
   },
 
@@ -148,7 +283,7 @@ export const mealSelectionService = {
   },
 
   createBatch: async (data: CreateSelectionRequest[]): Promise<{ count: number }> => {
-    const response = await apiClient.post<{ count: number }>('/meal-selections/batch', data);
+    const response = await apiClient.put<{ count: number }>('/meal-selections/batch', data);
     return response.data;
   },
 
@@ -169,11 +304,39 @@ export const mealSelectionService = {
     return response.data;
   },
 
-  submitWeekly: async (weekNumber: number, year: number): Promise<{ message: string }> => {
+  submitWeekly: async (
+    weekNumber: number,
+    year: number,
+    status: 'PENDING' | 'SUBMITTED' = 'SUBMITTED',
+  ): Promise<{ message: string }> => {
     const response = await apiClient.patch<{ message: string }>('/meal-selections/submit-weekly', {
       weekNumber,
       year,
+      status,
     });
+    return response.data;
+  },
+
+  adminOverride: async (data: CreateSelectionRequest[]): Promise<{ updated: number }> => {
+    const response = await apiClient.put<{ updated: number }>('/meal-selections/override', data);
+    return response.data;
+  },
+
+  replaceWeeklyMeal: async (data: ReplaceWeeklyMealRequest): Promise<ReplaceWeeklyMealResponse> => {
+    const response = await apiClient.patch<ReplaceWeeklyMealResponse>(
+      '/meal-selections/replace-weekly-meal',
+      data,
+    );
+    return response.data;
+  },
+
+  replaceWeeklyMeals: async (
+    data: ReplaceWeeklyMealsBatchRequest,
+  ): Promise<ReplaceWeeklyMealResponse> => {
+    const response = await apiClient.patch<ReplaceWeeklyMealResponse>(
+      '/meal-selections/replace-weekly-meals',
+      data,
+    );
     return response.data;
   },
 };

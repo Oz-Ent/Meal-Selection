@@ -87,6 +87,50 @@ describe('Modal Component', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
+  it('should maintain body scroll lock across re-renders with new onClose callbacks and restore on unmount', () => {
+    const { rerender, unmount } = render(
+      <Modal {...defaultProps} onClose={() => {}}>
+        <div>Test Content</div>
+      </Modal>,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Rerender with a new function reference
+    rerender(
+      <Modal {...defaultProps} onClose={() => {}}>
+        <div>Updated Content</div>
+      </Modal>,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+
+    unmount();
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('should correctly reference count multiple concurrent modals', () => {
+    const modal1 = render(
+      <Modal {...defaultProps} isOpen={true}>
+        <div>Modal 1</div>
+      </Modal>,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+
+    const modal2 = render(
+      <Modal {...defaultProps} isOpen={true}>
+        <div>Modal 2</div>
+      </Modal>,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Unmount first modal, second is still open
+    modal1.unmount();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Unmount second modal, all closed -> scroll restored
+    modal2.unmount();
+    expect(document.body.style.overflow).toBe('');
+  });
+
   describe('Close Button', () => {
     it('should render the close button if showCloseButton is true', () => {
       render(

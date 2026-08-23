@@ -36,7 +36,7 @@ describe('Login Component', () => {
 
   it('renders password input field', () => {
     renderLogin();
-    const passwordInput = screen.getByLabelText(/Password/i);
+    const passwordInput = screen.getByLabelText(/^Password$/i);
     expect(passwordInput).toBeInTheDocument();
   });
 

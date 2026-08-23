@@ -1,0 +1,211 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MealSelectionView } from './MealSelectionView';
+import type { MenuDay, MenuDayMeal } from '../../api/Services/MenuServices';
+import type { HolidayItem } from '../../api/Services/HolidayServices';
+
+const mockMenuDays: MenuDay[] = [
+  { id: 1, day: 'MONDAY' },
+  { id: 2, day: 'TUESDAY' },
+];
+
+const mockMenuDayMeals: MenuDayMeal[] = [
+  {
+    id: 101,
+    menuDayId: 1,
+    isActive: true,
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-01',
+    meal: {
+      id: 1,
+      name: 'Banku & Tilapia',
+      imagePath: 'banku.png',
+      foodCode: 'BT1',
+      calories: 550,
+      description: 'Delicious Banku',
+    },
+  },
+  {
+    id: 102,
+    menuDayId: 1,
+    isActive: true,
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-01',
+    meal: {
+      id: 2,
+      name: 'Jollof Rice',
+      imagePath: 'jollof.png',
+      foodCode: 'JR1',
+      calories: 600,
+      description: 'Spicy Jollof',
+    },
+  },
+  {
+    id: 201,
+    menuDayId: 2,
+    isActive: true,
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-01',
+    meal: {
+      id: 3,
+      name: 'Fried Rice & Chicken',
+      imagePath: 'friedrice.png',
+      foodCode: 'FR1',
+      calories: 650,
+      description: 'Golden Fried Rice',
+    },
+  },
+];
+
+const mockHolidays: HolidayItem[] = [
+  {
+    id: 1,
+    title: 'Independence Day',
+    date: '2026-03-06',
+    dayName: 'TUESDAY',
+    source: 'PUBLIC',
+    isCompany: false,
+  },
+];
+
+describe('MealSelectionView Component', () => {
+  it('renders dishes and other options (Unavailable, Holiday)', () => {
+    const handleSelectionChange = jest.fn();
+
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{}}
+        onSelectionChange={handleSelectionChange}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Banku & Tilapia')).toBeInTheDocument();
+    expect(screen.getByText('Jollof Rice')).toBeInTheDocument();
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Holiday')).toBeInTheDocument();
+  });
+
+  it('selects a dish when clicked and toggles off when clicked again', () => {
+    const handleSelectionChange = jest.fn();
+
+    const { rerender } = render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{}}
+        onSelectionChange={handleSelectionChange}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+      />,
+    );
+
+    const bankuRadio = screen.getByRole('radio', { name: /Banku & Tilapia/i });
+    fireEvent.click(bankuRadio);
+    expect(handleSelectionChange).toHaveBeenCalledWith(1, 101);
+
+    // Rerender with Banku selected
+    rerender(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{ 1: 101 }}
+        onSelectionChange={handleSelectionChange}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+      />,
+    );
+
+    // Clicking again deselects
+    fireEvent.click(bankuRadio);
+    expect(handleSelectionChange).toHaveBeenCalledWith(1, undefined);
+  });
+
+  it('selects Unavailable option and Holiday option', () => {
+    const handleSelectionChange = jest.fn();
+
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{}}
+        onSelectionChange={handleSelectionChange}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+      />,
+    );
+
+    const unavailableRadio = screen.getByRole('radio', { name: /Unavailable/i });
+    fireEvent.click(unavailableRadio);
+    expect(handleSelectionChange).toHaveBeenCalledWith(1, 'UNAVAILABLE');
+
+    const holidayRadio = screen.getByRole('radio', { name: /Holiday/i });
+    fireEvent.click(holidayRadio);
+    expect(handleSelectionChange).toHaveBeenCalledWith(1, 'HOLIDAY');
+  });
+
+  it('navigates to next and previous days', () => {
+    const handleDayIndexChange = jest.fn();
+
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{}}
+        onSelectionChange={jest.fn()}
+        currentDayIndex={0}
+        onDayIndexChange={handleDayIndexChange}
+      />,
+    );
+
+    const nextBtn = screen.getByRole('button', { name: 'Next' });
+    fireEvent.click(nextBtn);
+    expect(handleDayIndexChange).toHaveBeenCalledWith(1);
+  });
+
+  it('calls onClearAllSelections and triggers toast when clear all button is clicked', () => {
+    const handleClearAllSelections = jest.fn();
+    const handleToast = jest.fn();
+
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{ 1: 101, 2: 201 }}
+        onSelectionChange={jest.fn()}
+        onClearAllSelections={handleClearAllSelections}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+        onToast={handleToast}
+      />,
+    );
+
+    const clearBtn = screen.getByRole('button', { name: 'Clear all selections' });
+    fireEvent.click(clearBtn);
+
+    expect(handleClearAllSelections).toHaveBeenCalledTimes(1);
+    expect(handleToast).toHaveBeenCalledWith('success', 'All choices have been cleared.');
+  });
+
+  it('shows holiday banner and disables selection on auto-marked holiday days', () => {
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{ 2: 'HOLIDAY' }}
+        onSelectionChange={jest.fn()}
+        currentDayIndex={1} // Tuesday has holiday
+        onDayIndexChange={jest.fn()}
+        weeklyHolidays={mockHolidays}
+      />,
+    );
+
+    expect(screen.getByText('Independence Day')).toBeInTheDocument();
+    expect(screen.getByText('Public Holiday')).toBeInTheDocument();
+
+    const friedRiceRadio = screen.getByRole('radio', { name: /Fried Rice & Chicken/i });
+    expect(friedRiceRadio).toBeDisabled();
+  });
+});

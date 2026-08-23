@@ -65,10 +65,11 @@ describe('MealModal Component', () => {
     fireEvent.change(screen.getByPlaceholderText('Enter name of the meal'), {
       target: { value: 'Burger' },
     });
-    fireEvent.change(screen.getByLabelText('Supergroup'), { target: { value: 'SG' } });
-    fireEvent.change(screen.getByLabelText('Base'), { target: { value: 'BS' } });
-    fireEvent.change(screen.getByLabelText('Protein'), { target: { value: 'PR' } });
-    fireEvent.change(screen.getByLabelText('Preparation'), { target: { value: 'PP' } });
+    const inputs = document.body.querySelectorAll('.MuiSelect-nativeInput');
+    fireEvent.change(inputs[0], { target: { value: 'SG' } });
+    fireEvent.change(inputs[1], { target: { value: 'BS' } });
+    fireEvent.change(inputs[2], { target: { value: 'PR' } });
+    fireEvent.change(inputs[3], { target: { value: 'PP' } });
 
     expect(submitBtn).not.toBeDisabled();
 

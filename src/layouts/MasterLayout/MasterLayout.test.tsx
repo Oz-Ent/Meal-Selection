@@ -22,6 +22,6 @@ describe('MasterLayout Component', () => {
     expect(main).toHaveClass('flex');
     expect(main).toHaveClass('flex-col');
     expect(main).toHaveClass('min-h-screen');
-    expect(main).toHaveClass('bg-white');
+    expect(main).toHaveClass('bg-app-bg');
   });
 });

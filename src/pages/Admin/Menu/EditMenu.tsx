@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import Button from '../../../components/Button/Button';
-import InputField from '../../../components/InputField/InputField';
-import ListCard from '../../../components/ListCard/ListCard';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Check, Pencil, Plus, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+
 import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';
-import StatusModal from '../../../components/StatusModal/StatusModal';
+import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
+
 import { type Meal } from '../../../api/Services/MealServices';
-import { type MenuDay, type MenuDayMeal } from '../../../api/Services/MenuServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 import {
   useAssignMealsMutation,
@@ -20,242 +19,339 @@ import {
   useToggleMenuMealStatusMutation,
   useUpdateMenuMutation,
 } from '../../../api/useApiQueries';
+import { queryKeys } from '../../../api/queryKeys';
 
-interface DayAssignments {
+interface DayAssignmentsLocal {
   id: number;
   title: string;
-  assignments: MenuDayMeal[];
+  meals: Meal[];
 }
 
 const formatDay = (day: string) => day.charAt(0) + day.slice(1).toLowerCase();
 
 export function EditMenu() {
-  const navigate = useNavigate();
   const { menuId } = useParams<{ menuId: string }>();
   const numericMenuId = Number(menuId);
+  const queryClient = useQueryClient();
+
   const menuQuery = useMenuQuery(numericMenuId);
   const menuDaysQuery = useMenuDaysQuery(numericMenuId);
   const menuMealsQuery = useMenuMealsQuery(numericMenuId);
   const mealsQuery = useMealsQuery();
+
   const updateMenuMutation = useUpdateMenuMutation();
   const assignMealsMutation = useAssignMealsMutation();
   const toggleMenuMealStatusMutation = useToggleMenuMealStatusMutation();
-  const [draftTitle, setDraftTitle] = useState<string | null>(null);
-  const [draftDescription, setDraftDescription] = useState<string | null>(null);
-  const [statusModal, setStatusModal] = useState({ isOpen: false, success: false, message: '' });
-  const title = draftTitle ?? menuQuery.data?.title ?? '';
-  const description = draftDescription ?? menuQuery.data?.description ?? '';
-  const meals = (mealsQuery.data?.meals ?? []).filter((meal) => meal.isActive);
-  const days = toDayAssignments(menuDaysQuery.data ?? [], menuMealsQuery.data ?? []);
+
+  const [isEditingMode, setIsEditingMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeDayIdForAdd, setActiveDayIdForAdd] = useState<number | null>(null);
+
+  // Local state for meal assignments per day (key: menuDayId -> Meal[])
+  const [localDayMeals, setLocalDayMeals] = useState<Record<number, Meal[]>>({});
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const [toastState, setToastState] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    message: '',
+  });
+
+  const menuTitle = menuQuery.data?.title ?? 'Menu';
+  const meals = (mealsQuery.data?.meals ?? []).filter((m) => m.isActive);
+  const menuDays = menuDaysQuery.data ?? [];
+
   const isLoading =
     menuQuery.isLoading ||
     menuDaysQuery.isLoading ||
     menuMealsQuery.isLoading ||
     mealsQuery.isLoading;
-  const isSaving = updateMenuMutation.isPending;
 
-  const updateMetadata = async () => {
-    if (!numericMenuId || !title.trim()) {
-      return;
+  // Initialize local state from server queries once loaded
+  useEffect(() => {
+    if (menuDaysQuery.data && menuMealsQuery.data && !isInitialized) {
+      const initialMap: Record<number, Meal[]> = {};
+      menuDaysQuery.data.forEach((day) => {
+        const activeAssignments = menuMealsQuery.data
+          .filter((assignment) => assignment.menuDayId === day.id && assignment.isActive)
+          .map((assignment) => assignment.meal as Meal);
+        initialMap[day.id] = activeAssignments;
+      });
+      setLocalDayMeals(initialMap);
+      setIsInitialized(true);
     }
+  }, [menuDaysQuery.data, menuMealsQuery.data, isInitialized]);
+
+  // Construct view days model from local state (or query fallback if not initialized)
+  const displayDays: DayAssignmentsLocal[] = menuDays.map((day) => ({
+    id: day.id,
+    title: formatDay(day.day),
+    meals: isInitialized
+      ? (localDayMeals[day.id] ?? [])
+      : (menuMealsQuery.data ?? [])
+          .filter((a) => a.menuDayId === day.id && a.isActive)
+          .map((a) => a.meal as Meal),
+  }));
+
+  // Local Actions (No API calls until Save!)
+  const handleRemoveMealLocal = (menuDayId: number, mealId: number) => {
+    setLocalDayMeals((prev) => ({
+      ...prev,
+      [menuDayId]: (prev[menuDayId] ?? []).filter((m) => m.id !== mealId),
+    }));
+  };
+
+  const handleClearDayMealsLocal = (menuDayId: number) => {
+    setLocalDayMeals((prev) => ({
+      ...prev,
+      [menuDayId]: [],
+    }));
+  };
+
+  const handleAddMealsToDayLocal = (menuDayId: number, selectedMealIds: number[]) => {
+    const selectedMealObjects = meals.filter((m) => selectedMealIds.includes(m.id));
+    setLocalDayMeals((prev) => {
+      const currentForDay = prev[menuDayId] ?? [];
+      const existingIds = new Set(currentForDay.map((m) => m.id));
+      const newMeals = selectedMealObjects.filter((m) => !existingIds.has(m.id));
+      return {
+        ...prev,
+        [menuDayId]: [...currentForDay, ...newMeals],
+      };
+    });
+    setActiveDayIdForAdd(null);
+  };
+
+  // Commit changes to API on Save
+  const handleSaveMenu = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
 
     try {
+      // 1. Update menu title if needed
       await updateMenuMutation.mutateAsync({
         id: numericMenuId,
-        data: {
-          title: title.trim(),
-          description: description.trim() || undefined,
-        },
+        data: { title: menuTitle },
       });
-      setStatusModal({
+
+      // 2. Diff local state against server assignments (both active and inactive)
+      const allServerAssignments = menuMealsQuery.data ?? [];
+
+      const promises: Promise<unknown>[] = [];
+      const assignmentsToAdd: { menuDayId: number; meals: number[] }[] = [];
+
+      menuDays.forEach((day) => {
+        const serverAssignmentsForDay = allServerAssignments.filter((a) => a.menuDayId === day.id);
+        const serverMealMap = new Map(serverAssignmentsForDay.map((a) => [a.meal.id, a]));
+
+        const currentLocalMeals = localDayMeals[day.id] ?? [];
+        const localMealIds = new Set(currentLocalMeals.map((m) => m.id));
+
+        // 2a. Check existing server assignments for this day
+        serverAssignmentsForDay.forEach((assignment) => {
+          const isRequestedLocally = localMealIds.has(assignment.meal.id);
+
+          if (isRequestedLocally && !assignment.isActive) {
+            // Re-activate inactive server assignment
+            promises.push(
+              toggleMenuMealStatusMutation.mutateAsync({
+                id: assignment.id,
+                isActive: true,
+                menuId: numericMenuId,
+              }),
+            );
+          } else if (!isRequestedLocally && assignment.isActive) {
+            // De-activate active server assignment
+            promises.push(
+              toggleMenuMealStatusMutation.mutateAsync({
+                id: assignment.id,
+                isActive: false,
+                menuId: numericMenuId,
+              }),
+            );
+          }
+        });
+
+        // 2b. Check for brand new meal IDs not present on server at all
+        const brandNewMealIds = currentLocalMeals
+          .map((m) => m.id)
+          .filter((mealId) => !serverMealMap.has(mealId));
+
+        if (brandNewMealIds.length > 0) {
+          assignmentsToAdd.push({
+            menuDayId: day.id,
+            meals: brandNewMealIds,
+          });
+        }
+      });
+
+      // Execute status updates & new assignments
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
+
+      if (assignmentsToAdd.length > 0) {
+        await assignMealsMutation.mutateAsync({
+          menuId: numericMenuId,
+          assignments: assignmentsToAdd,
+        });
+      }
+
+      // Invalidate queries to sync TanStack Query cache
+      await queryClient.invalidateQueries({ queryKey: queryKeys.menuMeals(numericMenuId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.menu(numericMenuId) });
+
+      setIsInitialized(false); // Force re-sync with updated server state
+      setIsEditingMode(false);
+      setToastState({
         isOpen: true,
-        success: true,
-        message: 'Menu details updated successfully.',
+        type: 'success',
+        message: `${menuTitle} changes saved successfully.`,
       });
     } catch {
-      setStatusModal({
+      setToastState({
         isOpen: true,
-        success: false,
-        message: 'Unable to update the menu details.',
+        type: 'error',
+        message: 'Something went wrong while saving changes to menu. Please try again.',
       });
-    }
-  };
-
-  const addMealsToDay = async (menuDayId: number, mealIds: number[]) => {
-    const day = days.find((item) => item.id === menuDayId);
-    const existingMealIds = new Set(day?.assignments.map((assignment) => assignment.meal.id));
-    const newMealIds = mealIds.filter((mealId) => !existingMealIds.has(mealId));
-    if (newMealIds.length === 0) {
-      return;
-    }
-
-    try {
-      await assignMealsMutation.mutateAsync({
-        menuId: numericMenuId,
-        assignments: [{ menuDayId, meals: newMealIds }],
-      });
-    } catch {
-      setStatusModal({ isOpen: true, success: false, message: 'Unable to add meals to this day.' });
-    }
-  };
-
-  const toggleAssignment = async (assignment: MenuDayMeal) => {
-    try {
-      await toggleMenuMealStatusMutation.mutateAsync({
-        id: assignment.id,
-        isActive: !assignment.isActive,
-        menuId: numericMenuId,
-      });
-    } catch {
-      setStatusModal({
-        isOpen: true,
-        success: false,
-        message: "Unable to update this meal's visibility.",
-      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen pb-18">
-      <NavBar title="Edit Menu" backUrl="/admin/menu" />
-      {isLoading && <LoadingState message="Loading menu details..." />}
-      {!isLoading && (
-        <div className="px-4">
-          <section className="border-b border-msListBorder py-4">
-            <h2 className="mb-2 text-sm font-medium text-msTextPrimary">Menu details</h2>
-            <div className="mb-3 h-12">
-              <InputField
-                value={title}
-                onChange={(event) => setDraftTitle(event.target.value)}
-                placeholder="Menu title"
-              />
+    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
+      {/* Top Bar Header */}
+      <NavBar
+        title={isEditingMode ? `Editing ${menuTitle}` : menuTitle}
+        backUrl="/admin/menu"
+        actionButton={
+          isEditingMode
+            ? {
+                label: 'Save',
+                icon: <Check size={14} />,
+                onClick: () => void handleSaveMenu(),
+                pending: isSaving,
+                disabled: isSaving,
+              }
+            : {
+                label: 'Edit',
+                icon: <Pencil size={14} />,
+                onClick: () => setIsEditingMode(true),
+                variant: 'outline',
+              }
+        }
+      />
+
+      {/* Main Weekday List */}
+      <main className="p-4 sm:p-6">
+        {isLoading && (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-3">
+            <div className="h-8 w-8">
+              <LoadingSpinner />
             </div>
-            <div className="mb-3 h-18">
-              <InputField
-                value={description}
-                onChange={(event) => setDraftDescription(event.target.value)}
-                placeholder="Description"
-                multiline
-              />
-            </div>
-            <div className="h-10">
-              <Button
-                variant="outline"
-                pending={isSaving}
-                disabled={!title.trim()}
-                onClick={() => void updateMetadata()}
-                label="Save details"
-              />
-            </div>
-          </section>
-          {days.map((day) => (
-            <EditMenuDaySection
-              key={day.id}
-              day={day}
-              meals={meals}
-              onAddMeals={addMealsToDay}
-              onToggle={toggleAssignment}
-            />
-          ))}
-        </div>
+            <p className="text-sm text-slate-500">Loading menu details...</p>
+          </div>
+        )}
+
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayDays.map((day) => (
+              <div
+                key={day.id}
+                className="rounded-3xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[180px]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">{day.title}</h3>
+                    {isEditingMode && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveDayIdForAdd(day.id)}
+                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-slate-100 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus size={14} />
+                        <span>Add Meals</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {day.meals.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-slate-400 italic">No meals added</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {day.meals.map((meal) => (
+                        <div key={meal.id} className="flex items-center justify-between gap-3 py-1">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
+                              alt={meal.name}
+                              className="h-10 w-10 shrink-0 rounded-xl object-cover bg-slate-100"
+                            />
+                            <span className="text-xs font-semibold text-slate-800 leading-snug line-clamp-2">
+                              {meal.name}
+                            </span>
+                          </div>
+
+                          {isEditingMode && (
+                            <button
+                              type="button"
+                              aria-label="Remove meal"
+                              onClick={() => handleRemoveMealLocal(day.id, meal.id)}
+                              className="p-1 text-red-500 hover:text-red-700 shrink-0 cursor-pointer"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      {isEditingMode && day.meals.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-slate-50 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleClearDayMealsLocal(day.id)}
+                            className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                          >
+                            Clear meal(s)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* ALL MEALS SELECTION MODAL */}
+      {activeDayIdForAdd !== null && (
+        <EditMealSelectionModalSheet
+          meals={meals}
+          selectedMealIds={(localDayMeals[activeDayIdForAdd] ?? []).map((m) => m.id)}
+          onClose={() => setActiveDayIdForAdd(null)}
+          onSave={(ids) => handleAddMealsToDayLocal(activeDayIdForAdd, ids)}
+        />
       )}
-      <StatusModal
-        isOpen={statusModal.isOpen}
-        status={statusModal.success ? 'success' : 'error'}
-        message={statusModal.message}
-        onClose={() => {
-          const wasSuccessful = statusModal.success;
-          setStatusModal({ isOpen: false, success: false, message: '' });
-          if (wasSuccessful) {
-            navigate('/admin/menu');
-          }
-        }}
+
+      {/* BOTTOM TOAST */}
+      <BottomToast
+        isOpen={toastState.isOpen}
+        type={toastState.type}
+        message={toastState.message}
+        onClose={() => setToastState({ ...toastState, isOpen: false })}
       />
     </div>
   );
 }
 
-function LoadingState({ message }: { message: string }) {
-  return (
-    <div className="flex min-h-48 flex-col items-center justify-center gap-3" role="status">
-      <div className="h-8 w-8">
-        <LoadingSpinner />
-      </div>
-      <p className="text-sm text-msCardSecondaryText">{message}</p>
-    </div>
-  );
-}
-
-function toDayAssignments(menuDays: MenuDay[], assignments: MenuDayMeal[]): DayAssignments[] {
-  return menuDays.map((day) => ({
-    id: day.id,
-    title: formatDay(day.day),
-    assignments: assignments.filter((assignment) => assignment.menuDayId === day.id),
-  }));
-}
-
-function EditMenuDaySection({
-  day,
-  meals,
-  onAddMeals,
-  onToggle,
-}: {
-  day: DayAssignments;
-  meals: Meal[];
-  onAddMeals: (dayId: number, mealIds: number[]) => Promise<void>;
-  onToggle: (assignment: MenuDayMeal) => Promise<void>;
-}) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  return (
-    <section className="border-b border-msListBorder py-3">
-      <h3 className="mb-1 font-medium text-msCardPrimaryText">{day.title}</h3>
-      {day.assignments.map((assignment) => {
-        const meal = assignment.meal;
-        if (!meal) {
-          return null;
-        }
-        return (
-          <div key={assignment.id} className={assignment.isActive ? '' : 'opacity-50'}>
-            <ListCard
-              id={meal.id}
-              title={meal.name}
-              imageUrl={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
-              inputType="none"
-            />
-            <button
-              type="button"
-              className="mb-2 ml-2 text-xs text-msDeepBlue"
-              onClick={() => void onToggle(assignment)}
-            >
-              {assignment.isActive ? 'Hide meal' : 'Show meal'}
-            </button>
-          </div>
-        );
-      })}
-      <Button
-        variant="none"
-        className="mt-1 flex items-center text-msDeepBlue"
-        onClick={() => setIsModalOpen(true)}
-      >
-        <Plus className="h-4 w-4" /> <span className="text-sm">Add Meal(s)</span>
-      </Button>
-      {isModalOpen && (
-        <EditMealSelectionModal
-          meals={meals}
-          selectedMealIds={day.assignments.map((assignment) => assignment.meal.id)}
-          onClose={() => setIsModalOpen(false)}
-          onSave={async (mealIds) => {
-            await onAddMeals(day.id, mealIds);
-            setIsModalOpen(false);
-          }}
-        />
-      )}
-    </section>
-  );
-}
-
-function EditMealSelectionModal({
+function EditMealSelectionModalSheet({
   meals,
   selectedMealIds,
   onClose,
@@ -264,52 +360,65 @@ function EditMealSelectionModal({
   meals: Meal[];
   selectedMealIds: number[];
   onClose: () => void;
-  onSave: (mealIds: number[]) => Promise<void>;
+  onSave: (selectedIds: number[]) => void;
 }) {
-  const [temporaryMealIds, setTemporaryMealIds] = useState(selectedMealIds);
-  const [isSaving, setIsSaving] = useState(false);
+  const [tempIds, setTempIds] = useState<number[]>(selectedMealIds);
 
-  const toggleMeal = (id: string) => {
-    const mealId = Number(id);
-    setTemporaryMealIds((currentIds) =>
-      currentIds.includes(mealId)
-        ? currentIds.filter((currentId) => currentId !== mealId)
-        : [...currentIds, mealId],
+  const toggleMeal = (mealId: number) => {
+    setTempIds((prev) =>
+      prev.includes(mealId) ? prev.filter((id) => id !== mealId) : [...prev, mealId],
     );
   };
 
   return (
     <Modal isOpen variant="bottom" onClose={onClose} showCloseButton>
-      <div className="flex h-[90vh] flex-col pb-16">
-        <h2 className="mb-2 shrink-0 px-3 pt-1 text-lg font-semibold text-msTextPrimary">
-          All Meals
-        </h2>
-        <div className="flex-1 overflow-y-auto">
-          {meals.map((meal) => (
-            <ListCard
-              key={meal.id}
-              id={meal.id}
-              title={meal.name}
-              imageUrl={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
-              inputType="checkbox"
-              selectedValue={temporaryMealIds}
-              onChange={toggleMeal}
-              highlightedColor="bg-msHighlightBlue"
-            />
-          ))}
+      <section className="flex flex-col font-sans w-full max-h-[85vh]">
+        <div className="px-4 pt-4 pb-2 border-b border-slate-100">
+          <h2 className="text-base font-bold text-slate-900">All meals</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Select all meals to add to this weekday.</p>
         </div>
-        <div className="absolute bottom-0 left-0 h-14 w-full border-t border-msListBorder bg-white p-2">
-          <Button
-            variant="primary"
-            pending={isSaving}
-            onClick={() => {
-              setIsSaving(true);
-              void onSave(temporaryMealIds).finally(() => setIsSaving(false));
-            }}
-            label="Save meals"
-          />
+
+        <div className="flex-1 overflow-y-auto px-4 py-2 divide-y divide-slate-100">
+          {meals.map((meal) => {
+            const isSelected = tempIds.includes(meal.id);
+
+            return (
+              <button
+                key={meal.id}
+                type="button"
+                onClick={() => toggleMeal(meal.id)}
+                className={`flex w-full items-center justify-between p-3 rounded-xl text-left transition-colors my-1 ${
+                  isSelected ? 'bg-primary-light' : 'hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <img
+                    src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
+                    alt={meal.name}
+                    className="h-11 w-11 shrink-0 rounded-xl object-cover bg-slate-100"
+                  />
+                  <span className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
+                    {meal.name}
+                  </span>
+                </div>
+
+                {isSelected && <Check size={18} className="text-primary shrink-0" />}
+              </button>
+            );
+          })}
         </div>
-      </div>
+
+        <div className="p-4 border-t border-slate-100 bg-white">
+          <button
+            type="button"
+            onClick={() => onSave(tempIds)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity"
+          >
+            <Check size={18} />
+            <span>Add</span>
+          </button>
+        </div>
+      </section>
     </Modal>
   );
 }

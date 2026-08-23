@@ -21,6 +21,9 @@ import {
 import {
   mealSelectionService,
   type CreateSelectionRequest,
+  type ReplaceWeeklyMealsBatchRequest,
+  type ReplaceWeeklyMealRequest,
+  type WeeklyHistoryFilterParams,
 } from './Services/MealSelectionServices';
 import {
   menuService,
@@ -28,12 +31,23 @@ import {
   type CreateMenuRequest,
   type UpdateMenuRequest,
 } from './Services/MenuServices';
-import { userService } from './Services/UserServices';
+import {
+  presetService,
+  type CreatePresetRequest,
+  type UpdatePresetRequest,
+} from './Services/PresetServices';
+import { userService, type ChangePasswordRequest, type UpdateUserPreferencesRequest } from './Services/UserServices';
 import {
   weekMenuScheduleService,
   type CreateWeekMenuScheduleRequest,
   type UpdateWeekMenuScheduleRequest,
 } from './Services/WeekMenuScheduleServices';
+import {
+  holidayService,
+  type CreateHolidayRequest,
+  type UpdateHolidayRequest,
+  type HolidayOverrideRequest,
+} from './Services/HolidayServices';
 import { queryKeys } from './queryKeys';
 
 export const useMealsQuery = () =>
@@ -64,7 +78,6 @@ export const useMenuDaysQuery = (menuId: number) =>
     queryFn: () => menuService.getDays(menuId),
     enabled: Number.isInteger(menuId) && menuId > 0,
   });
-  
 
 export const useMenuMealsQuery = (menuId: number) =>
   useQuery({
@@ -87,11 +100,60 @@ export const useWeekScheduleQuery = (week: number, year: number) =>
 export const useUsersQuery = () =>
   useQuery({ queryKey: queryKeys.users, queryFn: userService.getAll });
 
+export const usePresetsQuery = () =>
+  useQuery({ queryKey: queryKeys.presets, queryFn: presetService.getAll });
+
+export const usePresetsByUserQuery = (userId: number | undefined) =>
+  useQuery({
+    queryKey: queryKeys.presetsByUser(userId ?? 0),
+    queryFn: () => presetService.getByUser(userId!),
+    enabled: Boolean(userId),
+  });
+
+export const usePresetWithDetailsQuery = (presetId: number | undefined) =>
+  useQuery({
+    queryKey: queryKeys.preset(presetId ?? 0),
+    queryFn: () => presetService.getWithDetails(presetId!),
+    enabled: Boolean(presetId),
+  });
+
 export const useWeeklySelectionsQuery = (userId: number | undefined, date: string) =>
   useQuery({
     queryKey: queryKeys.weeklySelections(userId ?? 0, date),
     queryFn: () => mealSelectionService.getWeeklyByUser(userId!, date),
     enabled: Boolean(userId),
+  });
+
+export const useWeeklyMealReportQuery = (date: string) =>
+  useQuery({
+    queryKey: queryKeys.weeklyMealReport(date),
+    queryFn: () => mealSelectionService.getWeekly(date),
+    enabled: Boolean(date),
+    retry: false,
+  });
+
+export const useWeeklyNoSelectionsQuery = (date: string, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: queryKeys.weeklyNoSelections(date),
+    queryFn: () => mealSelectionService.getWeeklyNoSelections(date),
+    enabled: options?.enabled ?? Boolean(date),
+  });
+
+export const useWeeklyHistoryQuery = (params?: WeeklyHistoryFilterParams) =>
+  useQuery({
+    queryKey: queryKeys.weeklyHistory(params),
+    queryFn: () => mealSelectionService.getWeeklyHistory(params),
+  });
+
+export const useUserWeeklyHistoryQuery = (
+  userId?: number,
+  params?: WeeklyHistoryFilterParams,
+  options?: { enabled?: boolean },
+) =>
+  useQuery({
+    queryKey: queryKeys.userWeeklyHistory(userId, params),
+    queryFn: () => mealSelectionService.getUserWeeklyHistory(userId, params),
+    enabled: options?.enabled ?? true,
   });
 
 export const useCreateMealMutation = () => {
@@ -161,6 +223,7 @@ export const useCreateMenuWithAssignmentsMutation = () => {
     onSuccess: (createdMenu) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.menus });
       void queryClient.invalidateQueries({ queryKey: queryKeys.menuDays(createdMenu.id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.menuMeals(createdMenu.id) });
     },
   });
 };
@@ -230,6 +293,90 @@ export const useCreateMealSelectionsMutation = () => {
   });
 };
 
+export const useAdminOverrideSelectionsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateSelectionRequest[]) => mealSelectionService.adminOverride(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meal-selections'] }),
+  });
+};
+
+export const useReplaceWeeklyMealMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ReplaceWeeklyMealRequest) => mealSelectionService.replaceWeeklyMeal(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meal-selections'] }),
+  });
+};
+
+export const useReplaceWeeklyMealsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ReplaceWeeklyMealsBatchRequest) =>
+      mealSelectionService.replaceWeeklyMeals(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meal-selections'] }),
+  });
+};
+
+export const useSubmitWeeklySelectionsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      weekNumber,
+      year,
+      status,
+    }: {
+      weekNumber: number;
+      year: number;
+      status?: 'PENDING' | 'SUBMITTED';
+    }) => mealSelectionService.submitWeekly(weekNumber, year, status),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['meal-selections'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.weekSchedules });
+    },
+  });
+};
+
+export const useCreatePresetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreatePresetRequest) => presetService.create(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.presets }),
+  });
+};
+
+export const useUpdatePresetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdatePresetRequest }) =>
+      presetService.update(id, data),
+    onSuccess: (_, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.presets });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.preset(id) });
+    },
+  });
+};
+
+export const useDeletePresetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => presetService.delete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.presets });
+    },
+  });
+};
+
+export const useSetDefaultPresetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => presetService.setDefault(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.presets });
+    },
+  });
+};
+
 export const useLoginMutation = () =>
   useMutation({ mutationFn: (data: LoginRequest) => authService.login(data) });
 
@@ -257,3 +404,105 @@ export const useCreateFoodItemMutation = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.foodLibrary }),
   });
 };
+
+export const useHolidaysQuery = (year?: number) =>
+  useQuery({
+    queryKey: queryKeys.holidays(year),
+    queryFn: () => holidayService.getAll(year),
+  });
+
+export const useWeeklyHolidaysQuery = (week: number, year: number) =>
+  useQuery({
+    queryKey: queryKeys.weeklyHolidays(week, year),
+    queryFn: () => holidayService.getWeeklyHolidays(week, year),
+    enabled: week > 0 && year > 0,
+  });
+
+export const useCreateHolidayMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateHolidayRequest) => holidayService.create(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['holidays'] });
+    },
+  });
+};
+
+export const useUpdateHolidayMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateHolidayRequest }) =>
+      holidayService.update(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['holidays'] });
+    },
+  });
+};
+
+export const useDeleteHolidayMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => holidayService.delete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['holidays'] });
+    },
+  });
+};
+
+export const useHolidayOverridesQuery = (year?: number) =>
+  useQuery({
+    queryKey: ['holidays', 'overrides', year],
+    queryFn: () => holidayService.getOverrides(year),
+  });
+
+export const useCreateHolidayOverrideMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: HolidayOverrideRequest) => holidayService.createOrUpdateOverride(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['holidays'] });
+    },
+  });
+};
+
+export const useDeleteHolidayOverrideMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => holidayService.deleteOverride(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['holidays'] });
+    },
+  });
+};
+
+export const useUserProfileQuery = () =>
+  useQuery({
+    queryKey: queryKeys.userProfile(),
+    queryFn: () => userService.getProfile(),
+  });
+
+export const useUserPreferencesQuery = () =>
+  useQuery({
+    queryKey: queryKeys.userPreferences(),
+    queryFn: () => userService.getPreferences(),
+  });
+
+export const useUpdateUserPreferencesMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateUserPreferencesRequest) => userService.updatePreferences(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userPreferences() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile() });
+    },
+  });
+};
+
+export const useChangePasswordMutation = () => {
+  return useMutation({
+    mutationFn: (data: ChangePasswordRequest) => userService.changePassword(data),
+  });
+};
+
+
+

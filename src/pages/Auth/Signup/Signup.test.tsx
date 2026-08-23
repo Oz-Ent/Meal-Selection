@@ -45,7 +45,7 @@ describe('Signup Page', () => {
         <Signup />
       </MemoryRouter>,
     );
-    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
   });
 
   it('renders token input field', () => {

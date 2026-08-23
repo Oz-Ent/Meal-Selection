@@ -41,48 +41,50 @@ export function ResetPassword() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-white">
+    <div className="w-full min-h-screen bg-app-bg flex flex-col">
       <NavBar backUrl="/forgot-password/otp" />
-      <section className="flex flex-col items-center w-full max-w-md mx-auto px-4 pt-4">
-        <img className="w-52 h-46.25" src={ResetPasswordImage} alt="Reset Password" />
-        <h3 className="text-2xl font-semibold text-msTextPrimary mt-2">Reset Password</h3>
-        <p className="text-center text-msDescription w-[85%] mt-2">
-          Set a new password to regain access to your account. It should be something you can
-          remember easily.
-        </p>
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <section className="flex flex-col items-center w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100 text-center">
+          <img className="w-48 h-auto max-h-44 object-contain" src={ResetPasswordImage} alt="Reset Password" />
+          <h3 className="text-2xl font-bold text-slate-800 mt-2">Reset Password</h3>
+          <p className="text-center text-slate-500 text-sm max-w-xs mt-1 leading-relaxed">
+            Set a new password to regain access to your account.
+          </p>
 
-        <div className="w-full mt-8 flex flex-col gap-4">
-          <PasswordField
-            label="Password"
-            id="new-password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (error) setError('');
-            }}
-          />
-          <PasswordField
-            label="Confirm Password"
-            id="confirm-password"
-            value={confirmPassword}
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              if (error) setError('');
-            }}
-          />
-          {error && <p className="text-msWarningRed text-right text-xs">{error}</p>}
-        </div>
+          <div className="w-full mt-6 flex flex-col gap-4 text-left">
+            <PasswordField
+              label="Password"
+              id="new-password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
+            />
+            <PasswordField
+              label="Confirm Password"
+              id="confirm-password"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (error) setError('');
+              }}
+            />
+            {error && <p className="text-red-500 text-right text-xs">{error}</p>}
+          </div>
 
-        <div className="w-full h-12 mt-8">
-          <Button
-            label={isLoading ? 'Resetting...' : 'Reset Password'}
-            variant="primary"
-            disabled={isDisabled}
-            onClick={handleReset}
-            className="rounded-sm text-base font-['Roboto']"
-          />
-        </div>
-      </section>
+          <div className="w-full h-12 mt-6">
+            <Button
+              label={isLoading ? 'Resetting...' : 'Reset Password'}
+              variant="primary"
+              disabled={isDisabled}
+              onClick={handleReset}
+              className="rounded-xl text-base font-medium font-['Roboto'] w-full shadow-sm hover:shadow transition-all"
+            />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
+

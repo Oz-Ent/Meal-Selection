@@ -1,30 +1,30 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-import { MEAL_APP_CORE } from "../utils/misc/config";
-import { authService } from "./Services/AuthServices";
+import { MEAL_APP_CORE } from '../utils/misc/config';
+import { authService } from './Services/AuthServices';
 
 const apiClient = axios.create({
   baseURL: `${MEAL_APP_CORE}`,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const existingAuthHeader =
-      (config.headers as Record<string, unknown> | undefined)?.["Authorization"] ??
-      (config.headers as Record<string, unknown> | undefined)?.["authorization"];
+      (config.headers as Record<string, unknown> | undefined)?.['Authorization'] ??
+      (config.headers as Record<string, unknown> | undefined)?.['authorization'];
     if (token && !existingAuthHeader) {
       config.headers = config.headers || {};
-      config.headers["Authorization"] = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
   (error: AxiosError) => {
     throw error;
-  }
+  },
 );
 
 let isRefreshing = false;
@@ -48,49 +48,51 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthRequest = originalRequest?.url?.startsWith('/auth/');
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((newToken) => {
           if (originalRequest.headers) {
-            originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
           }
           return apiClient(originalRequest);
         });
       }
 
-      const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
-      const isPersistent = !!localStorage.getItem("refreshToken");
+      const refreshToken =
+        localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+      const isPersistent = !!localStorage.getItem('refreshToken');
       const storage = isPersistent ? localStorage : sessionStorage;
       if (!refreshToken) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("refreshToken");
-        window.location.href = "/login";
-        return Promise.reject(new Error("No refresh token available"));
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(new Error('No refresh token available'));
       }
       isRefreshing = true;
       try {
         const response = await authService.refresh({ refreshToken });
         const { accessToken, refreshToken: newRefreshToken } = response;
-        storage.setItem("token", accessToken);
-        storage.setItem("refreshToken", newRefreshToken);
+        storage.setItem('token', accessToken);
+        storage.setItem('refreshToken', newRefreshToken);
         processQueue(null, accessToken);
         if (originalRequest.headers) {
-          originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
         }
         return apiClient(originalRequest);
       } catch (err) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("refreshToken");
-        sessionStorage.removeItem("user");
-        window.location.href = "/login";
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('user');
+        window.location.href = '/login';
         processQueue(err, null);
         return Promise.reject(err);
       } finally {
@@ -98,6 +100,6 @@ apiClient.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 export default apiClient;

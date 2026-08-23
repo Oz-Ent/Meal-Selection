@@ -9,6 +9,18 @@ export const queryKeys = {
   weekSchedule: (week: number, year: number) =>
     ['week-menu-schedules', 'by-week-year', week, year] as const,
   users: ['users'] as const,
+  presets: ['presets'] as const,
+  preset: (presetId: number) => ['presets', presetId] as const,
+  presetsByUser: (userId: number) => ['presets', 'by-user', userId] as const,
   weeklySelections: (userId: number, date: string) =>
     ['meal-selections', 'weekly', userId, date] as const,
+  weeklyMealReport: (date: string) => ['meal-selections', 'weekly-report', date] as const,
+  weeklyNoSelections: (date: string) => ['meal-selections', 'weekly-no-selections', date] as const,
+  holidays: (year?: number) => ['holidays', year] as const,
+  weeklyHolidays: (week: number, year: number) => ['holidays', 'weekly', week, year] as const,
+  userProfile: () => ['user', 'profile'] as const,
+  userPreferences: () => ['user', 'preferences'] as const,
+  weeklyHistory: (params?: unknown) => ['meal-selections', 'history', params] as const,
+  userWeeklyHistory: (userId?: number, params?: unknown) =>
+    ['meal-selections', 'history', 'by-user', userId, params] as const,
 };

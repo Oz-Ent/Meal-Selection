@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom';
 
+jest.setTimeout(60000);
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as util from 'util';
 

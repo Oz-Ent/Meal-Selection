@@ -9,6 +9,7 @@ import { MealModal, type MealFormData } from './Modals/MealModal';
 import { BottomStatusModal } from './Modals/BottomStatusModal';
 import Modal from '../../../components/Modal/Modal';
 import StatusModal from '../../../components/StatusModal/StatusModal';
+import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 import {
   useDeleteMealsMutation,
@@ -104,23 +105,28 @@ export function EditMeal() {
 
   const isAllSelected = meals.length > 0 && selectedIds.length === meals.length;
 
+  const isLoading = mealsQuery.isLoading || foodLibraryQuery.isLoading;
+
   return (
-    <div>
-      <nav className="sticky top-0 z-50 min-h-13 w-full border-b border-msListBorder bg-white px-4 py-3">
-        <section className="relative flex items-center justify-between">
+    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
+      <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 flex flex-col justify-between shadow-2xs">
+        <section className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <NavLink to="/admin/meal">
-              <ArrowLeft className="text-msDeepBlue" />
+            <NavLink
+              to="/admin/meal"
+              className="p-1.5 rounded-full text-secondary hover:bg-slate-100 transition-colors"
+            >
+              <ArrowLeft size={20} />
             </NavLink>
-            <span className="text-lg text-msDeepBlue leading-snug">
-              {selectedIds.length !== 0 ? `${selectedIds.length}` : ''}
+            <span className="text-base sm:text-lg font-bold text-msDeepBlue leading-snug">
+              {selectedIds.length !== 0 ? `${selectedIds.length} Selected` : 'Select Meals'}
             </span>
           </div>
-          <div className="flex items-center cursor-pointer gap-6">
+          <div className="flex items-center gap-1">
             <Button
               variant="none"
               disabled={selectedIds.length === 0 || selectedIds.length > 1}
-              className="cursor-pointer"
+              className="cursor-pointer p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               onClick={() => {
                 setShowEditMealModal(true);
                 const meal = meals.find(
@@ -145,35 +151,60 @@ export function EditMeal() {
             <Button
               variant="none"
               disabled={selectedIds.length === 0}
-              className="cursor-pointer"
+              className="cursor-pointer p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               onClick={() => setIsDeleteModalOpen(true)}
             >
               <img src={DeleteIcon} className="stroke-msDeepBlue h-4.5 w-4.5" />
             </Button>
           </div>
         </section>
-        <section className="pl-6 pt-3 flex items-center cursor-pointer" onClick={handleSelectAll}>
+        <section className="pt-3 flex items-center cursor-pointer select-none" onClick={handleSelectAll}>
           <input
             type="checkbox"
             className="accent-msDeepBlue w-4 h-4 pointer-events-none"
             checked={isAllSelected}
             readOnly
           />
-          <span className="pl-3">Select All</span>
+          <span className="pl-3 text-xs sm:text-sm font-semibold text-slate-700">Select All</span>
         </section>
       </nav>
-      {meals.map((meal) => (
-        <ListCard
-          id={meal.id.toString()}
-          inputType="checkbox"
-          key={meal.id}
-          title={meal.name}
-          imageUrl={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
-          selectedValue={selectedIds}
-          onChange={(id) => handleSelectionChange(id)}
-          highlightedColor="bg-msHighlightBlue"
-        />
-      ))}
+
+      {/* Loading Progress Indicator */}
+      {isLoading && (
+        <div className="flex min-h-64 flex-col items-center justify-center gap-3 py-16">
+          <div className="h-8 w-8">
+            <LoadingSpinner />
+          </div>
+          <p className="text-sm text-slate-500">Loading meals...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && meals.length === 0 && (
+        <div className="flex flex-col items-center justify-center px-8 pt-20 text-center">
+          <p className="text-sm font-medium text-slate-500 max-w-xs leading-relaxed">
+            No active meals found to edit.
+          </p>
+        </div>
+      )}
+
+      {!isLoading && meals.length > 0 && (
+        <div className="px-4 sm:px-6 pt-4 flex flex-col gap-2">
+          {meals.map((meal) => (
+            <ListCard
+              id={meal.id.toString()}
+              inputType="checkbox"
+              key={meal.id}
+              title={meal.name}
+              imageUrl={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
+              selectedValue={selectedIds}
+              onChange={(id) => handleSelectionChange(id)}
+              highlightedColor="bg-msHighlightBlue"
+            />
+          ))}
+        </div>
+      )}
+
       {showEditMealModal && (
         <MealModal
           foodItems={foodItems}

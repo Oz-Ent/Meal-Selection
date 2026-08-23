@@ -44,7 +44,7 @@ describe('OtpVerification Page', () => {
       </MemoryRouter>,
     );
     const inputs = screen.getAllByRole('textbox');
-    expect(inputs).toHaveLength(5);
+    expect(inputs).toHaveLength(8);
   });
 
   it('renders the Verify button', () => {
@@ -97,6 +97,9 @@ describe('OtpVerification Page', () => {
     fireEvent.change(inputs[2], { target: { value: '3' } });
     fireEvent.change(inputs[3], { target: { value: '4' } });
     fireEvent.change(inputs[4], { target: { value: '5' } });
+    fireEvent.change(inputs[5], { target: { value: '6' } });
+    fireEvent.change(inputs[6], { target: { value: '7' } });
+    fireEvent.change(inputs[7], { target: { value: '8' } });
 
     const verifyButton = screen.getByRole('button', { name: /Verify/i });
     fireEvent.click(verifyButton);

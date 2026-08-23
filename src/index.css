@@ -4,77 +4,105 @@
 
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    font-family: 'Inter', Roboto, Poppins, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
 
-:root {
-  font-family: Roboto, Inter, Poppins, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+    color: #111827;
+    background-color: #ffffff;
 
-  color: #213547;
-  background-color: #ffffff;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    /* Primary Brand Green Palette */
+    --color-primary: #00633d;
+    --color-primary-hover: #004e2b;
+    --color-primary-light: #edf7f2;
+    --color-primary-subtle: #00633d0f;
 
-  --color-primary: #254E65;
-  --color-secondary: #1B7E9D;
-  --msDeepBlue: #035176;
-  --msTextPrimary: #3a3a3a;
-  --msListBorder: #f1f1f1;
-  --msSuccessGreen: #316f42;
-  --msWarningRed: #be3535;
-  --msCardPrimaryText: #162d3a;
-  --msCardSecondaryText: #8f8888;
-  --msTextArea: #f9f9f9;
-  --msHighlightBlue: #0351760f;
-  --msDescription: #313957;
+    /* Secondary Deep Slate Teal Palette */
+    --color-secondary: #1e465e;
+    --color-secondary-hover: #163649;
+    --color-secondary-light: #edf6fa;
+    --color-secondary-subtle: #1e465e0f;
+
+    /* Surfaces & Layout */
+    --color-app-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-dark: #232528;
+
+    /* Typography */
+    --color-text-primary: #111827;
+    --color-text-secondary: #475569;
+    --color-text-muted: #64748b;
+
+    /* Legacy Tokens (Backward Compatible) */
+    --msDeepBlue: #1e465e;
+    --msTextPrimary: #111827;
+    --msListBorder: #f1f5f9;
+    --msSuccessGreen: #00633d;
+    --msWarningRed: #ef4444;
+    --msCardPrimaryText: #0f172a;
+    --msCardSecondaryText: #64748b;
+    --msTextArea: #f8fafc;
+    --msHighlightBlue: #00633d0f;
+    --msDescription: #475569;
+  }
+
+  a {
+    font-weight: 500;
+    color: var(--color-primary);
+    text-decoration: inherit;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  body {
+    font-family: 'Inter', Roboto, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: var(--color-app-bg);
+  }
+
+  h1 {
+    line-height: 1.1;
+  }
 }
-
-a {
-  font-weight: 500;
-  color: var(--color-secondary);
-  text-decoration: inherit;
-}
-
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-}
-
-body {
-  font-family: 'Inter', Roboto, sans-serif;
-  margin: 0;
-  min-height: 100vh;
-}
-
-h1 {
-  line-height: 1.1;
-}
-
-/* button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 400;
-  font-family: Roboto, Inter, sans-serif;
-  background-color: var(--color-primary);
-  cursor: pointer;
-  transition: border-color 0.25s;
-} */
 
 @theme {
-  --font-sans: 'Inter', sans-serif;
-  --color-primary: var(--color-primary);
-  --color-secondary: var(--color-secondary);
-
+  --font-sans: 'Inter', Roboto, sans-serif;
 }
 
 @theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-subtle: var(--color-primary-subtle);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-hover: var(--color-secondary-hover);
+  --color-secondary-light: var(--color-secondary-light);
+  --color-secondary-subtle: var(--color-secondary-subtle);
+
+  --color-app-bg: var(--color-app-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-dark: var(--color-surface-dark);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
   --color-msPrimary: var(--color-primary);
   --color-msSecondary: var(--color-secondary);
   --color-msDeepBlue: var(--msDeepBlue);

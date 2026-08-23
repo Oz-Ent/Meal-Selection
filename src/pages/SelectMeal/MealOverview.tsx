@@ -6,9 +6,15 @@ export interface OverviewMeal {
   imageUrl: string;
 }
 
-export function MealOverview({ selectedMeals }: { selectedMeals: Record<string, OverviewMeal> }) {
+export function MealOverview({
+  selectedMeals,
+  onClose,
+}: {
+  selectedMeals: Record<string, OverviewMeal>;
+  onClose: () => void;
+}) {
   return (
-    <Modal isOpen={true} onClose={() => {}} variant={'bottom'}>
+    <Modal isOpen={true} onClose={onClose} variant={'bottom'}>
       <div className="h-[80vh] overflow-y-auto px-3 py-2">
         <div>
           <h2 className="text-[18px] font-semibold mb-2 text-msTextPrimary">

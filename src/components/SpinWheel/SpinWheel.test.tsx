@@ -44,14 +44,14 @@ describe('SpinWheel Component', () => {
     const spinButton = screen.getByRole('button', { name: 'Spin' });
     fireEvent.click(spinButton);
 
-    expect(spinButton).toHaveTextContent('Spinning');
+    expect(spinButton).toBeDisabled();
 
     // Fast-forward 5 seconds (5000ms delay for timeout)
     act(() => {
       jest.advanceTimersByTime(5000);
     });
 
-    expect(spinButton).toHaveTextContent('Spin');
+    expect(spinButton).not.toBeDisabled();
     expect(onSpinComplete).toHaveBeenCalledTimes(1);
   });
 

@@ -34,8 +34,8 @@ describe('EditMeal Component', () => {
     it('renders with pre-selected cardId from URL', () => {
         renderWithRouter('/admin/meal/edit/1');
         
-        // The nav bar should show "1" because one item is selected
-        expect(screen.getByText('1')).toBeInTheDocument();
+        // The nav bar should show "1 Selected" because one item is selected
+        expect(screen.getByText(/1 Selected/i)).toBeInTheDocument();
         
         // Meal 1 should be rendered
         expect(screen.getByText('Meal 1')).toBeInTheDocument();
@@ -49,10 +49,10 @@ describe('EditMeal Component', () => {
         const selectAllSection = screen.getByText('Select All');
         
         fireEvent.click(selectAllSection);
-        expect(screen.getByText('2')).toBeInTheDocument(); // 2 items selected
+        expect(screen.getByText(/2 Selected/i)).toBeInTheDocument(); // 2 items selected
         
         fireEvent.click(selectAllSection);
-        expect(screen.queryByText('2')).not.toBeInTheDocument(); // 0 items selected
+        expect(screen.queryByText(/2 Selected/i)).not.toBeInTheDocument(); // 0 items selected
     });
 
     it('opens Edit Modal when edit button is clicked for one selected item', () => {
