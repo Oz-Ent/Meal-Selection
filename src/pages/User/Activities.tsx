@@ -1,13 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Bell, Check, ChevronRight, Search } from 'lucide-react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Pagination } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/pagination';
 
 import Modal from '../../components/Modal/Modal';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
+import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
 import MealForeground from '../../assets/MealForeground.jpg';
 import AppIcon from '../../assets/App Icon.svg';
 import SelectMealIcon from '../../assets/Select Meal.svg';
@@ -24,8 +21,16 @@ import type { User } from '../../api/Services/UserServices';
 export function UserActivities() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const today = new Date().toISOString().split('T')[0];
-  const selectionsQuery = useWeeklySelectionsQuery(profile?.user?.id, today);
+  const userId = profile?.user?.id ?? (profile as any)?.id;
+  const today = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const selectionsQuery = useWeeklySelectionsQuery(userId, today);
   const usersQuery = useUsersQuery();
   const users = usersQuery.data ?? [];
 
@@ -39,26 +44,101 @@ export function UserActivities() {
     return currentDayIndex >= 0 && currentDayIndex < 5 ? currentDayIndex : 0;
   }, []);
 
-  const carouselItems = useMemo(() => {
-    const mealSelections = selectionsQuery.data?.mealSelections ?? {};
+  const carouselItems: CarouselMealItem[] = useMemo(() => {
+    const rawData = selectionsQuery.data;
+    if (!rawData) {
+      return days.map((day, index) => ({
+        day: index === defaultCarouselIndex ? 'Today' : day,
+        dayName: day,
+        mealName: 'No Meal Selected',
+        imageUrl: MealForeground,
+        hasSelection: false,
+        isUnavailable: false,
+        isHoliday: false,
+        isToday: index === defaultCarouselIndex,
+      }));
+    }
+
+    // Normalize different potential data structures (object with mealSelections, array of selections, wrapped in data)
+    const mealSelectionsMap: Record<string, any> = {};
+
+    if (Array.isArray(rawData)) {
+      for (const item of rawData) {
+        const dayKey = (item.menuDay?.day || item.dayName || item.day || '')?.toString().toUpperCase();
+        if (dayKey) {
+          mealSelectionsMap[dayKey] = item;
+        }
+      }
+    } else if (rawData.mealSelections && typeof rawData.mealSelections === 'object') {
+      Object.assign(mealSelectionsMap, rawData.mealSelections);
+    } else if ((rawData as any).data?.mealSelections && typeof (rawData as any).data.mealSelections === 'object') {
+      Object.assign(mealSelectionsMap, (rawData as any).data.mealSelections);
+    } else if (Array.isArray((rawData as any).data)) {
+      for (const item of (rawData as any).data) {
+        const dayKey = (item.menuDay?.day || item.dayName || item.day || '')?.toString().toUpperCase();
+        if (dayKey) {
+          mealSelectionsMap[dayKey] = item;
+        }
+      }
+    }
+
+    const findSelectionForDay = (dayName: string) => {
+      const target = dayName.toUpperCase();
+      if (mealSelectionsMap[target]) return mealSelectionsMap[target];
+      const foundKey = Object.keys(mealSelectionsMap).find(
+        (key) => key.toUpperCase() === target
+      );
+      return foundKey ? mealSelectionsMap[foundKey] : undefined;
+    };
+
     return days.map((day, index) => {
-      const selection = mealSelections[day.toUpperCase()];
+      const selection = findSelectionForDay(day);
       const isToday = index === defaultCarouselIndex;
-      const isUnavailable = selection?.selectionType === 'UNAVAILABLE' || selection?.mealName === 'Unavailable';
-      const isHoliday = selection?.selectionType === 'HOLIDAY' || selection?.mealName === 'Holiday';
+
+      const selectionType = selection?.selectionType || (selection?.dayMeal ? 'MEAL' : undefined);
+      const isUnavailable = selectionType === 'UNAVAILABLE' || selection?.mealName === 'Unavailable';
+      const isHoliday = selectionType === 'HOLIDAY' || selection?.mealName === 'Holiday';
+
+      const rawMealName =
+        selection?.mealName ||
+        selection?.dayMeal?.meal?.name ||
+        selection?.meal?.name ||
+        '';
 
       let displayName = 'No Meal Selected';
-      if (isUnavailable) displayName = 'Unavailable';
-      else if (isHoliday) displayName = 'Holiday';
-      else if (selection?.mealName) displayName = selection.mealName;
+      if (isUnavailable) {
+        displayName = 'Unavailable';
+      } else if (isHoliday) {
+        displayName = 'Holiday';
+      } else if (rawMealName && rawMealName !== 'No Meal Selected' && rawMealName !== 'Not Selected') {
+        displayName = rawMealName;
+      }
+
+      const imageUrl =
+        selection?.mealImagePath ||
+        selection?.dayMeal?.meal?.imagePath ||
+        selection?.meal?.imagePath ||
+        '';
+
+      const hasSelection = Boolean(
+        isUnavailable ||
+        isHoliday ||
+        (rawMealName && rawMealName !== 'No Meal Selected' && rawMealName !== 'Not Selected') ||
+        selection?.mealID ||
+        selection?.dayMealId ||
+        selection?.dayMeal ||
+        (selection?.id && displayName !== 'No Meal Selected')
+      );
 
       return {
         day: isToday ? 'Today' : day,
+        dayName: day,
         mealName: displayName,
-        imageUrl: selection?.mealImagePath || MealForeground,
-        hasSelection: Boolean(selection?.mealName || selection?.selectionType),
+        imageUrl,
+        hasSelection,
         isUnavailable,
         isHoliday,
+        isToday,
       };
     });
   }, [defaultCarouselIndex, selectionsQuery.data]);
@@ -140,38 +220,12 @@ export function UserActivities() {
               </div>
             </div>
           ) : (
-            /* When meals ARE SELECTED by user (Dark Carousel Banner) */
-            <div className="w-full overflow-hidden rounded-2xl bg-surface-dark shadow-md text-white">
-              <Swiper
-                slidesPerView={1}
-                breakpoints={{
-                  640: { slidesPerView: 2 },
-                  1024: { slidesPerView: 3 },
-                }}
-                initialSlide={defaultCarouselIndex}
-                pagination={{ clickable: true }}
-                modules={[Pagination]}
-                className="w-full pb-8"
-              >
-                {carouselItems.map((item, i) => (
-                  <SwiperSlide key={i} className="flex flex-col items-center p-4 text-center">
-                    <span className="mb-2 rounded-full bg-white/20 px-4 py-0.5 text-xs font-medium text-white backdrop-blur-xs">
-                      {item.day}
-                    </span>
-                    <h2 className="mb-3 text-sm font-bold text-white line-clamp-2 px-4 min-h-10 flex items-center justify-center">
-                      {item.mealName}
-                    </h2>
-                    <div className="relative flex h-28 w-28 items-center justify-center">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.mealName}
-                        className="h-full w-full object-contain rounded-full drop-shadow-lg"
-                      />
-                    </div>
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-            </div>
+            /* When meals ARE SELECTED by user (Dark Carousel Banner matching design) */
+            <WeeklyMealCarousel
+              items={carouselItems}
+              defaultIndex={defaultCarouselIndex}
+              onEdit={() => navigate('/select-meal')}
+            />
           )}
         </section>
 

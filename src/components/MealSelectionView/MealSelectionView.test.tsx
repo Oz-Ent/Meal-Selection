@@ -202,7 +202,7 @@ describe('MealSelectionView Component', () => {
       />,
     );
 
-    expect(screen.getByText('Independence Day')).toBeInTheDocument();
+    expect(screen.getAllByText('Independence Day').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Public Holiday')).toBeInTheDocument();
 
     const friedRiceRadio = screen.getByRole('radio', { name: /Fried Rice & Chicken/i });

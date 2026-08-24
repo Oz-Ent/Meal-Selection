@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search } from 'lucide-react';
 import Modal from '../../components/Modal/Modal';
@@ -86,6 +86,8 @@ export default function SelectMealPage() {
     today,
   );
 
+  const initializedUserIdRef = useRef<number | null | undefined>(undefined);
+
   // Synchronize target user from URL param if available
   useEffect(() => {
     if (!userIdParam || users.length === 0) return;
@@ -95,6 +97,11 @@ export default function SelectMealPage() {
       return () => clearTimeout(timer);
     }
   }, [userIdParam, users]);
+
+  // Reset initialized flag when targetUserId changes
+  useEffect(() => {
+    initializedUserIdRef.current = undefined;
+  }, [targetUserId]);
 
   // Pre-populate holidays into selections
   useEffect(() => {
@@ -121,6 +128,10 @@ export default function SelectMealPage() {
 
     const userMealSelections = weeklySelectionsQuery.data?.mealSelections;
     if (!userMealSelections || Object.keys(userMealSelections).length === 0) return;
+
+    // Only pre-populate once per target user so user tweaks are preserved
+    if (initializedUserIdRef.current === targetUserId) return;
+    initializedUserIdRef.current = targetUserId;
 
     const loadedExistingIds: Record<number, number> = {};
 
@@ -188,7 +199,7 @@ export default function SelectMealPage() {
     if (Object.keys(loadedExistingIds).length > 0) {
       setExistingSelectionIds((prev) => ({ ...prev, ...loadedExistingIds }));
     }
-  }, [menuDays, menuDayMeals, weeklySelectionsQuery.data, weeklyHolidays]);
+  }, [menuDays, menuDayMeals, weeklySelectionsQuery.data, weeklyHolidays, targetUserId]);
 
   const handleSelectionChange = (menuDayId: number, value: DaySelectionValue | undefined) => {
     setSelections((prev) => {
@@ -309,7 +320,11 @@ export default function SelectMealPage() {
       const selection = selections[mDay.id];
       if (selection === undefined) continue;
 
-      const targetUserId = isGuest ? null : selectedUser ? selectedUser.id : currentUserId;
+      const targetUserId: number | null = isGuest
+        ? null
+        : selectedUser
+          ? selectedUser.id
+          : (currentUserId ?? null);
       const existingId = existingSelectionIds[mDay.id];
 
       if (selection === 'UNAVAILABLE') {
@@ -317,7 +332,7 @@ export default function SelectMealPage() {
           ...(existingId ? { id: existingId } : {}),
           dayMealId: null,
           selectionType: 'UNAVAILABLE',
-          createdFor: targetUserId ?? null,
+          createdFor: targetUserId,
           ...(isGuest ? { guestCount: Math.max(1, guestCount) } : {}),
           weekMenuScheduleId: weekMenuSchedule.id,
           menuDayId: mDay.id,
@@ -327,7 +342,7 @@ export default function SelectMealPage() {
           ...(existingId ? { id: existingId } : {}),
           dayMealId: null,
           selectionType: 'HOLIDAY',
-          createdFor: targetUserId ?? null,
+          createdFor: targetUserId,
           ...(isGuest ? { guestCount: Math.max(1, guestCount) } : {}),
           weekMenuScheduleId: weekMenuSchedule.id,
           menuDayId: mDay.id,
@@ -337,7 +352,7 @@ export default function SelectMealPage() {
           ...(existingId ? { id: existingId } : {}),
           dayMealId: selection,
           selectionType: 'MEAL',
-          createdFor: targetUserId ?? null,
+          createdFor: targetUserId,
           ...(isGuest ? { guestCount: Math.max(1, guestCount) } : {}),
           weekMenuScheduleId: weekMenuSchedule.id,
           menuDayId: mDay.id,
