@@ -90,6 +90,7 @@ export function MealSelectionView({
     onToast?.('success', 'All choices have been cleared.');
   };
 
+  
   return (
     <>
       {/* Meal Items Card Container */}
@@ -422,7 +423,7 @@ export function MealSelectionView({
       >
         <div className="p-4 flex flex-col gap-4 text-black h-full font-sans">
           <h2 className="text-base font-bold text-slate-900">Random Meal</h2>
-          <div className="flex flex-1 flex-col items-center">
+          <div className="flex flex-1 flex-col items-center py-8">
             <SpinWheel
               options={menuDayMeals
                 .filter((item) => item.menuDayId === randomMenuDayId && item.isActive)

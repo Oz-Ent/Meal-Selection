@@ -24,7 +24,7 @@ interface IButtonProps {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-primary flex flex-1 rounded-sm w-full h-full items-center text-white',
+  primary: 'bg-primary flex flex-1 rounded-sm p-2 w-full h-full items-center text-white',
   secondary: 'bg-secondary flex flex-1 rounded-sm w-full h-full items-center text-white',
   danger: 'bg-red-600 flex flex-1 rounded-sm items-center w-full h-full text-white',
   ghost: 'bg-transparent flex flex-1 rounded-sm items-center text-gray-700 w-full h-full',

@@ -61,7 +61,7 @@ export default function InputField({disabled,label,placeholder,type = 'text', va
             
         >
         {label}</label>
-        {error && <p className="text-text-alert w-full">{errorMessage}</p>}
+        {error && <p className="text-red-700 text-xs w-full">{errorMessage ?? `Invalid ${label}`}</p>}
         </div>
     )
 }

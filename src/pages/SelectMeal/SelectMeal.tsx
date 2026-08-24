@@ -87,7 +87,34 @@ export default function SelectMealPage() {
   );
 
   const initializedUserIdRef = useRef<number | null | undefined>(undefined);
+  const selectedMeals = useMemo(() => {
+    return Object.entries(selections).map(([menuDayId, selection]) => {
+      const day = menuDays.find(
+        (day) => day.id === Number(menuDayId)
+      );
 
+      const menuDayMeal =
+        typeof selection === 'number'
+          ? menuDayMeals.find(
+              (item) =>
+                item.id === selection &&
+                item.menuDayId === Number(menuDayId)
+            )
+          : null;
+
+      return {
+        menuDayId: Number(menuDayId),
+        dayName: day?.day ?? 'Unknown day',
+        mealName:
+          selection === 'UNAVAILABLE'
+            ? 'Unavailable'
+            : selection === 'HOLIDAY'
+              ? 'Holiday'
+              : menuDayMeal?.meal.name ?? 'Unknown meal',
+        selection,
+      };
+    });
+  }, [selections, menuDays, menuDayMeals]);
   // Synchronize target user from URL param if available
   useEffect(() => {
     if (!userIdParam || users.length === 0) return;
@@ -626,10 +653,20 @@ export default function SelectMealPage() {
         variant="center"
       >
         <div className="p-6 sm:p-7 flex flex-col text-slate-900 w-full max-w-sm sm:max-w-md font-sans">
-          <h3 className="text-xl font-bold mb-2.5 text-slate-900 text-left">Confirm Meal</h3>
+          <h3 className="text-xl font-bold mb-2.5 text-slate-900 text-left">Confirm Meals</h3>
           <p className="text-slate-500 mb-6 text-sm leading-relaxed text-left">
             Please confirm that you are satisfied with your food choices for this week.
           </p>
+          <section>
+              <div className="flex flex-col gap-2 border-2 rounded-md border-gray-200">
+              {selectedMeals.map((item) => (
+                <div key={item.menuDayId} className="flex flex-col border-b p-2 border-gray-100 last:border-0">
+                  <span className='text-xs text-slate-500'>{item.dayName}</span>
+                  <span className='text-base'>{item.mealName}</span>
+                </div>
+              ))}
+            </div>
+          </section>
           <div className="flex items-center gap-3 w-full mt-2">
             <button
               type="button"

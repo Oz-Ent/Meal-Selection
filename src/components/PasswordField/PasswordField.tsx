@@ -7,19 +7,23 @@ interface IPasswordFieldProps {
   className?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: boolean;
+  errorMessage?: string;
 }
 
-function PasswordField({ label, id, className, value, onChange }: IPasswordFieldProps) {
+function PasswordField({ label, id, className, value, onChange, error, errorMessage}: IPasswordFieldProps) {
   const [show, setShow] = useState(false);
   const [focused, setFocused] = useState(false);
   const isFloating = focused || Boolean(value);
 
   return (
+    <>
     <div className="relative h-full w-full">
       <input
         id={id}
         type={show ? 'text' : 'password'}
-        className={`h-full w-full rounded-md border border-gray-300 bg-white px-3 pb-2 pt-5 pr-10 outline-none ${className || ''}`}
+        className={`h-full w-full rounded-md border
+           ${error? 'border-red-600':'border-gray-300'} bg-white px-3 pb-2 pt-5 pr-10 outline-none ${className || ''}`}
         value={value}
         onChange={onChange}
         onFocus={() => setFocused(true)}
@@ -42,6 +46,8 @@ function PasswordField({ label, id, className, value, onChange }: IPasswordField
         {show ? <EyeOff size={18} /> : <Eye size={18} />}
       </button>
     </div>
+    {error && <p className='text-red-600 text-xs w-full'>{errorMessage ?? "Invalid Password"}</p>}
+    </>
   );
 }
 

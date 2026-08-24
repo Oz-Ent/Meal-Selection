@@ -5,9 +5,14 @@ interface IOtpInputProps {
   value: string;
   onChange: (value: string) => void;
   hasError?: boolean;
+  errorMessage?: string;
+  handleRequestOTP: ()=> void;
+  isPending?: boolean;
+  requestLabel?: string;
+  requestCooldown: number;
 }
 
-export function OtpInput({ length = 5, value, onChange, hasError = false }: IOtpInputProps) {
+export function OtpInput({ length = 5, value, onChange, hasError = false, errorMessage, handleRequestOTP, isPending, requestCooldown,requestLabel}: IOtpInputProps) {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   const focusInput = (index: number) => {
@@ -48,7 +53,8 @@ export function OtpInput({ length = 5, value, onChange, hasError = false }: IOtp
   };
 
   return (
-    <div className="flex justify-center gap-3">
+    <>
+    <div className={`gap-3 grid grid-cols-${length} w-full`}>
       {Array.from({ length }).map((_, index) => (
         <input
           key={index}
@@ -61,11 +67,28 @@ export function OtpInput({ length = 5, value, onChange, hasError = false }: IOtp
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
-          className={`w-12 h-12 text-center text-lg font-medium rounded-md border focus:outline-none focus:border-msDeepBlue ${
+          className={`max-w-10 h-10 text-center text-lg font-medium rounded-md border focus:outline-none focus:border-msDeepBlue ${
             hasError ? "border-msWarningRed text-msWarningRed" : "border-gray-300 text-msTextPrimary"
           }`}
         />
       ))}
     </div>
+    <div className="flex flex-col items-start">
+      {!!requestLabel && <button
+        type="button"
+        onClick={handleRequestOTP}
+        disabled={ requestCooldown > 0 || isPending
+        }
+        className="whitespace-nowrap text-sm font-medium text-primary hover:text-primary-hover hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
+      >
+        {isPending
+          ? 'Sending...'
+          : requestCooldown > 0
+            ? `Request OTP (${requestCooldown}s)`
+            : 'Request OTP'}
+      </button>}
+    {hasError && <p>{errorMessage ?? "Invalid OTP"}</p>}
+    </div>
+    </>
   );
 }

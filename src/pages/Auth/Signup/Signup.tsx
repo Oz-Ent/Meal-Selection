@@ -1,72 +1,211 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import Button from '../../../components/Button/Button';
 import InputField from '../../../components/InputField/InputField';
 import PasswordField from '../../../components/PasswordField/PasswordField';
 import AuthLink from '../../../components/AuthLink/AuthLink';
 import Checkbox from '../../../components/Checkbox/Checkbox';
+
 import { useLoginHandler } from '../LoginHandler/LoginHandler';
-import { useOnboardingMutation, useRegisterMutation } from '../../../api/useApiQueries';
+import {
+  useOnboardingMutation,
+  useRegisterMutation,
+} from '../../../api/useApiQueries';
+
 import AppIcon from '../../../assets/App Icon.svg';
 import bro from '../../../assets/bro.svg';
+import { OtpInput } from '../../../components/OtpInput/OtpInput';
+import { EMAIL_REGEX, PASSWORD_REGEX, TOKEN_REGEX } from '../../../helpers/regex';
+
+type Errors = {
+  email?: string;
+  password?: string;
+  token?: string;
+  api?: string;
+};
+
+const validate = (
+  email: string,
+  password: string,
+  token: string,
+): Errors => {
+  const errors: Errors = {};
+
+  if (!email) {
+    errors.email = 'Email is required.';
+  } else if (!EMAIL_REGEX.test(email.trim())) {
+    errors.email = 'Please enter a valid supported email address.';
+  }
+
+  if (!password) {
+    errors.password = 'Password is required.';
+  } else if (!PASSWORD_REGEX.test(password)) {
+    errors.password =
+      'Password must contain 8+ characters, uppercase, lowercase, number and special character.';
+  }
+
+  if (!token) {
+    errors.token = 'OTP is required.';
+  } else if (!TOKEN_REGEX.test(token)) {
+    errors.token = 'OTP must be exactly 6 letters or numbers.';
+  }
+
+  return errors;
+};
 
 function Signup() {
   const navigate = useNavigate();
   const handleLoginSubmit = useLoginHandler();
+
   const onboardingMutation = useOnboardingMutation();
   const registerMutation = useRegisterMutation();
-  const [keepSignedIn, setKeepSignedIn] = useState(false);
-  const [noToken, setNoToken] = useState(false);
+
   const [email, setEmail] = useState('');
-  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [token, setToken] = useState('');
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
+
+  const [errors, setErrors] = useState<Errors>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
+
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleNoTokenChange = async (checked: boolean) => {
-    setNoToken(checked);
-    setError('');
-    setSuccessMsg('');
-    if (checked) {
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        setError('Please enter a valid email address first.');
-        setNoToken(false);
-        return;
-      }
-      try {
-        await onboardingMutation.mutateAsync({ email });
-        setSuccessMsg('Token sent! Please check your email.');
-      } catch (error: unknown) {
-        setError(error instanceof Error ? error.message : 'Failed to send token.');
-        setNoToken(false);
-      }
-    }
+  /*
+   * Validation is always calculated,
+   * but isn't displayed until the user submits once.
+   */
+  const formErrors = useMemo(
+    () => validate(email, password, token),
+    [email, password, token],
+  );
+
+  const visibleErrors = hasSubmitted ? formErrors : {};
+
+  const isFormValid = Object.keys(formErrors).length === 0;
+
+  const cooldown = Math.max(
+    0,
+    Math.ceil((cooldownUntil - now) / 1000),
+  );
+
+  /*
+   * OTP countdown
+   */
+  useEffect(() => {
+    if (!cooldownUntil) return;
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownUntil]);
+
+  /*
+   * Update a field and clear its previous API/field error.
+   */
+  const updateField = (
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    value: string,
+    field: keyof Errors,
+  ) => {
+    setter(value);
+
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+      api: undefined,
+    }));
   };
 
-  const handleSignup = async () => {
-    setError('');
-    setSuccessMsg('');
+  /*
+   * Request OTP
+   */
+  const handleRequestOtp = async () => {
+    const emailError = validate(email, '', '').email;
 
-    if (!email || !password || !token) {
-      setError('Email, password, and token are required.');
+    if (emailError) {
+      setErrors((prev) => ({
+        ...prev,
+        email: emailError,
+      }));
+
       return;
     }
 
-    setIsLoading(true);
+    if (cooldown > 0 || onboardingMutation.isPending) return;
+
     try {
-      await registerMutation.mutateAsync({ email, password, token });
-      const response = await handleLoginSubmit(email, password, keepSignedIn);
-      const roleName = response.user.roleName.toLowerCase();
-      if (roleName === 'admin' || roleName === 'hr') {
-        navigate('/admin/activities');
-      } else {
-        navigate('/activities');
-      }
+      await onboardingMutation.mutateAsync({
+        email: email.trim(),
+      });
+
+      const expiry = Date.now() + 60_000;
+
+      setCooldownUntil(expiry);
+      setNow(Date.now());
+
+      setErrors((prev) => ({
+        ...prev,
+        email: undefined,
+        api: undefined,
+      }));
     } catch (error: unknown) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to register. Invalid token or details.',
+      setErrors((prev) => ({
+        ...prev,
+        api:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send OTP.',
+      }));
+    }
+  };
+
+  /*
+   * Submit registration
+   */
+  const handleSignup = async () => {
+    setHasSubmitted(true);
+
+    if (!isFormValid) {
+      setErrors(formErrors);
+      return;
+    }
+
+    setErrors({});
+    setIsLoading(true);
+
+    try {
+      await registerMutation.mutateAsync({
+        email: email.trim(),
+        password,
+        token,
+      });
+
+      const response = await handleLoginSubmit(
+        email.trim(),
+        password,
+        keepSignedIn,
       );
+
+      const role = response.user.roleName.toLowerCase();
+
+      navigate(
+        role === 'admin' || role === 'hr'
+          ? '/admin/activities'
+          : '/activities',
+      );
+    } catch (error: unknown) {
+      setErrors({
+        api:
+          error instanceof Error
+            ? error.message
+            : 'Failed to register. Invalid OTP or details.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -75,86 +214,161 @@ function Signup() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-linear-to-br from-slate-50 via-slate-100/60 to-slate-200/50">
       <div className="w-full max-w-md lg:max-w-4xl bg-white rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        {/* Left Branding Showcase (Visible on lg screens) */}
+
+        {/* Branding */}
         <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
-          <div className="flex items-center gap-2.5 z-10">
-            <img src={AppIcon} alt="Edziban" className="h-8 w-8 object-contain" />
-            <span className="text-lg font-bold tracking-tight text-white">Edziban</span>
+
+          <div className="flex items-center gap-2.5">
+            <img
+              src={AppIcon}
+              alt="Edziban"
+              className="h-8 w-8 object-contain"
+            />
+
+            <span className="text-lg font-bold">
+              Edziban
+            </span>
           </div>
 
-          <div className="my-auto py-8 flex flex-col items-center text-center z-10">
-            <img src={bro} alt="Welcome" className="w-64 h-auto max-h-56 object-contain drop-shadow-lg mb-6" />
-            <h2 className="text-2xl font-bold font-['Inter'] leading-snug">
+          <div className="my-auto py-8 flex flex-col items-center text-center">
+            <img
+              src={bro}
+              alt="Welcome"
+              className="w-64 h-auto max-h-56 object-contain drop-shadow-lg mb-6"
+            />
+
+            <h2 className="text-2xl font-bold">
               Join Edziban Today
             </h2>
-            <p className="mt-3 text-sm text-slate-200 font-['Roboto'] max-w-xs leading-relaxed">
-              Create your account to start planning your weekly menu, customize presets, and enjoy stress-free dining.
+
+            <p className="mt-3 text-sm text-slate-200 max-w-xs leading-relaxed">
+              Create your account to start planning your weekly menu,
+              customize presets, and enjoy stress-free dining.
             </p>
           </div>
 
-          <div className="text-xs text-emerald-200/80 font-['Roboto'] z-10">
+          <div className="text-xs text-emerald-200/80">
             © {new Date().getFullYear()} Edziban Meal Planning System
           </div>
-
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
         </div>
 
-        {/* Right Form Pane */}
+        {/* Form */}
         <div className="flex flex-col justify-center gap-5 p-6 sm:p-10">
-          <section className="flex flex-col gap-1.5">
-            <div className="lg:hidden flex items-center gap-2 mb-1">
-              <img src={AppIcon} alt="Edziban" className="h-7 w-7 object-contain" />
-              <span className="text-base font-bold text-slate-700">Edziban</span>
+
+          {/* Header */}
+          <section>
+            <div className="lg:hidden flex items-center gap-2 mb-2">
+              <img
+                src={AppIcon}
+                alt="Edziban"
+                className="h-7 w-7 object-contain"
+              />
+
+              <span className="font-bold text-slate-700">
+                Edziban
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl text-gray-800 font-semibold text-left font-['Inter']">Sign Up</h1>
-            <p className="text-msDescription text-sm sm:text-base font-normal text-left font-['Roboto']">
+
+            <h1 className="text-2xl sm:text-3xl text-gray-800 font-semibold">
+              Sign Up
+            </h1>
+
+            <p className="text-msDescription text-sm sm:text-base">
               Sign up and start planning your weekly menu with ease.
             </p>
           </section>
 
-          <section className="flex flex-col gap-3.5">
-            <InputField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          {/* Form Fields */}
+          <section className="flex flex-col gap-5">
 
+            {/* Email */}
+            <InputField
+              label="Email"
+              error={!!visibleErrors.email}
+              errorMessage={visibleErrors.email}
+              value={email}
+              onChange={(e) =>
+                updateField(
+                  setEmail,
+                  e.target.value,
+                  'email',
+                )
+              }
+            />
+
+            {/* Password */}
             <PasswordField
               label="Password"
               id="Password"
+              error={!!visibleErrors.password}
+              errorMessage={visibleErrors.password}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                updateField(
+                  setPassword,
+                  e.target.value,
+                  'password',
+                )
+              }
             />
-            <InputField label="Token" value={token} onChange={(e) => setToken(e.target.value)} />
 
-            {error && <p className="text-red-500 text-right text-xs">{error}</p>}
-            {successMsg && <p className="text-green-600 text-right text-xs">{successMsg}</p>}
+            {/* OTP */}
+          <OtpInput
+            length={6}
+            value={token}
+            hasError={!!visibleErrors.token}
+            errorMessage={visibleErrors.token}
+            handleRequestOTP={handleRequestOtp}
+            isPending={onboardingMutation.isPending}
+            requestLabel="Request OTP"
+            requestCooldown={cooldown}
+            onChange={(value) =>
+              updateField(setToken, value, 'token')
+            }
+          />
 
+          {/* API Error */}
+          {errors.api && (
+            <p className="text-red-500 text-xs text-right">
+              {errors.api}
+            </p>
+          )}
+          </section>
+
+          {/* Actions */}
+          <section className="flex flex-col gap-5">
+
+            <Checkbox
+              label="Keep me signed in."
+              checked={keepSignedIn}
+              onChange={setKeepSignedIn}
+            />
+
+          <Button
+            label={isLoading ? 'Signing up...' : 'Sign Up'}
+            variant="primary"
+            onClick={handleSignup}
+            disabled={!isFormValid || isLoading}
+          />
+          </section>
+          
+          {/* Login */}
+          <p className="text-sm text-gray-600 text-center">
+            Already have an account?{' '}
+            <AuthLink
+              to="/login"
+              className="text-primary hover:text-primary-hover font-bold hover:underline inline"
+              text="Login"
+              onClick={() => {}}
+            />
+
+            {/* Forgot Password */}
             <AuthLink
               to="/forgot-password"
-              className="text-xs text-right text-primary hover:text-primary-hover hover:underline"
+              className="text-primary hover:text-primary-hover font-bold hover:underline"
               text="Forgot Password?"
               onClick={() => {}}
             />
-          </section>
-
-          <section className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <Checkbox label="I don't have a token." checked={noToken} onChange={handleNoTokenChange} />
-              <Checkbox label="Keep me signed in." checked={keepSignedIn} onChange={setKeepSignedIn} />
-            </div>
-
-            <div className="w-full h-12">
-              <Button
-                label={isLoading ? 'Signing up...' : 'Sign Up'}
-                variant="primary"
-                onClick={handleSignup}
-                disabled={isLoading}
-                className="rounded-xl text-base font-medium font-['Roboto'] w-full shadow-sm hover:shadow transition-all"
-              />
-            </div>
-          </section>
-
-          <p className="text-sm text-gray-600 text-center">
-            Already have an account?{' '}
-            <AuthLink to="/login" className="text-primary hover:text-primary-hover font-bold hover:underline inline" text="Login" onClick={() => {}} />
           </p>
         </div>
       </div>
@@ -163,4 +377,3 @@ function Signup() {
 }
 
 export default Signup;
-

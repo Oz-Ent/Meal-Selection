@@ -12,7 +12,8 @@ interface ISpinWheelProps {
   onSpinComplete: (value: string | number) => void;
 }
 
-const colors = ['red', 'yellow', 'blue', 'green', 'purple', 'amber'];
+const colors = ['#FAFAFA','white'];
+const labelColors = ['green','purple','orange','navy','brown','red']
 const WHEEL_RADIUS = 150;
 const MAX_LABEL_WIDTH = WHEEL_RADIUS * 0.9;
 const LABEL_FONT_SIZE = 13;
@@ -37,8 +38,8 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
 
     const n = options.length;
     const segmentAngle = 360 / n;
-
     const index = Math.floor(Math.random() * n);
+
 
     const sliceCenter = index * segmentAngle + segmentAngle / 2;
 
@@ -62,10 +63,18 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
 
   return (
     <section className="flex flex-col items-center gap-8">
+      <div className="relative w-72 h-72 rounded-full shadow-md">
       <div className="relative w-72 h-72">
         {/* POINTER */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">▼</div>
 
+        <Button
+        variant='none' 
+        className='absolute top-27 left-27 p-2 shadow-md z-20 w-17 h-17 rounded-full bg-secondary border-4 border-white text-white text-truncate hover:scale-95'
+        label={'Spin'} 
+        pending={spinning} 
+        onClick={spin}
+        />
         {/* ROTATING WHEEL */}
         <div
           className="w-full h-full transition-transform duration-5000 ease-in-out"
@@ -74,7 +83,8 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
             transformOrigin: `center`,
           }}
         >
-          <svg viewBox="0 0 300 300" className="w-72 h-72">
+
+          <svg viewBox="0 0 300 300" className="w-72 h-72 border-2 border-gray-100 p-2 rounded-full">
             {options.map((option, i) => {
               const startAngle = i * segmentAngle;
               const endAngle = (i + 1) * segmentAngle;
@@ -91,12 +101,14 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
                 <g key={option.value}>
                   <path
                     d={`${createPieSlice(startAngle, endAngle, 150, 150)}`}
-                    fill={colors[i % colors.length]}
+                    fill={colors[i % 2]}
+                    stroke="#00000010"
+                    strokeWidth={2}
                   />
                   <text
                     x={labelX}
                     y={labelY}
-                    fill="white"
+                    fill={labelColors[i % labelColors.length]}
                     fontSize={LABEL_FONT_SIZE}
                     fontWeight="600"
                     textAnchor="middle"
@@ -110,9 +122,9 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
             })}
           </svg>
         </div>
+          <span>{spinning? 'Spinning':'Spin the wheel to pick a dish'}</span>
       </div>
-
-      <Button label={spinning ? 'Spinning' : 'Spin'} pending={spinning} onClick={spin} />
+      </div>
     </section>
   );
 }
