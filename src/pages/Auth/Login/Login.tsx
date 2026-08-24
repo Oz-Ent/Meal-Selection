@@ -50,7 +50,7 @@ function Login() {
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-linear-to-br from-slate-50 via-slate-100/60 to-slate-200/50">
       <div className="w-full max-w-md lg:max-w-4xl bg-white rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
         {/* Left Branding Showcase (Visible on lg screens) */}
-        <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
+        <div className="hidden lg:flex flex-col justify-between bg-linear-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
           <div className="flex items-center gap-2.5 z-10">
             <img src={AppIcon} alt="Edziban" className="h-8 w-8 object-contain" />
             <span className="text-lg font-bold tracking-tight text-white">Edziban</span>

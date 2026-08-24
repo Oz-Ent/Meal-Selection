@@ -114,4 +114,92 @@ describe('Menu Component', () => {
 
     expect(screen.getByTestId('add-menu-route')).toBeInTheDocument();
   });
+
+  it('sets a non-active menu as active when option is clicked', async () => {
+    const menu2 = {
+      id: 2,
+      title: 'Second Menu',
+      description: 'Second lunch plan',
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+    };
+    mockUseMenusQuery.mockReturnValue({
+      data: [menu, menu2],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useMenusQuery>);
+    // current schedule active is menu 1
+    mockUseWeekSchedulesQuery.mockReturnValue({
+      data: [
+        {
+          id: 101,
+          week: 35,
+          year: 2026,
+          menu: { id: 1, title: 'Weekly Menu' },
+          status: 'ACTIVE',
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useWeekSchedulesQuery>);
+
+    render(
+      <MemoryRouter>
+        <Menu />
+      </MemoryRouter>,
+    );
+
+    const moreOptionsBtns = screen.getAllByRole('button', { name: /More options/i });
+    fireEvent.click(moreOptionsBtns[1]);
+
+    const setActiveBtn = screen.getByText('Set as active for this week');
+    expect(setActiveBtn).toBeInTheDocument();
+    fireEvent.click(setActiveBtn);
+
+    expect(mockUpdateSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 101,
+        data: expect.objectContaining({ menuId: 2, status: 'ACTIVE' }),
+      }),
+    );
+  });
+
+  it('allows dragging and dropping to reorder menus', () => {
+    const menu2 = {
+      id: 2,
+      title: 'Second Menu',
+      description: 'Second lunch plan',
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+    };
+    mockUseMenusQuery.mockReturnValue({
+      data: [menu, menu2],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useMenusQuery>);
+
+    render(
+      <MemoryRouter>
+        <Menu />
+      </MemoryRouter>,
+    );
+
+    const cards = screen.getAllByText(/Weekly Menu|Second Menu/i);
+    expect(cards[0]).toHaveTextContent('Weekly Menu');
+    expect(cards[1]).toHaveTextContent('Second Menu');
+
+    // Simulate drag and drop
+    const cardElements = screen.getAllByRole('button', { name: /More options/i }).map((btn) => btn.closest('[draggable="true"]')!);
+    fireEvent.dragStart(cardElements[0], {
+      dataTransfer: { setData: jest.fn(), effectAllowed: 'move' },
+    });
+    fireEvent.dragOver(cardElements[1], {
+      dataTransfer: { dropEffect: 'move' },
+    });
+    fireEvent.drop(cardElements[1], {
+      dataTransfer: {},
+    });
+
+    expect(mockUpdateMenu).toHaveBeenCalled();
+  });
 });
+

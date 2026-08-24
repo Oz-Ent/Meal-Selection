@@ -22,6 +22,19 @@ describe('NavBar Component', () => {
         expect(link).toHaveAttribute('href', '/home');
     });
 
+    it('handles onBackClick when provided', () => {
+        const onBackClick = jest.fn();
+        render(
+            <MemoryRouter>
+                <NavBar title="Dashboard" onBackClick={onBackClick} />
+            </MemoryRouter>
+        );
+        const backBtn = screen.getByRole('button', { name: /back/i });
+        expect(backBtn).toBeInTheDocument();
+        fireEvent.click(backBtn);
+        expect(onBackClick).toHaveBeenCalledTimes(1);
+    });
+
     it('renders Add button and handles click', () => {
         const onAddButtonClick = jest.fn();
         render(

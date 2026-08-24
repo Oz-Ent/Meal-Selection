@@ -5,7 +5,7 @@ import { UserActivities } from './Activities';
 // Mock Lucide icons
 jest.mock('lucide-react', () => ({
   ArrowRight: () => <span data-testid="icon-arrow-right" />,
-  Bell: () => <span data-testid="icon-bell" />,
+  LogOut: () => <span data-testid="icon-logout" />,
   Check: () => <span data-testid="icon-check" />,
   ChevronRight: () => <span data-testid="icon-chevron-right" />,
   Search: () => <span data-testid="icon-search" />,
@@ -248,5 +248,19 @@ describe('UserActivities Banner and Page Component', () => {
 
     fireEvent.click(screen.getByText('Preset Meals').closest('button')!);
     expect(mockNavigate).toHaveBeenCalledWith('/preset-meals');
+  });
+
+  it('opens logout confirmation modal when logout button is clicked', () => {
+    render(
+      <MemoryRouter>
+        <UserActivities />
+      </MemoryRouter>
+    );
+
+    const logoutButton = screen.getByRole('button', { name: /log out/i });
+    expect(logoutButton).toBeInTheDocument();
+    fireEvent.click(logoutButton);
+
+    expect(screen.getByText(/Sign Out of Account\?/i)).toBeInTheDocument();
   });
 });

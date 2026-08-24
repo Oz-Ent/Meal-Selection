@@ -6,6 +6,7 @@ export interface Menu {
   title: string;
   description: string | null;
   isActive: boolean;
+  order?: number;
 }
 
 export interface MenuDetail extends Menu {
@@ -31,12 +32,14 @@ export interface CreateMenuRequest {
   title: string;
   description?: string;
   isActive?: boolean;
+  order?: number;
 }
 
 export interface UpdateMenuRequest {
   title?: string;
   description?: string;
   isActive?: boolean;
+  order?: number;
 }
 
 export interface AssignMealsRequest {

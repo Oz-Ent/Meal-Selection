@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Check, Loader2 } from 'lucide-react';
+import { NavBar } from '../../components/NavBar/NavBar';
 import { MealSelectionView, type DaySelectionValue } from '../../components/MealSelectionView/MealSelectionView';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
@@ -17,6 +18,7 @@ import type { MenuDay } from '../../api/Services/MenuServices';
 
 export function PresetBuilder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const params = useParams<{ menuId?: string }>();
   const [searchParams] = useSearchParams();
   const menuId = Number(params.menuId) || Number(searchParams.get('menuId')) || 0;
@@ -107,7 +109,10 @@ export function PresetBuilder() {
 
       setIsNameModalOpen(false);
       navigate(`/preset-meals/${createdPreset.id}`, {
-        state: { toastMessage: 'Preset meal created successfully' },
+        state: {
+          presetName: createdPreset.name || trimmedName,
+          toastMessage: 'Preset meal created successfully',
+        },
       });
     } catch (error) {
       console.error('Failed to create preset:', error);
@@ -125,34 +130,22 @@ export function PresetBuilder() {
   const isLoading =
     menuQuery.isLoading || menuDaysQuery.isLoading || menuDayMealsQuery.isLoading;
 
-  const menuTitle = menu?.title ? `Preset ${menu.title}` : `Preset Menu ${menuId}`;
+  const passedMenuTitle = location.state?.menuTitle;
+  const menuTitle = menu?.title || passedMenuTitle || (menuQuery.isLoading ? '' : 'New Preset');
 
   return (
     <div className="min-h-screen w-full max-w-5xl mx-auto bg-app-bg text-text-primary flex flex-col font-sans relative pb-28">
       {/* Page Header */}
-      <header className="flex items-center justify-between bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 sticky top-0 z-40 shadow-2xs">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => navigate('/preset-meals')}
-          className="p-1.5 rounded-full text-secondary hover:bg-slate-100 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <h1 className="text-base sm:text-lg font-bold text-slate-900 text-center flex-1 pr-2">{menuTitle}</h1>
-
-        <button
-          type="button"
-          aria-label="Save Preset"
-          onClick={handleOpenNameModal}
-          disabled={Object.keys(selections).length === 0 || isLoading}
-          className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs disabled:opacity-40 transition-all cursor-pointer"
-        >
-          <Check size={14} strokeWidth={2.5} />
-          <span>Save</span>
-        </button>
-      </header>
+      <NavBar
+        title={menuTitle}
+        backUrl="/preset-meals"
+        actionButton={{
+          label: 'Save',
+          icon: <Check size={14} strokeWidth={2.5} />,
+          onClick: handleOpenNameModal,
+          disabled: Object.keys(selections).length === 0 || isLoading,
+        }}
+      />
 
       {/* Loading Progress Indicator */}
       {isLoading && (
@@ -185,6 +178,7 @@ export function PresetBuilder() {
           currentDayIndex={currentDayIndex}
           onDayIndexChange={setCurrentDayIndex}
           showPresetButton={false}
+          showOtherOptions={false}
           mode="select"
           onToast={(type, message) => setToast({ isOpen: true, type, message })}
         />

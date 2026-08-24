@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -12,6 +11,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
+import { NavBar } from '../../components/NavBar/NavBar';
 import Modal from '../../components/Modal/Modal';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import { LoadingOverlay } from '../../components/LoadingOverlay/LoadingOverlay';
@@ -75,7 +75,10 @@ export function PresetMeals() {
 
   const handleSelectMenu = (menuId: number) => {
     setIsSelectMenuModalOpen(false);
-    navigate(`/preset-meals/create/${menuId}`);
+    const selectedMenu = menus.find((m) => m.id === menuId);
+    navigate(`/preset-meals/create/${menuId}`, {
+      state: { menuTitle: selectedMenu?.title, menu: selectedMenu },
+    });
   };
 
   const handleOpenRename = (preset: Preset) => {
@@ -195,23 +198,12 @@ export function PresetMeals() {
   const isQueryLoading = presetsQuery.isLoading || menusQuery.isLoading;
 
   return (
-    <div className="min-h-screen w-full max-w-md mx-auto bg-[#f8fafc] text-msTextPrimary flex flex-col font-sans relative pb-20">
+    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
       {/* Header */}
-      <header className="flex h-14 items-center justify-between bg-white px-4 border-b border-slate-100 sticky top-0 z-10 shadow-2xs">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => navigate('/activities')}
-          className="p-1.5 rounded-full text-[#10384f] hover:bg-slate-100 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <h1 className="text-base font-bold text-slate-900 text-center flex-1 pr-6">Preset Meals</h1>
-      </header>
+      <NavBar title="Preset Meals" backUrl="/activities" />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-start p-4 text-center">
+      <main className="p-4 sm:p-6">
         {isQueryLoading ? (
           <div className="flex min-h-64 flex-col items-center justify-center gap-3 my-auto py-16">
             <div className="h-8 w-8">
@@ -220,7 +212,7 @@ export function PresetMeals() {
             <p className="text-sm text-slate-500">Loading presets...</p>
           </div>
         ) : presets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center my-auto py-12">
+          <div className="flex flex-col items-center justify-center my-auto py-12 text-center">
             <img
               src={PresetIllustration}
               alt="Preset Illustration"
@@ -232,7 +224,7 @@ export function PresetMeals() {
             </p>
           </div>
         ) : (
-          <div className="w-full flex flex-col gap-3 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full text-left">
             {presets.map((preset) => {
               const menuObj = menus.find((m) => m.id === preset.menuId);
               const menuLabel = menuObj?.title || `Menu ${preset.menuId}`;
@@ -242,7 +234,11 @@ export function PresetMeals() {
               return (
                 <div key={preset.id} className="relative w-full">
                   <div
-                    onClick={() => navigate(`/preset-meals/${preset.id}`)}
+                    onClick={() =>
+                      navigate(`/preset-meals/${preset.id}`, {
+                        state: { presetName: preset.name, preset },
+                      })
+                    }
                     className="bg-white border border-slate-100 p-4 rounded-2xl shadow-2xs flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     <div>
@@ -319,14 +315,14 @@ export function PresetMeals() {
       </main>
 
       {/* Floating Action Button "+ Add" */}
-      <div className="fixed bottom-6 right-6 z-20">
+      <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-5xl pointer-events-none z-30 px-4 sm:px-6 flex justify-end">
         <button
           type="button"
           aria-label="Add new preset menu"
           onClick={() => setIsSelectMenuModalOpen(true)}
-          className="flex items-center gap-2 bg-[#20475b] hover:bg-[#183a4a] text-white px-5 py-3 rounded-full shadow-lg font-semibold text-sm transition-transform active:scale-95"
+          className="pointer-events-auto flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary-hover px-5 py-3.5 text-sm font-bold text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
         >
-          <Plus size={18} />
+          <Plus size={18} strokeWidth={2.5} />
           <span>Add</span>
         </button>
       </div>

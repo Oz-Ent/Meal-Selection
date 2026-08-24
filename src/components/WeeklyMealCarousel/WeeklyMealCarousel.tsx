@@ -10,7 +10,7 @@ import jollofBowlIcon from '../../assets/lunch selection/JollofBowl 2.svg';
 import friedEggIcon from '../../assets/lunch selection/fried_egg.svg';
 import pepperIcon from '../../assets/lunch selection/pepper.svg';
 import leafIcon from '../../assets/lunch selection/leaf.svg';
-import MealForeground from '../../assets/MealForeground.jpg';
+import MealForeground from '../../assets/MealForeground.webp';
 
 export interface CarouselMealItem {
   day: string;

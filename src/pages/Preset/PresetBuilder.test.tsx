@@ -63,7 +63,7 @@ describe('PresetBuilder', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Preset Menu 1')).toBeInTheDocument();
+    expect(screen.getByText('Menu 1')).toBeInTheDocument();
     expect(screen.getByText('Jollof Rice')).toBeInTheDocument();
 
     // Select Jollof Rice

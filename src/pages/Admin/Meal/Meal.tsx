@@ -226,14 +226,16 @@ export function Meal() {
       )}
 
       {/* Floating Add Button */}
-      <button
-        type="button"
-        onClick={() => setIsNewMealModalOpen(true)}
-        className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-30 flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary-hover px-5 py-3.5 text-sm font-bold text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-      >
-        <Plus size={18} />
-        <span>Add</span>
-      </button>
+      <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-5xl pointer-events-none z-30 px-4 sm:px-6 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setIsNewMealModalOpen(true)}
+          className="pointer-events-auto flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary-hover px-5 py-3.5 text-sm font-bold text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+        >
+          <Plus size={18} />
+          <span>Add</span>
+        </button>
+      </div>
 
       {/* NEW MEAL MODAL */}
       {isNewMealModalOpen && (

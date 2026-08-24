@@ -83,5 +83,19 @@ describe('Admin Activities Component', () => {
     fireEvent.click(screen.getByText('Food Assignment'));
     expect(screen.getByTestId('food-assignment-route')).toBeInTheDocument();
   });
+
+  it('opens logout confirmation modal when logout button is clicked', () => {
+    render(
+      <MemoryRouter>
+        <Activities />
+      </MemoryRouter>
+    );
+
+    const logoutButton = screen.getByRole('button', { name: /log out/i });
+    expect(logoutButton).toBeInTheDocument();
+    fireEvent.click(logoutButton);
+
+    expect(screen.getByText(/Sign Out of Account\?/i)).toBeInTheDocument();
+  });
 });
 

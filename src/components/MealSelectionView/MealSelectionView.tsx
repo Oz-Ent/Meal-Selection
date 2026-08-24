@@ -29,6 +29,7 @@ export interface MealSelectionViewProps {
   onDayIndexChange: (index: number) => void;
   weeklyHolidays?: HolidayItem[];
   showPresetButton?: boolean;
+  showOtherOptions?: boolean;
   onPresetClick?: () => void;
   onToast?: (type: 'success' | 'error', message: string) => void;
   mode?: 'select' | 'view';
@@ -45,6 +46,7 @@ export function MealSelectionView({
   onDayIndexChange,
   weeklyHolidays = [],
   showPresetButton = false,
+  showOtherOptions = true,
   onPresetClick,
   onToast,
   mode = 'select',
@@ -201,147 +203,151 @@ export function MealSelectionView({
             </div>
           )}
 
-          {/* Divider between Meals and Special Options */}
-          <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Other options
-          </div>
-
-          {/* Option: UNAVAILABLE */}
-          <button
-            type="button"
-            role="radio"
-            aria-checked={selectedChoice === 'UNAVAILABLE'}
-            disabled={mode === 'view' || isHolidayDay}
-            onClick={() => {
-              if (mode !== 'select' || isHolidayDay || !currentDay) return;
-              if (selectedChoice === 'UNAVAILABLE') {
-                if (onClearDaySelection) {
-                  onClearDaySelection(currentDay.id);
-                } else {
-                  onSelectionChange(currentDay.id, undefined);
-                }
-              } else {
-                onSelectionChange(currentDay.id, 'UNAVAILABLE');
-              }
-            }}
-            className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors ${
-              isHolidayDay
-                ? 'opacity-40 cursor-not-allowed'
-                : selectedChoice === 'UNAVAILABLE'
-                ? 'bg-primary-light'
-                : mode === 'select'
-                ? 'hover:bg-slate-50'
-                : ''
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-              <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
-                <Ban size={20} />
+          {/* Divider and Other Options (Unavailable, Holiday) */}
+          {showOtherOptions && (
+            <>
+              <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Other options
               </div>
-              <div className="min-w-0 flex-1">
-                <span
-                  className={`text-sm leading-snug ${
-                    selectedChoice === 'UNAVAILABLE'
-                      ? 'font-semibold text-primary'
-                      : 'font-medium text-slate-800'
-                  }`}
-                >
-                  Unavailable
-                </span>
-                <p className="text-[11px] text-slate-500">I will not be having lunch on this day</p>
-              </div>
-            </div>
 
-            {mode === 'view' ? (
-              selectedChoice === 'UNAVAILABLE' && (
-                <Check size={18} className="text-primary shrink-0 font-bold" />
-              )
-            ) : (
-              <div
-                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                  selectedChoice === 'UNAVAILABLE'
-                    ? 'border-primary bg-white'
-                    : 'border-slate-300 bg-white'
+              {/* Option: UNAVAILABLE */}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selectedChoice === 'UNAVAILABLE'}
+                disabled={mode === 'view' || isHolidayDay}
+                onClick={() => {
+                  if (mode !== 'select' || isHolidayDay || !currentDay) return;
+                  if (selectedChoice === 'UNAVAILABLE') {
+                    if (onClearDaySelection) {
+                      onClearDaySelection(currentDay.id);
+                    } else {
+                      onSelectionChange(currentDay.id, undefined);
+                    }
+                  } else {
+                    onSelectionChange(currentDay.id, 'UNAVAILABLE');
+                  }
+                }}
+                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors ${
+                  isHolidayDay
+                    ? 'opacity-40 cursor-not-allowed'
+                    : selectedChoice === 'UNAVAILABLE'
+                    ? 'bg-primary-light'
+                    : mode === 'select'
+                    ? 'hover:bg-slate-50'
+                    : ''
                 }`}
               >
-                {selectedChoice === 'UNAVAILABLE' && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                )}
-              </div>
-            )}
-          </button>
+                <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                    <Ban size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span
+                      className={`text-sm leading-snug ${
+                        selectedChoice === 'UNAVAILABLE'
+                          ? 'font-semibold text-primary'
+                          : 'font-medium text-slate-800'
+                      }`}
+                    >
+                      Unavailable
+                    </span>
+                    <p className="text-[11px] text-slate-500">I will not be having lunch on this day</p>
+                  </div>
+                </div>
 
-          {/* Option: HOLIDAY */}
-          <button
-            type="button"
-            role="radio"
-            aria-checked={selectedChoice === 'HOLIDAY' || isHolidayDay}
-            disabled={mode === 'view' || isHolidayDay}
-            onClick={() => {
-              if (mode !== 'select' || isHolidayDay || !currentDay) return;
-              if (selectedChoice === 'HOLIDAY') {
-                if (onClearDaySelection) {
-                  onClearDaySelection(currentDay.id);
-                } else {
-                  onSelectionChange(currentDay.id, undefined);
-                }
-              } else {
-                onSelectionChange(currentDay.id, 'HOLIDAY');
-              }
-            }}
-            className={`flex w-full items-center justify-between p-3 rounded-2xl text-left transition-colors ${
-              selectedChoice === 'HOLIDAY' || isHolidayDay
-                ? 'bg-amber-50/80 border border-amber-200/70'
-                : mode === 'select'
-                ? 'hover:bg-slate-50'
-                : ''
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-              <div className="w-11 h-11 rounded-xl bg-amber-100/70 flex items-center justify-center text-amber-700 shrink-0">
-                <Palmtree size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-sm leading-snug ${
-                      selectedChoice === 'HOLIDAY' || isHolidayDay
-                        ? 'font-semibold text-amber-950'
-                        : 'font-medium text-slate-800'
+                {mode === 'view' ? (
+                  selectedChoice === 'UNAVAILABLE' && (
+                    <Check size={18} className="text-primary shrink-0 font-bold" />
+                  )
+                ) : (
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+                      selectedChoice === 'UNAVAILABLE'
+                        ? 'border-primary bg-white'
+                        : 'border-slate-300 bg-white'
                     }`}
                   >
-                    Holiday
-                  </span>
-                  {isHolidayDay && (
-                    <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">
-                      Auto-marked
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  {isHolidayDay ? activeHoliday?.title : 'Mark this day as a holiday / day off'}
-                </p>
-              </div>
-            </div>
+                    {selectedChoice === 'UNAVAILABLE' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                    )}
+                  </div>
+                )}
+              </button>
 
-            {mode === 'view' ? (
-              (selectedChoice === 'HOLIDAY' || isHolidayDay) && (
-                <Check size={18} className="text-amber-800 shrink-0 font-bold" />
-              )
-            ) : (
-              <div
-                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+              {/* Option: HOLIDAY */}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selectedChoice === 'HOLIDAY' || isHolidayDay}
+                disabled={mode === 'view' || isHolidayDay}
+                onClick={() => {
+                  if (mode !== 'select' || isHolidayDay || !currentDay) return;
+                  if (selectedChoice === 'HOLIDAY') {
+                    if (onClearDaySelection) {
+                      onClearDaySelection(currentDay.id);
+                    } else {
+                      onSelectionChange(currentDay.id, undefined);
+                    }
+                  } else {
+                    onSelectionChange(currentDay.id, 'HOLIDAY');
+                  }
+                }}
+                className={`flex w-full items-center justify-between p-3 rounded-2xl text-left transition-colors ${
                   selectedChoice === 'HOLIDAY' || isHolidayDay
-                    ? 'border-amber-700 bg-white'
-                    : 'border-slate-300 bg-white'
+                    ? 'bg-amber-50/80 border border-amber-200/70'
+                    : mode === 'select'
+                    ? 'hover:bg-slate-50'
+                    : ''
                 }`}
               >
-                {(selectedChoice === 'HOLIDAY' || isHolidayDay) && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-700" />
+                <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                  <div className="w-11 h-11 rounded-xl bg-amber-100/70 flex items-center justify-center text-amber-700 shrink-0">
+                    <Palmtree size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-sm leading-snug ${
+                          selectedChoice === 'HOLIDAY' || isHolidayDay
+                            ? 'font-semibold text-amber-950'
+                            : 'font-medium text-slate-800'
+                        }`}
+                      >
+                        Holiday
+                      </span>
+                      {isHolidayDay && (
+                        <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                          Auto-marked
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      {isHolidayDay ? activeHoliday?.title : 'Mark this day as a holiday / day off'}
+                    </p>
+                  </div>
+                </div>
+
+                {mode === 'view' ? (
+                  (selectedChoice === 'HOLIDAY' || isHolidayDay) && (
+                    <Check size={18} className="text-amber-800 shrink-0 font-bold" />
+                  )
+                ) : (
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+                      selectedChoice === 'HOLIDAY' || isHolidayDay
+                        ? 'border-amber-700 bg-white'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {(selectedChoice === 'HOLIDAY' || isHolidayDay) && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-700" />
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-          </button>
+              </button>
+            </>
+          )}
         </div>
       </main>
 

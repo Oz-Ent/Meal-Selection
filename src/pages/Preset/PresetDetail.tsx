@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Edit3, Loader2 } from 'lucide-react';
+import { Check, Edit3, Loader2 } from 'lucide-react';
+import { NavBar } from '../../components/NavBar/NavBar';
 import { MealSelectionView, type DaySelectionValue } from '../../components/MealSelectionView/MealSelectionView';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
@@ -165,62 +166,48 @@ export function PresetDetail() {
   const isLoading =
     presetQuery.isLoading || menuDaysQuery.isLoading || menuDayMealsQuery.isLoading;
 
+  const passedPresetName = location.state?.presetName;
+  const currentPresetName =
+    preset?.name || passedPresetName || (isLoading ? '' : 'Preset');
+
   const presetTitle = isEditing
-    ? `Editing ${preset?.name || 'Preset'}...`
-    : preset?.name || `Preset Menu ${presetId}`;
+    ? `Editing ${currentPresetName || 'Preset'}...`
+    : currentPresetName;
 
   return (
     <div className="min-h-screen w-full max-w-5xl mx-auto bg-app-bg text-text-primary flex flex-col font-sans relative pb-28">
       {/* Page Header */}
-      <header className="flex items-center justify-between bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 sticky top-0 z-40 shadow-2xs">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => {
-            if (isEditing) {
-              setIsEditing(false);
-            } else {
-              navigate('/preset-meals');
-            }
-          }}
-          className="p-1.5 rounded-full text-secondary hover:bg-slate-100 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <h1 className="text-base sm:text-lg font-bold text-slate-900 text-center flex-1 pr-2 truncate">
-          {presetTitle}
-        </h1>
-
-        {!isLoading && (
-          isEditing ? (
-            <button
-              type="button"
-              aria-label="Save Changes"
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs disabled:opacity-40 transition-all cursor-pointer"
-            >
-              {isSaving ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Check size={14} strokeWidth={2.5} />
-              )}
-              <span>Save</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              aria-label="Edit Preset"
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs transition-all cursor-pointer"
-            >
-              <Edit3 size={14} />
-              <span>Edit</span>
-            </button>
-          )
-        )}
-      </header>
+      <NavBar
+        title={presetTitle}
+        onBackClick={() => {
+          if (isEditing) {
+            setIsEditing(false);
+          } else {
+            navigate('/preset-meals');
+          }
+        }}
+        actionButton={
+          !isLoading
+            ? isEditing
+              ? {
+                  label: 'Save',
+                  icon: isSaving ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Check size={14} strokeWidth={2.5} />
+                  ),
+                  onClick: handleSaveChanges,
+                  disabled: isSaving,
+                }
+              : {
+                  label: 'Edit',
+                  icon: <Edit3 size={14} />,
+                  onClick: () => setIsEditing(true),
+                  variant: 'outline',
+                }
+            : undefined
+        }
+      />
 
       {/* Loading Progress Indicator */}
       {isLoading && (
@@ -253,6 +240,7 @@ export function PresetDetail() {
           currentDayIndex={currentDayIndex}
           onDayIndexChange={setCurrentDayIndex}
           showPresetButton={false}
+          showOtherOptions={false}
           mode={isEditing ? 'select' : 'view'}
           onToast={(type, message) => setToast({ isOpen: true, type, message })}
         />

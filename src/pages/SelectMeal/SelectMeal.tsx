@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search } from 'lucide-react';
+import { ArrowRight, Check, Loader2, Search } from 'lucide-react';
+import { NavBar } from '../../components/NavBar/NavBar';
 import Modal from '../../components/Modal/Modal';
 import { SuccessModal } from './SuccessModal';
 import { SelectPresetModal } from './SelectPresetModal';
@@ -468,32 +469,20 @@ export default function SelectMealPage() {
       </div>
 
       {/* Full Page Header */}
-      <header className="flex items-center justify-between bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 sticky top-0 z-40 shadow-2xs">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => navigate('/activities')}
-          className="p-1.5 rounded-full text-secondary hover:bg-slate-100 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <h1 className="text-base sm:text-lg font-bold text-slate-900 text-center flex-1">Select Meal</h1>
-
-        <button
-          type="button"
-          onClick={() => setIsConfirmModalOpen(true)}
-          disabled={!isSelectionComplete || isSubmitting || isLoading}
-          className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs disabled:opacity-40 transition-all cursor-pointer"
-        >
-          {isSubmitting ? (
+      <NavBar
+        title="Select Meal"
+        backUrl="/activities"
+        actionButton={{
+          label: `Save ${menuDays.length > 0 ? `(${selectedCount}/${menuDays.length})` : ''}`,
+          icon: isSubmitting ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <Check size={16} strokeWidth={2.5} />
-          )}
-          <span>Save {menuDays.length > 0 ? `(${selectedCount}/${menuDays.length})` : ''}</span>
-        </button>
-      </header>
+          ),
+          onClick: () => setIsConfirmModalOpen(true),
+          disabled: !isSelectionComplete || isSubmitting || isLoading,
+        }}
+      />
 
       {isGuest && (
         <div className="bg-primary-light py-2.5 px-4 flex items-center justify-between text-xs font-semibold text-primary border-b border-slate-100">

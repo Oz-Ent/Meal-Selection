@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, Check, ChevronRight, Search } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, LogOut, Search } from 'lucide-react';
 
 import Modal from '../../components/Modal/Modal';
+import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
-import MealForeground from '../../assets/MealForeground.jpg';
+import MealForeground from '../../assets/MealForeground.webp';
 import AppIcon from '../../assets/App Icon.svg';
 import SelectMealIcon from '../../assets/Select Meal.svg';
 import PresetsIcon from '../../assets/Presets.svg';
@@ -37,6 +38,7 @@ export function UserActivities() {
 
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
   const [isUserPickerOpen, setIsUserPickerOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedUserForPicker, setSelectedUserForPicker] = useState<User | null>(null);
 
@@ -178,11 +180,11 @@ export function UserActivities() {
         </div>
         <button
           type="button"
-          aria-label="Notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+          onClick={() => setIsLogoutModalOpen(true)}
+          aria-label="Log out"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors cursor-pointer"
         >
-          <Bell size={18} />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary-hover" />
+          <LogOut size={18} />
         </button>
       </header>
 
@@ -411,6 +413,12 @@ export function UserActivities() {
           </button>
         </section>
       </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+      />
 
       {/* Bottom Navigation Bar */}
       <BottomNavbar activeTab="home" />

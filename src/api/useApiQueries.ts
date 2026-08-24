@@ -272,7 +272,10 @@ export const useCreateWeekScheduleMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateWeekMenuScheduleRequest) => weekMenuScheduleService.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.weekSchedules }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekSchedules });
+      queryClient.invalidateQueries({ queryKey: ['week-schedule'] });
+    },
   });
 };
 
@@ -281,7 +284,10 @@ export const useUpdateWeekScheduleMutation = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateWeekMenuScheduleRequest }) =>
       weekMenuScheduleService.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.weekSchedules }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekSchedules });
+      queryClient.invalidateQueries({ queryKey: ['week-schedule'] });
+    },
   });
 };
 

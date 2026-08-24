@@ -15,7 +15,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import AppIcon from '../../assets/App Icon.svg';
-import MealForeground from '../../assets/MealForeground.jpg';
+import MealForeground from '../../assets/MealForeground.webp';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { EmptyPage } from '../../components/EmptyPage/EmptyPage';
@@ -26,6 +26,8 @@ import {
 } from '../../api/useApiQueries';
 import type { WeeklyHistoryFilterParams } from '../../api/Services/MealSelectionServices';
 import { DAY_ORDER, formatDay, exportWeeklyReportToPdf } from '../../utils/exportMealReportPdf';
+import { formatWeekDateRange, formatDayDate } from '../../utils/dateHelpers';
+
 
 export function History() {
   const { profile } = useAuth();
@@ -220,7 +222,7 @@ export function History() {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-rose-600 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
               >
                 <RotateCcw size={13} />
                 <span>Reset</span>
@@ -228,15 +230,15 @@ export function History() {
             </div>
 
             {/* Quick Filter Presets */}
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Quick ranges:</span>
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 mr-1">Quick ranges:</span>
               <button
                 type="button"
                 onClick={() => handleQuickRange(4)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                   limit === 4 && !startYear && !endYear
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80'
                 }`}
               >
                 Last 4 Weeks
@@ -244,10 +246,10 @@ export function History() {
               <button
                 type="button"
                 onClick={() => handleQuickRange(12)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                   limit === 12 && !startYear && !endYear
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80'
                 }`}
               >
                 Last 12 Weeks
@@ -255,10 +257,10 @@ export function History() {
               <button
                 type="button"
                 onClick={() => handleQuickRange(20)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                   limit === 20 && !startYear && !endYear
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80'
                 }`}
               >
                 Last 20 Weeks (Default)
@@ -266,9 +268,9 @@ export function History() {
             </div>
 
             {/* Range Inputs Grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
-                <label htmlFor="history-from-year" className="mb-1 block text-xs font-semibold text-slate-600">
+                <label htmlFor="history-from-year" className="mb-1.5 block text-xs font-semibold text-slate-600">
                   From Year
                 </label>
                 <input
@@ -282,12 +284,12 @@ export function History() {
                     setStartYear(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-slate-400"
+                  className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 px-3.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 transition-all hover:bg-white hover:border-slate-300 focus:bg-white focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10"
                 />
               </div>
 
               <div>
-                <label htmlFor="history-from-week" className="mb-1 block text-xs font-semibold text-slate-600">
+                <label htmlFor="history-from-week" className="mb-1.5 block text-xs font-semibold text-slate-600">
                   From Week (1-53)
                 </label>
                 <input
@@ -301,12 +303,17 @@ export function History() {
                     setStartWeek(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-slate-400"
+                  className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 px-3.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 transition-all hover:bg-white hover:border-slate-300 focus:bg-white focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10"
                 />
+                {startWeek && Number(startWeek) >= 1 && Number(startWeek) <= 53 && (
+                  <span className="mt-1 block text-[11px] font-semibold text-emerald-700">
+                    {formatWeekDateRange(Number(startWeek), Number(startYear) || new Date().getFullYear())}
+                  </span>
+                )}
               </div>
 
               <div>
-                <label htmlFor="history-to-year" className="mb-1 block text-xs font-semibold text-slate-600">
+                <label htmlFor="history-to-year" className="mb-1.5 block text-xs font-semibold text-slate-600">
                   To Year
                 </label>
                 <input
@@ -320,12 +327,12 @@ export function History() {
                     setEndYear(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-slate-400"
+                  className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 px-3.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 transition-all hover:bg-white hover:border-slate-300 focus:bg-white focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10"
                 />
               </div>
 
               <div>
-                <label htmlFor="history-to-week" className="mb-1 block text-xs font-semibold text-slate-600">
+                <label htmlFor="history-to-week" className="mb-1.5 block text-xs font-semibold text-slate-600">
                   To Week (1-53)
                 </label>
                 <input
@@ -339,49 +346,64 @@ export function History() {
                     setEndWeek(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-slate-400"
+                  className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 px-3.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 transition-all hover:bg-white hover:border-slate-300 focus:bg-white focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10"
                 />
+                {endWeek && Number(endWeek) >= 1 && Number(endWeek) <= 53 && (
+                  <span className="mt-1 block text-[11px] font-semibold text-emerald-700">
+                    {formatWeekDateRange(Number(endWeek), Number(endYear) || new Date().getFullYear())}
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Secondary Controls: Limit and Order */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-600">Sort:</span>
-                  <select
-                    value={order}
-                    onChange={(e) => {
-                      setOrder(e.target.value as 'asc' | 'desc');
-                      setPage(1);
-                    }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none"
-                  >
-                    <option value="desc">Newest First</option>
-                    <option value="asc">Oldest First</option>
-                  </select>
+            <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Sort:</span>
+                  <div className="relative">
+                    <select
+                      id="history-sort-order"
+                      value={order}
+                      onChange={(e) => {
+                        setOrder(e.target.value as 'asc' | 'desc');
+                        setPage(1);
+                      }}
+                      className="h-9 cursor-pointer appearance-none rounded-xl border border-slate-200/90 bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:border-slate-300 hover:bg-slate-50/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10"
+                    >
+                      <option value="desc">Newest First</option>
+                      <option value="asc">Oldest First</option>
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-600">Per page:</span>
-                  <select
-                    value={limit}
-                    onChange={(e) => {
-                      setLimit(Number(e.target.value));
-                      setPage(1);
-                    }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none"
-                  >
-                    <option value={10}>10 weeks</option>
-                    <option value={20}>20 weeks (Default)</option>
-                    <option value={50}>50 weeks</option>
-                  </select>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Per page:</span>
+                  <div className="relative">
+                    <select
+                      id="history-per-page-limit"
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="h-9 cursor-pointer appearance-none rounded-xl border border-slate-200/90 bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:border-slate-300 hover:bg-slate-50/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10"
+                    >
+                      <option value={10}>10 weeks</option>
+                      <option value={20}>20 weeks (Default)</option>
+                      <option value={50}>50 weeks</option>
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
               </div>
 
-              <span className="text-xs text-slate-400">
-                Total matching: <strong className="text-slate-700">{totalWeeks}</strong> weeks
-              </span>
+              <div className="flex items-center self-start sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500 border border-slate-100">
+                  Total matching: <strong className="font-bold text-slate-800">{totalWeeks}</strong> {totalWeeks === 1 ? 'week' : 'weeks'}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -420,7 +442,9 @@ export function History() {
         {!isQueryLoading &&
           !isQueryError &&
           (activeTab === 'my-history' || !isAdminOrHr) &&
-          userHistoryData?.data?.map((weekItem) => {
+          userHistoryData?.data
+            ?.filter((weekItem) => weekItem.selection?.createdById != null)
+            .map((weekItem) => {
             const isExpanded = expandedWeeks[weekItem.weekMenuScheduleId] ?? true;
             const mealSelections = weekItem.selection.mealSelections as Record<
               string,
@@ -454,7 +478,7 @@ export function History() {
                       toggleWeekExpand(weekItem.weekMenuScheduleId);
                     }
                   }}
-                  className="flex cursor-pointer items-center justify-between bg-gradient-to-r from-slate-50/90 to-white px-4 py-3.5 hover:bg-slate-50/80 transition-colors sm:px-6"
+                  className="flex cursor-pointer items-center justify-between bg-linear-to-r from-slate-50/90 to-white px-4 py-3.5 hover:bg-slate-50/80 transition-colors sm:px-6"
                 >
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-white shadow-2xs">
@@ -462,6 +486,10 @@ export function History() {
                       <span>
                         Week {weekItem.week} • {weekItem.year}
                       </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-slate-100/90 px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-2xs">
+                      <Calendar size={12} className="text-emerald-700" />
+                      <span>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
                     </span>
                     <span className="text-sm font-bold text-slate-800">
                       {weekItem.menu.title}
@@ -518,9 +546,14 @@ export function History() {
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                                  {formatDay(day)}
-                                </span>
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                    {formatDay(day)}
+                                  </span>
+                                  <span className="text-[10px] font-medium text-slate-500 bg-slate-100/80 px-1.5 py-0.2 rounded">
+                                    {formatDayDate(weekItem.week, weekItem.year, day)}
+                                  </span>
+                                </div>
                                 <h4 className="truncate text-xs sm:text-sm font-bold text-slate-900">
                                   {isUnavailable
                                     ? 'Unavailable'
@@ -582,7 +615,7 @@ export function History() {
                       toggleWeekExpand(weekItem.weekMenuScheduleId);
                     }
                   }}
-                  className="flex cursor-pointer flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-slate-50/90 to-white px-4 py-3.5 hover:bg-slate-50/80 transition-colors sm:px-6"
+                  className="flex cursor-pointer flex-wrap items-center justify-between gap-2 bg-linear-to-r from-slate-50/90 to-white px-4 py-3.5 hover:bg-slate-50/80 transition-colors sm:px-6"
                 >
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-0.5 text-xs font-bold text-white shadow-2xs">
@@ -590,6 +623,10 @@ export function History() {
                       <span>
                         Week {weekItem.week} • {weekItem.year}
                       </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-slate-100/90 px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-2xs">
+                      <Calendar size={12} className="text-emerald-700" />
+                      <span>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
                     </span>
                     <span className="text-sm font-bold text-slate-800">
                       {weekItem.menu.title}
@@ -606,7 +643,7 @@ export function History() {
                         e.stopPropagation();
                         exportWeeklyReportToPdf({
                           report: weekItem.selections,
-                          titlePrefix: `Week ${weekItem.week} (${weekItem.year}) Report`,
+                          titlePrefix: `Week ${weekItem.week} (${formatWeekDateRange(weekItem.week, weekItem.year)}) Report`,
                         });
                       }}
                       className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
@@ -638,9 +675,14 @@ export function History() {
                           className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4"
                         >
                           <div className="mb-2.5 flex items-center justify-between">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                              {formatDay(day)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                                {formatDay(day)}
+                              </span>
+                              <span className="rounded-md bg-white border border-slate-200/80 px-2 py-0.5 text-[11px] font-semibold text-slate-600 shadow-2xs">
+                                {formatDayDate(weekItem.week, weekItem.year, day)}
+                              </span>
+                            </div>
                             <span className="text-xs font-semibold text-slate-500">
                               {data.total} total orders
                             </span>

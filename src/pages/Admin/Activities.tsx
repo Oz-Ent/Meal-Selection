@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
+import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
 import AppIcon from '../../assets/App Icon.svg';
 import menuIcon from '../../assets/admin/menu.svg';
 import mealIcon from '../../assets/admin/meal.svg';
@@ -13,6 +15,7 @@ import { useAuth } from '../Auth/useAuth/useAuth';
 
 export function Activities() {
   const navigate = useNavigate();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   let userName = 'Admin';
   try {
     const { profile } = useAuth();
@@ -71,11 +74,11 @@ export function Activities() {
         </div>
         <button
           type="button"
-          aria-label="Notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+          onClick={() => setIsLogoutModalOpen(true)}
+          aria-label="Log out"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors cursor-pointer"
         >
-          <Bell size={18} />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-secondary" />
+          <LogOut size={18} />
         </button>
       </header>
 
@@ -139,6 +142,12 @@ export function Activities() {
           </div>
         </section>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+      />
 
       <BottomNavbar activeTab="admin" />
     </main>

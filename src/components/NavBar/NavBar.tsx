@@ -14,6 +14,7 @@ export interface INavBarActionButton {
 
 export interface INavBar {
   backUrl?: string;
+  onBackClick?: () => void;
   title?: string;
   onAddButtonClick?: () => void;
   onExportClick?: () => void;
@@ -23,6 +24,7 @@ export interface INavBar {
 
 export function NavBar({
   backUrl,
+  onBackClick,
   title,
   onAddButtonClick,
   onExportClick,
@@ -32,15 +34,27 @@ export function NavBar({
   return (
     <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-msListBorder bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 font-sans shadow-2xs">
       <div className="relative flex min-h-7 w-full items-center justify-between">
-        <NavLink
-          to={backUrl ?? '/'}
-          className="p-1 text-secondary hover:text-text-primary transition-colors z-10"
-        >
-          <ArrowLeft className="h-5 w-5 stroke-current" />
-        </NavLink>
+        {onBackClick ? (
+          <button
+            type="button"
+            onClick={onBackClick}
+            aria-label="Back"
+            className="p-1 text-secondary hover:text-text-primary transition-colors z-10 cursor-pointer"
+          >
+            <ArrowLeft className="h-5 w-5 stroke-current" />
+          </button>
+        ) : (
+          <NavLink
+            to={backUrl ?? '/'}
+            aria-label="Back"
+            className="p-1 text-secondary hover:text-text-primary transition-colors z-10"
+          >
+            <ArrowLeft className="h-5 w-5 stroke-current" />
+          </NavLink>
+        )}
 
         {title && (
-          <h3 className="absolute inset-x-0 text-center text-base font-bold text-text-primary px-16 truncate pointer-events-none">
+          <h3 className="absolute inset-x-0 text-center text-base sm:text-lg font-bold text-text-primary px-16 truncate pointer-events-none">
             {title}
           </h3>
         )}
@@ -51,11 +65,11 @@ export function NavBar({
               type="button"
               onClick={actionButton.onClick}
               disabled={actionButton.disabled || actionButton.pending}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 actionButton.className ??
                 (actionButton.variant === 'outline'
-                  ? 'border border-slate-200 text-primary hover:bg-slate-50 disabled:opacity-50'
-                  : 'bg-primary text-white hover:bg-primary-hover disabled:opacity-50')
+                  ? 'border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-40 shadow-2xs'
+                  : 'bg-primary text-white hover:bg-primary-hover disabled:opacity-40 shadow-2xs')
               }`}
             >
               {actionButton.pending ? (

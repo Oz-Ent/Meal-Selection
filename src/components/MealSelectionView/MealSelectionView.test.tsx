@@ -88,6 +88,26 @@ describe('MealSelectionView Component', () => {
     expect(screen.getByText('Holiday')).toBeInTheDocument();
   });
 
+  it('hides other options (Unavailable, Holiday) when showOtherOptions is false', () => {
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{}}
+        onSelectionChange={jest.fn()}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+        showOtherOptions={false}
+      />,
+    );
+
+    expect(screen.getByText('Banku & Tilapia')).toBeInTheDocument();
+    expect(screen.getByText('Jollof Rice')).toBeInTheDocument();
+    expect(screen.queryByText('Unavailable')).not.toBeInTheDocument();
+    expect(screen.queryByText('Holiday')).not.toBeInTheDocument();
+    expect(screen.queryByText('Other options')).not.toBeInTheDocument();
+  });
+
   it('selects a dish when clicked and toggles off when clicked again', () => {
     const handleSelectionChange = jest.fn();
 

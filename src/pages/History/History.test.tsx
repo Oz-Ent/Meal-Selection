@@ -103,7 +103,7 @@ jest.mock('../../api/useApiQueries', () => ({
 }));
 
 describe('History Page Component', () => {
-  it('renders history header, title, and user weekly cards', () => {
+  it('renders history header, title, user weekly cards with descriptive week date range and day dates', () => {
     render(
       <MemoryRouter>
         <History />
@@ -113,11 +113,13 @@ describe('History Page Component', () => {
     expect(screen.getByText('Edziban')).toBeInTheDocument();
     expect(screen.getByText('Selection History')).toBeInTheDocument();
     expect(screen.getByText('Week 34 • 2026')).toBeInTheDocument();
+    expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();
     expect(screen.getByText('Summer Standard Menu')).toBeInTheDocument();
     expect(screen.getByText('Grilled Chicken Salad')).toBeInTheDocument();
+    expect(screen.getByText('Aug 17')).toBeInTheDocument();
   });
 
-  it('toggles filter panel when filters button is clicked', () => {
+  it('toggles filter panel and displays live date range preview for entered week numbers', () => {
     render(
       <MemoryRouter>
         <History />
@@ -128,11 +130,16 @@ describe('History Page Component', () => {
     fireEvent.click(filterButton);
 
     expect(screen.getByText(/Week & Year Range Filters/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/From Year/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/From Week/i)).toBeInTheDocument();
+    const fromWeekInput = screen.getByLabelText(/From Week/i);
+    const fromYearInput = screen.getByLabelText(/From Year/i);
+
+    fireEvent.change(fromYearInput, { target: { value: '2026' } });
+    fireEvent.change(fromWeekInput, { target: { value: '35' } });
+
+    expect(screen.getByText('Aug 24 - 28, 2026')).toBeInTheDocument();
   });
 
-  it('switches between My Selection History and Admin Report History tabs', () => {
+  it('switches between My Selection History and Admin Report History tabs with descriptive week date ranges', () => {
     render(
       <MemoryRouter>
         <History />
@@ -144,5 +151,7 @@ describe('History Page Component', () => {
 
     expect(screen.getByText('15 Total Orders')).toBeInTheDocument();
     expect(screen.getByText('10 total orders')).toBeInTheDocument();
+    expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();
+    expect(screen.getByText('Aug 17')).toBeInTheDocument();
   });
 });
