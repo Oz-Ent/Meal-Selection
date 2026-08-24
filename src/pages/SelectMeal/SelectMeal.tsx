@@ -184,7 +184,7 @@ export default function SelectMealPage() {
               item.isActive &&
               (item.meal?.id === existingSelection.mealID ||
                 (existingSelection.mealName &&
-                  item.meal?.name?.toLowerCase() === existingSelection.mealName.toLowerCase())),
+                  item.meal?.name?.toLowerCase() === (existingSelection.mealName || '').toLowerCase())),
           );
           if (matchingMeal && next[day.id] !== matchingMeal.id) {
             next[day.id] = matchingMeal.id;
@@ -487,8 +487,15 @@ export default function SelectMealPage() {
       )}
 
       {selectedUser && !isGuest && (
-        <div className="bg-primary-light py-2 px-4 text-center text-xs font-semibold text-primary border-b border-slate-100">
-          Selecting for: {selectedUser.name}
+        <div className="bg-primary-light py-2 px-4 flex items-center justify-between text-xs font-semibold text-primary border-b border-slate-100">
+          <span>Selecting for: {selectedUser.name}</span>
+          <button
+            type="button"
+            onClick={() => setIsUserModalOpen(true)}
+            className="text-xs font-bold text-primary underline hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            Change
+          </button>
         </div>
       )}
 
@@ -567,8 +574,13 @@ export default function SelectMealPage() {
               .filter((u) => {
                 const query = userSearchTerm.trim().toLowerCase();
                 if (!query) return true;
+                const name = (u.name || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                const refEmail = (u.referenceEmail || '').toLowerCase();
                 return (
-                  u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)
+                  name.includes(query) ||
+                  email.includes(query) ||
+                  refEmail.includes(query)
                 );
               })
               .map((user) => {
@@ -584,7 +596,7 @@ export default function SelectMealPage() {
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="text-xs text-slate-500">{user.email || user.referenceEmail}</p>
                     </div>
                     {isSelected && <Check size={18} className="text-slate-700 shrink-0" />}
                   </button>

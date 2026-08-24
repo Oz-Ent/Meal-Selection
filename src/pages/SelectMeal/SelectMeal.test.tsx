@@ -33,11 +33,14 @@ jest.mock('../../api/Services/PresetServices', () => ({
   },
 }));
 
+let mockUsersData = [
+  { id: 200, name: 'Alice Smith', email: 'alice@example.com' },
+  { id: 201, name: 'Bob Jones', email: null, referenceEmail: 'bob.jones@company.com' },
+];
+
 jest.mock('../../api/useApiQueries', () => ({
   useUsersQuery: () => ({
-    data: [
-      { id: 200, name: 'Alice Smith', email: 'alice@example.com' },
-    ],
+    data: mockUsersData,
   }),
   useWeekScheduleQuery: () => ({ data: { id: 1, menu: { id: 1 } } }),
   useWeeklyHolidaysQuery: () => ({ data: [] }),
@@ -403,4 +406,39 @@ describe('SelectMealPage', () => {
     expect(screen.queryByText('Confirm Meal')).not.toBeInTheDocument();
     expect(mockSubmitSelections).not.toHaveBeenCalled();
   });
+
+  it('searches users safely when forSomeone=true without crashing on users with null email', async () => {
+    render(
+      <MemoryRouter initialEntries={['/select-meal?forSomeone=true']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Select User modal should be open
+    expect(screen.getByText('Select user')).toBeInTheDocument();
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+    expect(screen.getByText('Bob Jones')).toBeInTheDocument();
+    expect(screen.getByText('bob.jones@company.com')).toBeInTheDocument();
+
+    // Type in search input to filter for Bob
+    const searchInput = screen.getByPlaceholderText('Search User');
+    fireEvent.change(searchInput, { target: { value: 'bob' } });
+
+    // Should filter and show only Bob
+    expect(screen.getByText('Bob Jones')).toBeInTheDocument();
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+
+    // Select Bob Jones
+    const bobBtn = screen.getByText('Bob Jones').closest('button');
+    expect(bobBtn).toBeTruthy();
+    fireEvent.click(bobBtn!);
+
+    // Click Continue
+    const continueBtn = screen.getByRole('button', { name: /Continue/i });
+    fireEvent.click(continueBtn);
+
+    // Modal closes and selection header displays Bob Jones
+    expect(screen.getByText('Selecting for: Bob Jones')).toBeInTheDocument();
+  });
 });
+

@@ -152,4 +152,19 @@ describe('WeeklyMealCarousel Component', () => {
     const dots = screen.getAllByRole('button', { name: /Go to slide/i });
     expect(dots).toHaveLength(5);
   });
+
+  it('renders loading progress indicator when isLoading is true', () => {
+    render(
+      <MemoryRouter>
+        <WeeklyMealCarousel isLoading={true} items={[]} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('carousel-loading-indicator')).toBeInTheDocument();
+    expect(screen.getByText('Loading your selections')).toBeInTheDocument();
+    expect(screen.getByText("Fetching this week's meal plan...")).toBeInTheDocument();
+    expect(screen.queryByTestId('swiper-carousel')).not.toBeInTheDocument();
+  });
 });
+
+

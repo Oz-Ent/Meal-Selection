@@ -81,8 +81,9 @@ export function SelectionStatus() {
     const q = searchQuery.toLowerCase().trim();
     return rawPendingUsers.filter(
       (user) =>
-        user.name.toLowerCase().includes(q) ||
-        user.email.toLowerCase().includes(q),
+        (user.name || '').toLowerCase().includes(q) ||
+        (user.email || '').toLowerCase().includes(q) ||
+        ((user as any).referenceEmail || '').toLowerCase().includes(q),
     );
   }, [rawPendingUsers, searchQuery]);
 

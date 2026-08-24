@@ -35,8 +35,12 @@ function Login() {
       } else {
         navigate('/activities');
       }
-    } catch (err: any) {
-      setError(err.message || 'Invalid email or password.');
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Invalid email or password.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +52,7 @@ function Login() {
         {/* Left Branding Showcase (Visible on lg screens) */}
         <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
           <div className="flex items-center gap-2.5 z-10">
-            <img src={AppIcon} alt="Edziban" className="h-8 w-8 object-contain brightness-0 invert" />
+            <img src={AppIcon} alt="Edziban" className="h-8 w-8 object-contain" />
             <span className="text-lg font-bold tracking-tight text-white">Edziban</span>
           </div>
 

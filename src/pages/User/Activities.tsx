@@ -4,6 +4,7 @@ import { ArrowRight, Bell, Check, ChevronRight, Search } from 'lucide-react';
 
 import Modal from '../../components/Modal/Modal';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
+import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
 import MealForeground from '../../assets/MealForeground.jpg';
 import AppIcon from '../../assets/App Icon.svg';
@@ -188,7 +189,20 @@ export function UserActivities() {
       <div className="px-4 sm:px-6 pt-4 flex flex-col gap-5">
         {/* Banner Area */}
         <section className="w-full">
-          {!hasSelections ? (
+          {selectionsQuery.isLoading ? (
+            /* Loading Progress Indicator replacing the carousel */
+            <div
+              data-testid="carousel-loading-indicator"
+              className="flex min-h-36.25 w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs"
+              role="status"
+              aria-label="Loading selections"
+            >
+              <div className="h-8 w-8">
+                <LoadingSpinner />
+              </div>
+              <p className="text-sm font-medium text-slate-500">Loading your selections...</p>
+            </div>
+          ) : !hasSelections ? (
             /* When user HAS NO MEALS SELECTED / needs to plan */
             <div
               onClick={() => setIsSelectionOpen(true)}
@@ -348,8 +362,13 @@ export function UserActivities() {
               .filter((u) => {
                 const query = userSearchTerm.trim().toLowerCase();
                 if (!query) return true;
+                const name = (u.name || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                const refEmail = (u.referenceEmail || '').toLowerCase();
                 return (
-                  u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)
+                  name.includes(query) ||
+                  email.includes(query) ||
+                  refEmail.includes(query)
                 );
               })
               .map((user) => {
@@ -365,7 +384,7 @@ export function UserActivities() {
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="text-xs text-slate-500">{user.email || user.referenceEmail}</p>
                     </div>
                     {isSelected && <Check size={18} className="text-slate-700 shrink-0" />}
                   </button>

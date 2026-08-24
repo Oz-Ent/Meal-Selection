@@ -10,6 +10,7 @@ jest.mock('lucide-react', () => ({
   ChevronRight: () => <span data-testid="icon-chevron-right" />,
   Search: () => <span data-testid="icon-search" />,
   Pencil: () => <span data-testid="icon-pencil" />,
+  Loader2: () => <span data-testid="icon-loader" />,
 }));
 
 // Mock Swiper
@@ -62,6 +63,7 @@ jest.mock('../Auth/useAuth/useAuth', () => ({
 
 // Mock API queries
 let mockWeeklySelectionsData: any = null;
+let mockWeeklySelectionsLoading = false;
 const mockUsersData: any = [
   { id: 1, name: 'Alice Smith', email: 'alice@example.com' },
   { id: 2, name: 'Bob Jones', email: 'bob@example.com' },
@@ -70,7 +72,7 @@ const mockUsersData: any = [
 jest.mock('../../api/useApiQueries', () => ({
   useWeeklySelectionsQuery: () => ({
     data: mockWeeklySelectionsData,
-    isLoading: false,
+    isLoading: mockWeeklySelectionsLoading,
     isError: false,
   }),
   useUsersQuery: () => ({
@@ -90,6 +92,22 @@ describe('UserActivities Banner and Page Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockWeeklySelectionsData = null;
+    mockWeeklySelectionsLoading = false;
+  });
+
+  it('renders carousel loading progress indicator when selections are loading', () => {
+    mockWeeklySelectionsLoading = true;
+
+    render(
+      <MemoryRouter>
+        <UserActivities />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('carousel-loading-indicator')).toBeInTheDocument();
+    expect(screen.getByText('Loading your selections...')).toBeInTheDocument();
+    expect(screen.queryByText('Time To Plan Your Week!!')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('swiper-carousel')).not.toBeInTheDocument();
   });
 
   it('renders "Time To Plan Your Week!!" banner when user has no meal selections', () => {
