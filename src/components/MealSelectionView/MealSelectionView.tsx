@@ -15,6 +15,9 @@ import SpinWheel from '../SpinWheel/SpinWheel';
 import type { MenuDay, MenuDayMeal } from '../../api/Services/MenuServices';
 import type { HolidayItem } from '../../api/Services/HolidayServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
+import { useLongPress } from '../../hooks/useLongPress';
+import MealButton from '../MealButton/MealButton';
+import MealDetailsModal from './MealDetailsModal';
 
 export type DaySelectionValue = number | 'UNAVAILABLE' | 'HOLIDAY';
 
@@ -53,6 +56,12 @@ export function MealSelectionView({
 }: MealSelectionViewProps) {
   const [randomDrawerOpen, setRandomDrawerOpen] = useState(false);
   const [randomMenuDayId, setRandomMenuDayId] = useState<number | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedFoodCode, setSelectedFoodCode] = useState<string | null>(null);
+  const handleLongPress = (foodCode: string) => {
+    setSelectedFoodCode(foodCode);
+    setDetailsModalOpen(true);
+  };
 
   const currentDay = menuDays[currentDayIndex];
   const currentDayMeals = currentDay
@@ -126,14 +135,15 @@ export function MealSelectionView({
             const isDisabled = mode === 'view' || isHolidayDay;
 
             return (
-              <button
+              <MealButton
                 key={meal.id}
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                disabled={isDisabled}
-                onClick={() => {
+                meal={meal}
+                isSelected={isSelected}
+                isDisabled={isDisabled}
+                onLongPress={handleLongPress}
+                onSelect={() => {
                   if (isDisabled || !currentDay) return;
+
                   if (isSelected) {
                     if (onClearDaySelection) {
                       onClearDaySelection(currentDay.id);
@@ -144,56 +154,7 @@ export function MealSelectionView({
                     onSelectionChange(currentDay.id, meal.id);
                   }
                 }}
-                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors ${
-                  isHolidayDay
-                    ? 'opacity-40 cursor-not-allowed bg-slate-50/50'
-                    : isSelected
-                    ? 'bg-primary-light'
-                    : mode === 'select'
-                    ? 'hover:bg-slate-50'
-                    : ''
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-                  <img
-                    src={meal.meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
-                    alt={meal.meal.name}
-                    className="w-11 h-11 rounded-xl object-cover bg-slate-100 shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <span
-                      className={`text-sm leading-snug line-clamp-2 ${
-                        isSelected && !isHolidayDay
-                          ? 'font-semibold text-primary'
-                          : 'font-medium text-slate-700'
-                      }`}
-                    >
-                      {meal.meal.name}
-                    </span>
-                    {meal.meal.calories && (
-                      <span className="text-[11px] text-slate-400">
-                        {meal.meal.calories} kcal
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {mode === 'view' ? (
-                  isSelected && <Check size={18} className="text-primary shrink-0 font-bold" />
-                ) : (
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                      isSelected && !isHolidayDay
-                        ? 'border-primary bg-white'
-                        : 'border-slate-300 bg-white'
-                    }`}
-                  >
-                    {isSelected && !isHolidayDay && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                    )}
-                  </div>
-                )}
-              </button>
+              />
             );
           })}
 
@@ -279,6 +240,7 @@ export function MealSelectionView({
               <button
                 type="button"
                 role="radio"
+                
                 aria-checked={selectedChoice === 'HOLIDAY' || isHolidayDay}
                 disabled={mode === 'view' || isHolidayDay}
                 onClick={() => {
@@ -350,6 +312,11 @@ export function MealSelectionView({
           )}
         </div>
       </main>
+        <MealDetailsModal
+        isOpen={detailsModalOpen}
+        foodCode={selectedFoodCode}
+        onClose={()=>{setDetailsModalOpen(false), setSelectedFoodCode(null)}}
+          />
 
       {/* Floating Bottom Control Bar */}
       <footer className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md md:max-w-lg px-4 flex items-center gap-2 z-20">

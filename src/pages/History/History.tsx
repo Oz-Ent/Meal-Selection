@@ -14,7 +14,6 @@ import {
   Users,
   Utensils,
 } from 'lucide-react';
-import AppIcon from '../../assets/App Icon.svg';
 import MealForeground from '../../assets/MealForeground.webp';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
@@ -27,6 +26,7 @@ import {
 import type { WeeklyHistoryFilterParams } from '../../api/Services/MealSelectionServices';
 import { DAY_ORDER, formatDay, exportWeeklyReportToPdf } from '../../utils/exportMealReportPdf';
 import { formatWeekDateRange, formatDayDate } from '../../utils/dateHelpers';
+import { TitleBar } from '../../components/TitleBar/TitleBar';
 
 
 export function History() {
@@ -137,14 +137,8 @@ export function History() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-32 text-text-primary font-sans">
       {/* Header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur-md shadow-2xs sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <img src={AppIcon} alt="App Icon" className="h-8 w-8 object-contain" />
-          <span className="text-base font-bold tracking-tight text-slate-800">
-            Edziban
-          </span>
-        </div>
-
+      <TitleBar
+      extraActions={
         <button
           type="button"
           onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -161,8 +155,7 @@ export function History() {
             <span className="flex h-2 w-2 rounded-full bg-emerald-600" />
           )}
         </button>
-      </header>
-
+      }/>
       {/* Main Content Area */}
       <div className="flex flex-col gap-5 px-4 pt-5 sm:px-6">
         {/* Title & Description */}
@@ -563,11 +556,6 @@ export function History() {
                                 </h4>
 
                                 <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-                                  {selection?.foodCode && (
-                                    <span className="rounded bg-slate-200/70 px-1.5 py-0.2 text-[10px] font-semibold text-slate-700">
-                                      {selection.foodCode}
-                                    </span>
-                                  )}
                                   {selection?.calories && (
                                     <span className="flex items-center gap-0.5 text-amber-700 font-medium">
                                       <Flame size={12} />

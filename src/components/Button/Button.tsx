@@ -52,7 +52,7 @@ export default function Button({
       type={type}
       disabled={disabled || pending}
       onClick={onClick}
-      className={` ${variantStyles[variant]} disabled:cursor-not-allowed disabled:opacity-25 hover:cursor-pointer ${className} `}
+      className={` ${variantStyles[variant]} disabled:cursor-not-allowed disabled:opacity-65 hover:cursor-pointer ${className} `}
     >
       {children ? (
         <>{children}</>

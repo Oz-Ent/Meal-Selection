@@ -58,8 +58,12 @@ export const menuService = {
     return response.data;
   },
 
-  getMeals: async (id: number): Promise<MenuDayMeal[]> => {
-    const response = await apiClient.get<MenuDayMeal[]>(`/menus/${id}/meals`);
+  getMeals: async (id: number, personalized:boolean = true): Promise<MenuDayMeal[]> => {
+    const response = await apiClient.get<MenuDayMeal[]>(`/menus/${id}/meals`,{
+      params: {
+        personalized,
+      }
+    });
     return response.data;
   },
 

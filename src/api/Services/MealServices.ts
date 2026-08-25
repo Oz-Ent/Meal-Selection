@@ -45,6 +45,17 @@ export interface BatchMealResponse {
   meal: { count: number };
 }
 
+
+export interface MealDetailsResponse{
+  name: string
+  description: string
+  imagePath: string
+  calories: number
+  ingredients: {
+    name: string
+    foodGroup: string
+  }[]
+}
 // Builds a multipart payload when an image file must be uploaded alongside the
 // meal fields. The backend meal endpoints accept the file under the "image"
 // field and store the resulting public URL as imagePath.
@@ -75,6 +86,10 @@ export const mealService = {
     return response.data;
   },
 
+  getDetails: async(foodCode: string): Promise<MealDetailsResponse>=>{
+    const response = await apiClient.get<{mealDetails: MealDetailsResponse}>(`/meals/details/${foodCode}`)
+    return response.data.mealDetails;
+  },
   create: async (data: CreateMealRequest, imageFile?: File | null): Promise<MealResponse> => {
     if (imageFile) {
       const response = await apiClient.post<MealResponse>(

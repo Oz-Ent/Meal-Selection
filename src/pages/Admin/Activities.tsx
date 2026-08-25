@@ -12,6 +12,7 @@ import foodAssignmentIcon from '../../assets/admin/FoodAssignment.svg';
 import chefIcon from '../../assets/admin/ChefOnAdminCard.svg';
 import burgerIcon from '../../assets/admin/BurgeronAdminCard.svg';
 import { useAuth } from '../Auth/useAuth/useAuth';
+import { TitleBar } from '../../components/TitleBar/TitleBar';
 
 export function Activities() {
   const navigate = useNavigate();
@@ -66,21 +67,7 @@ export function Activities() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-28 text-text-primary font-sans">
-      {/* Top Bar Header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 shadow-2xs">
-        <div className="flex items-center gap-2">
-          <img src={AppIcon} alt="App Icon" className="h-8 w-8 object-contain" />
-          <span className="text-base font-bold tracking-tight text-slate-800">Edziban</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsLogoutModalOpen(true)}
-          aria-label="Log out"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors cursor-pointer"
-        >
-          <LogOut size={18} />
-        </button>
-      </header>
+      <TitleBar/>
 
       <div className="px-4 sm:px-6 pt-4 flex flex-col gap-5">
         {/* Welcome Banner Card */}

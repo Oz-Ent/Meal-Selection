@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPieSlice } from '../../helpers/pieConvertor';
 import Button from '../Button/Button';
+import { parseMealName } from '../../helpers/parsers';
 
 interface Options {
   label: string;
@@ -28,6 +29,7 @@ const truncateLabel = (label: string) =>
 export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) {
   const [rotation, setRotation] = useState<number>(0);
   const [spinning, setSpinning] = useState<boolean>(false);
+  const [winner, setWinner] = useState<Options | null>(null);
 
   const segmentAngle = 360 / options.length;
 
@@ -57,20 +59,21 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
 
     setTimeout(() => {
       setSpinning(false);
+      setWinner(options[index]);
       onSpinComplete(options[index].value);
     }, 5000);
   };
 
   return (
-    <section className="flex flex-col items-center gap-8">
+    <section className="flex flex-col items-center gap-8 pb-12">
       <div className="relative w-72 h-72 rounded-full shadow-md">
-      <div className="relative w-72 h-72">
+      <div className="relative w-72 h-72 items-center flex flex-col gap-4">
         {/* POINTER */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">▼</div>
+        <div className="absolute text-xl text-secondary top-0 left-1/2 -translate-x-1/2 z-10">▼</div>
 
         <Button
         variant='none' 
-        className='absolute top-27 left-27 p-2 shadow-md z-20 w-17 h-17 rounded-full bg-secondary border-4 border-white text-white text-truncate hover:scale-95'
+        className='absolute top-27 left-27.5 p-2 shadow-md z-20 w-17 h-17 rounded-full bg-secondary border-4 border-white text-white text-truncate hover:scale-95'
         label={'Spin'} 
         pending={spinning} 
         onClick={spin}
@@ -115,14 +118,20 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
                     dominantBaseline="middle"
                     transform={`rotate(${labelRotation} ${labelX} ${labelY})`}
                   >
-                    {truncateLabel(option.label)}
+                    {truncateLabel(parseMealName(option.label))}
                   </text>
                 </g>
               );
             })}
           </svg>
         </div>
-          <span>{spinning? 'Spinning':'Spin the wheel to pick a dish'}</span>
+          {winner ?
+          <div className="flex flex-col items-center">
+            <span className="text-sm text-slate-500">You Got</span>
+            <span className="text-lg font-bold text-secondary">{winner.label}</span>
+            </div> 
+          :<span className="text-sm text-secondary">{spinning? 'Spinning':'Spin the wheel to pick a dish'}</span>
+          }
       </div>
       </div>
     </section>

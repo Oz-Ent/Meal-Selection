@@ -36,7 +36,7 @@ import {
   type CreatePresetRequest,
   type UpdatePresetRequest,
 } from './Services/PresetServices';
-import { userService, type ChangePasswordRequest, type UpdateUserPreferencesRequest } from './Services/UserServices';
+import { userService, type ChangePasswordRequest, type UpdateUserPreferencesRequest, type UpdateUserRequest } from './Services/UserServices';
 import {
   weekMenuScheduleService,
   type CreateWeekMenuScheduleRequest,
@@ -86,6 +86,12 @@ export const useMenuMealsQuery = (menuId: number) =>
     enabled: Number.isInteger(menuId) && menuId > 0,
   });
 
+export const useMealDetailsQuery = (foodCode: string | null | undefined) =>
+  useQuery({
+    queryKey: queryKeys.mealDetails(foodCode ?? ''),
+    queryFn: () => mealService.getDetails(foodCode!),
+    enabled: Boolean(foodCode),
+  });
 export const useWeekSchedulesQuery = () =>
   useQuery({ queryKey: queryKeys.weekSchedules, queryFn: weekMenuScheduleService.getAll });
 
@@ -486,6 +492,17 @@ export const useUserProfileQuery = () =>
     queryKey: queryKeys.userProfile(),
     queryFn: () => userService.getProfile(),
   });
+
+
+export const updateUserProfileMutation=()=> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn:({id, data}:{id:number, data: UpdateUserRequest})=> userService.update(id, data),
+    onSuccess:()=>{
+      void queryClient.invalidateQueries({queryKey: queryKeys.userProfile()})
+    },
+  })
+}
 
 export const useUserPreferencesQuery = () =>
   useQuery({

@@ -326,10 +326,10 @@ function Signup() {
               updateField(setToken, value, 'token')
             }
           />
-
+          <p className='text-xs text-slate-400 text-left'>OTP expires in 1 hour after request.</p>
           {/* API Error */}
           {errors.api && (
-            <p className="text-red-500 text-xs text-right">
+            <p className="text-red-500 text-xs text-left">
               {errors.api}
             </p>
           )}

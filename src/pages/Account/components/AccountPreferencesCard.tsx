@@ -80,13 +80,13 @@ export const AccountPreferencesCard = ({
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs">
         {/* Header with Edit Button */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex flex-col pb-4 gap-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-[#00633d] border border-emerald-200/60">
               <Utensils className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Meal & Dietary Preferences</h3>
+              <h3 className="text-base font-bold text-slate-900">Dietary Preferences</h3>
               <p className="text-xs text-slate-500">Manage dietary dislikes and saved presets</p>
             </div>
           </div>
@@ -94,7 +94,7 @@ export const AccountPreferencesCard = ({
           <button
             type="button"
             onClick={() => setIsEditModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 px-3 py-1.5 text-xs font-bold text-[#00633d] border border-emerald-200/70 transition-colors cursor-pointer"
+            className="inline-flex w-fit items-center gap-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 px-3 py-1.5 text-xs font-bold text-[#00633d] border border-emerald-200/70 transition-colors cursor-pointer"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
             <span>Configure</span>

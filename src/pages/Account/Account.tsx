@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { LogOut, RefreshCw, AlertCircle } from 'lucide-react';
-import AppIcon from '../../assets/App Icon.svg';
+import { LogOut,AlertCircle } from 'lucide-react';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import { useUserProfileQuery } from '../../api/useApiQueries';
 import { useAuth } from '../Auth/useAuth/useAuth';
@@ -8,8 +7,9 @@ import { AccountProfileCard } from './components/AccountProfileCard';
 import { AccountLeaveCard } from './components/AccountLeaveCard';
 import { AccountPreferencesCard } from './components/AccountPreferencesCard';
 import { AccountSecurityCard } from './components/AccountSecurityCard';
-import { LogoutConfirmModal } from './components/LogoutConfirmModal';
 import type { UserProfileResponse } from '../../api/Services/UserServices';
+import { TitleBar } from '../../components/TitleBar/TitleBar';
+import { LogoutConfirmModal } from './components/LogoutConfirmModal';
 
 export function Account() {
   const { profile: authContextProfile } = useAuth();
@@ -38,35 +38,7 @@ export function Account() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-32 text-slate-800 font-sans">
       {/* Top Bar Header */}
-      <header className="sticky top-0 z-40 flex items-center justify-between bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 shadow-2xs">
-        <div className="flex items-center gap-2.5">
-          <img src={AppIcon} alt="App Icon" className="h-8 w-8 object-contain" />
-          <span className="text-base font-bold tracking-tight text-slate-800">
-            Edziban
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => refetch()}
-            aria-label="Refresh profile"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60 transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsLogoutModalOpen(true)}
-            aria-label="Sign out"
-            className="flex items-center gap-1.5 rounded-xl bg-rose-50 hover:bg-rose-100/80 px-3 py-1.5 text-xs font-bold text-rose-700 border border-rose-200/70 transition-colors cursor-pointer"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        </div>
-      </header>
+      <TitleBar isLoading={isLoading} refetchAction={()=>refetch()}/>
 
       {/* Main Container */}
       <div className="px-4 sm:px-6 py-6 space-y-6">
@@ -141,11 +113,10 @@ export function Account() {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
-      <LogoutConfirmModal
-        isOpen={isLogoutModalOpen}
-        onClose={() => setIsLogoutModalOpen(false)}
-      />
+        <LogoutConfirmModal
+            isOpen={isLogoutModalOpen}
+            onClose={() => setIsLogoutModalOpen(false)}
+        />
 
       {/* Bottom Navigation Bar */}
       <BottomNavbar activeTab="account" />

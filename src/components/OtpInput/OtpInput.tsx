@@ -54,7 +54,7 @@ export function OtpInput({ length = 5, value, onChange, hasError = false, errorM
 
   return (
     <>
-    <div className={`gap-3 grid grid-cols-${length} w-full`}>
+    <div className={`gap-3 grid grid-cols-6 w-full`}>
       {Array.from({ length }).map((_, index) => (
         <input
           key={index}
