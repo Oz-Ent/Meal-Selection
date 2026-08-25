@@ -51,4 +51,18 @@ describe('SuccessModal Component', () => {
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders custom recipient text when targetName is provided', () => {
+    render(
+      <MemoryRouter>
+        <SuccessModal targetName="Manasseh Amoadu" />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByText(
+        /Weekly selection for Manasseh Amoadu is submitted. You can update choices until the selection window closes./i,
+      ),
+    ).toBeInTheDocument();
+  });
 });

@@ -7,10 +7,11 @@ import type { OverviewMeal } from './MealOverview';
 
 export interface SuccessModalProps {
   selectedMeals?: Record<string, OverviewMeal>;
+  targetName?: string;
   onClose?: () => void;
 }
 
-export function SuccessModal({ onClose }: SuccessModalProps) {
+export function SuccessModal({ targetName, onClose }: SuccessModalProps) {
   const [isOpen, setIsOpen] = useState(true);
   const navigate = useNavigate();
 
@@ -40,8 +41,9 @@ export function SuccessModal({ onClose }: SuccessModalProps) {
 
         {/* Subtitle */}
         <p className="text-sm text-slate-500 max-w-xs leading-relaxed mb-6">
-          Your weekly selection is submitted. You can update choices until the selection window
-          closes.
+          {targetName
+            ? `Weekly selection for ${targetName} is submitted. You can update choices until the selection window closes.`
+            : 'Your weekly selection is submitted. You can update choices until the selection window closes.'}
         </p>
 
         {/* Continue Button */}

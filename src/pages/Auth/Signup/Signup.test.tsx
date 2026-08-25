@@ -48,13 +48,14 @@ describe('Signup Page', () => {
     expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
   });
 
-  it('renders token input field', () => {
+  it('renders OTP input fields and request OTP button', () => {
     render(
       <MemoryRouter>
         <Signup />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('textbox', { name: 'Token' })).toBeInTheDocument();
+    expect(screen.getAllByRole('textbox').length).toBeGreaterThanOrEqual(6);
+    expect(screen.getByRole('button', { name: /Request OTP/i })).toBeInTheDocument();
   });
 
   it('renders keep me signed in checkbox', () => {

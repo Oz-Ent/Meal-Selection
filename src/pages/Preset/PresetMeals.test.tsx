@@ -69,6 +69,8 @@ describe('PresetMeals', () => {
     expect(screen.getByText('Menu 2')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Menu 1'));
-    expect(mockNavigate).toHaveBeenCalledWith('/preset-meals/create/1');
+    expect(mockNavigate).toHaveBeenCalledWith('/preset-meals/create/1', {
+      state: { menuTitle: 'Menu 1', menu: mockMenus[0] },
+    });
   });
 });

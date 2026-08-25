@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react';
 import {
+  Ban,
   ChevronLeft,
   ChevronRight,
   Download,
   MoreVertical,
   RefreshCw,
   Search,
+  Sparkles,
   UserRoundCheck,
   Check,
+  X,
 } from 'lucide-react';
 
 import Modal from '../../../components/Modal/Modal';
@@ -16,6 +19,7 @@ import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 
 import EmptyFoodAssignmentSvg from '../../../assets/admin/EmptyFoodAssignment.svg';
+import MenuIllustration from '../../../assets/Menu Illustration.svg';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 import { getISOWeekAndYear } from '../../../utils/dateHelpers';
 import {
@@ -27,14 +31,34 @@ import {
   useMenuDaysQuery,
   useMenuMealsQuery,
   useReplaceWeeklyMealMutation,
+  useWeeklyHolidaysQuery,
   useWeekScheduleQuery,
   useWeeklyMealReportQuery,
 } from '../../../api/useApiQueries';
 import type { MenuDayMeal } from '../../../api/Services/MenuServices';
+import type { WeeklyReportUser } from '../../../api/Services/MealSelectionServices';
+
+export const getRecipientDisplayName = (u: WeeklyReportUser): string => {
+  if (u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)'))) {
+    return 'Guest';
+  }
+  return u.createdForName || u.name || 'Unknown';
+};
+
+export const doesUserMatchSearch = (u: WeeklyReportUser, q: string): boolean => {
+  if (!q) return false;
+  if (u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)'))) {
+    return 'guest'.includes(q) || q.includes('guest');
+  }
+  const name = u.createdForName || u.name;
+  return Boolean(name && name.toLowerCase().includes(q));
+};
 
 export function SelectionActivity() {
   const { week, year } = getISOWeekAndYear();
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [openKebabMealId, setOpenKebabMealId] = useState<number | null>(null);
   const [changingMeal, setChangingMeal] = useState<MenuDayMeal | null>(null);
   const [selectedReplacementDayMealId, setSelectedReplacementDayMealId] = useState<number | null>(
@@ -54,6 +78,7 @@ export function SelectionActivity() {
   });
 
   const scheduleQuery = useWeekScheduleQuery(week, year);
+  const weeklyHolidaysQuery = useWeeklyHolidaysQuery(week, year);
   const menuId = scheduleQuery.data?.menu.id ?? 0;
   const daysQuery = useMenuDaysQuery(menuId);
   const mealsQuery = useMenuMealsQuery(menuId);
@@ -74,13 +99,84 @@ export function SelectionActivity() {
 
   const currentDay = menuDays[currentDayIndex];
   const dayMeals = mealsQuery.data ?? [];
-  const currentDayMeals = currentDay
-    ? dayMeals.filter((meal) => meal.menuDayId === currentDay.id && meal.isActive)
-    : [];
+  const currentDayMeals = useMemo(() => {
+    return currentDay
+      ? dayMeals.filter((meal) => meal.menuDayId === currentDay.id && meal.isActive)
+      : [];
+  }, [currentDay, dayMeals]);
 
   const weeklyReport = reportQuery.data ?? {};
   const currentDayReport = currentDay ? weeklyReport[currentDay.day.toUpperCase()] : undefined;
 
+  const weeklyHolidays = useMemo(() => weeklyHolidaysQuery.data ?? [], [weeklyHolidaysQuery.data]);
+  const activeHolidayFromList = useMemo(() => {
+    if (!currentDay || !weeklyHolidays.length) return null;
+    return weeklyHolidays.find((h) => h.dayName?.toUpperCase() === currentDay.day?.toUpperCase()) ?? null;
+  }, [currentDay, weeklyHolidays]);
+
+  const isHoliday = Boolean(currentDayReport?.isHoliday) || Boolean(activeHolidayFromList);
+  const holidayTitle = currentDayReport?.holidayTitle || activeHolidayFromList?.title || 'Public / Company Holiday';
+  const holidayDescription =
+    currentDayReport?.holiday?.description ||
+    activeHolidayFromList?.description ||
+    'This day is recognized as a holiday. No meal delivery is scheduled.';
+  const isCompanyHoliday =
+    currentDayReport?.holiday?.isCompany ||
+    activeHolidayFromList?.isCompany ||
+    activeHolidayFromList?.source === 'COMPANY';
+
+  const unavailableReportItem = useMemo(() => {
+    if (!currentDayReport?.response) return null;
+    return (
+      currentDayReport.response.find(
+        (item) => item.id === -1 || item.foodCode === 'UNAVAILABLE' || item.name.toLowerCase() === 'unavailable',
+      ) ?? null
+    );
+  }, [currentDayReport]);
+
+  const unavailableUsers = useMemo(() => unavailableReportItem?.users ?? [], [unavailableReportItem]);
+
+  const showUnavailable = useMemo(() => {
+    if (!unavailableReportItem || unavailableReportItem.count === 0) return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    if ('unavailable'.includes(q)) return true;
+    return unavailableUsers.some((u) => doesUserMatchSearch(u, q));
+  }, [unavailableReportItem, unavailableUsers, searchQuery]);
+
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const matchingUnavailableUsers = useMemo(() => {
+    if (!trimmedQuery) return [];
+    return unavailableUsers.filter((u) => doesUserMatchSearch(u, trimmedQuery));
+  }, [unavailableUsers, trimmedQuery]);
+
+  const hasMatchingUnavailableUser = matchingUnavailableUsers.length > 0;
+  const isUnavailableExpanded =
+    expandedMealIds.includes(-1) || (Boolean(trimmedQuery) && hasMatchingUnavailableUser);
+  const displayUnavailableUsers =
+    Boolean(trimmedQuery) && hasMatchingUnavailableUser && !'unavailable'.includes(trimmedQuery)
+      ? matchingUnavailableUsers
+      : unavailableUsers;
+
+  // Filter meals for the current day by meal name OR assigned user names (created for / recipient only)
+  const filteredCurrentDayMeals = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return currentDayMeals;
+
+    return currentDayMeals.filter((menuMeal) => {
+      // 1. Meal name match
+      if (menuMeal.meal.name.toLowerCase().includes(q)) return true;
+
+      // 2. Assigned user match in report (only createdFor / recipient name, NOT createdByName)
+      const mealReportItem = currentDayReport?.response.find(
+        (item) =>
+          item.id === menuMeal.meal.id ||
+          item.name.toLowerCase() === menuMeal.meal.name.toLowerCase(),
+      );
+      const users = mealReportItem?.users ?? [];
+      return users.some((u) => doesUserMatchSearch(u, q));
+    });
+  }, [currentDayMeals, currentDayReport, searchQuery]);
 
   const availableReplacementMeals = useMemo(() => {
     if (!changingMeal || !currentDay) return [];
@@ -114,17 +210,33 @@ export function SelectionActivity() {
     );
   };
 
-  const handleExport = () => {
+  const executeExport = (selectedDay: string) => {
     if (Object.keys(weeklyReport).length === 0) {
-      showToast('error', 'No meal data available to export.');
+      setIsExportModalOpen(false);
+      showToast('error', 'Something went wrong while exporting meal. Please try again.');
       return;
     }
 
-    exportWeeklyReportToPdf({
-      report: weeklyReport,
-      selectedDay: currentDay ? currentDay.day.toUpperCase() : 'ALL',
-      titlePrefix: 'Food Assignment Report',
-    });
+    try {
+      exportWeeklyReportToPdf({
+        report: weeklyReport,
+        selectedDay,
+        titlePrefix: 'Food Assignment Report',
+      });
+      setIsExportModalOpen(false);
+      showToast('success', 'Menu exported successfully.');
+    } catch {
+      setIsExportModalOpen(false);
+      showToast('error', 'Something went wrong while exporting meal. Please try again.');
+    }
+  };
+
+  const handleExportDay = () => {
+    executeExport(currentDay ? currentDay.day.toUpperCase() : 'ALL');
+  };
+
+  const handleExportWeek = () => {
+    executeExport('ALL');
   };
 
   const handleConfirmChangeMeal = async () => {
@@ -156,7 +268,8 @@ export function SelectionActivity() {
     scheduleQuery.isLoading ||
     daysQuery.isLoading ||
     mealsQuery.isLoading ||
-    reportQuery.isLoading;
+    reportQuery.isLoading ||
+    weeklyHolidaysQuery.isLoading;
 
   const currentDayName = currentDay ? formatDay(currentDay.day) : 'Monday';
 
@@ -189,24 +302,89 @@ export function SelectionActivity() {
 
       {/* MEALS LIST VIEW FOR CURRENT DAY */}
       {!isLoading && menuDays.length > 0 && (
-        <main className="px-4 sm:px-6 pt-5">
+        <main className="px-4 sm:px-6 pt-4">
+          {/* Top Search Bar */}
+          <div className="relative mb-4 w-full">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search meal or user..."
+              className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          {/* Active Holiday Information Banner */}
+          {isHoliday && (
+            <div className="mb-4 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200/90 p-4 text-xs text-amber-900 shadow-2xs">
+              <Sparkles size={20} className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-slate-900">{holidayTitle}</span>
+                  <span className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wide">
+                    {isCompanyHoliday ? 'Company Holiday' : 'Holiday'}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
+                  {holidayDescription}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="mb-4 flex items-center justify-between pb-2 border-b border-slate-100">
             <span className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wide">
               {currentDayName} Menu
             </span>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">
-              {currentDayReport ? `${currentDayReport.total} selections` : `${currentDayMeals.length} dishes`}
-            </span>
+            {isHoliday ? (
+              <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full flex items-center gap-1">
+                <Sparkles size={12} className="text-amber-600" />
+                <span>Holiday</span>
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">
+                {currentDayReport ? `${currentDayReport.total} selections` : `${currentDayMeals.length} dishes`}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col gap-3">
-            {currentDayMeals.map((menuMeal) => {
+            {filteredCurrentDayMeals.map((menuMeal) => {
               const mealReportItem = currentDayReport?.response.find(
                 (item) => item.id === menuMeal.meal.id || item.name.toLowerCase() === menuMeal.meal.name.toLowerCase(),
               );
               const selectionCount = mealReportItem ? mealReportItem.count : 0;
               const users = mealReportItem?.users ?? [];
-              const isExpanded = expandedMealIds.includes(menuMeal.id);
+
+              const trimmedQuery = searchQuery.trim().toLowerCase();
+              const matchingUsers = trimmedQuery
+                ? users.filter((u) => doesUserMatchSearch(u, trimmedQuery))
+                : [];
+              const hasMatchingUser = matchingUsers.length > 0;
+
+              // Auto expand when searching for a user that selected this meal
+              const isExpanded =
+                expandedMealIds.includes(menuMeal.id) || (Boolean(trimmedQuery) && hasMatchingUser);
+
+              // When searching for a user, display matching users directly under the meal
+              const displayUsers =
+                Boolean(trimmedQuery) && hasMatchingUser && !menuMeal.meal.name.toLowerCase().includes(trimmedQuery)
+                  ? matchingUsers
+                  : users;
 
               return (
                 <div
@@ -224,7 +402,7 @@ export function SelectionActivity() {
                         className="h-12 w-12 shrink-0 rounded-xl object-cover bg-slate-100"
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
+                        <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
                           {menuMeal.meal.name}
                         </h3>
                         {menuMeal.meal.calories && (
@@ -294,24 +472,37 @@ export function SelectionActivity() {
                   {/* Expandable assigned users list */}
                   {isExpanded && (
                     <div className="mt-3 border-t border-slate-100 pt-3">
-                      <p className="mb-1.5 text-xs font-semibold text-slate-600">Assigned Recipients:</p>
-                      {users.length > 0 ? (
+                      <p className="mb-1.5 text-xs font-semibold text-slate-600">
+                        Assigned Recipients {displayUsers.length > 0 && `(${displayUsers.length})`}:
+                      </p>
+                      {displayUsers.length > 0 ? (
                         <div className="space-y-1 pl-1">
-                          {users.map((user, index) => (
-                            <div
-                              key={`${user.id ?? 'guest'}-${index}`}
-                              className="flex items-center justify-between text-xs text-slate-600"
-                            >
-                              <span>
-                                {index + 1}. {user.name}
-                              </span>
-                              {user.quantity > 1 && (
-                                <span className="font-semibold text-slate-700">
-                                  qty: {user.quantity}
+                          {displayUsers.map((user, index) => {
+                            const displayName = getRecipientDisplayName(user);
+                            const isUserMatch =
+                              Boolean(trimmedQuery) && doesUserMatchSearch(user, trimmedQuery);
+                            return (
+                              <div
+                                key={`${user.id ?? 'guest'}-${index}`}
+                                className="flex items-center justify-between text-xs text-slate-600"
+                              >
+                                <span
+                                  className={
+                                    isUserMatch
+                                      ? 'font-bold text-primary'
+                                      : ''
+                                  }
+                                >
+                                  {index + 1}. {displayName}
                                 </span>
-                              )}
-                            </div>
-                          ))}
+                                {user.quantity > 1 && (
+                                  <span className="font-semibold text-slate-700">
+                                    qty: {user.quantity}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-slate-400 italic">No selections yet for this meal.</p>
@@ -322,9 +513,106 @@ export function SelectionActivity() {
               );
             })}
 
-            {currentDayMeals.length === 0 && (
+            {/* Unavailable Selections Card */}
+            {showUnavailable && unavailableReportItem && (
+              <div
+                className="relative rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs transition-all"
+              >
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleMealExpanded(-1)}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                      <Ban size={22} className="text-slate-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug">
+                        Unavailable
+                      </h3>
+                      <span className="text-[11px] text-slate-400">
+                        Opted out of lunch delivery
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    className="flex items-center gap-2 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Selection count badge */}
+                    <div className="flex items-center gap-1 rounded-lg bg-slate-600 px-2 py-1 text-xs font-semibold text-white">
+                      <span>{unavailableReportItem.count}</span>
+                      <UserRoundCheck size={13} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expandable unavailable recipients list */}
+                {isUnavailableExpanded && (
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <p className="mb-1.5 text-xs font-semibold text-slate-600">
+                      Unavailable Recipients {displayUnavailableUsers.length > 0 && `(${displayUnavailableUsers.length})`}:
+                    </p>
+                    {displayUnavailableUsers.length > 0 ? (
+                      <div className="space-y-1 pl-1">
+                        {displayUnavailableUsers.map((user, index) => {
+                          const displayName = getRecipientDisplayName(user);
+                          const isUserMatch =
+                            Boolean(trimmedQuery) && doesUserMatchSearch(user, trimmedQuery);
+                          return (
+                            <div
+                              key={`${user.id ?? 'guest'}-${index}`}
+                              className="flex items-center justify-between text-xs text-slate-600"
+                            >
+                              <span
+                                className={
+                                  isUserMatch
+                                    ? 'font-bold text-primary'
+                                    : ''
+                                }
+                              >
+                                {index + 1}. {displayName}
+                              </span>
+                              {user.quantity > 1 && (
+                                <span className="font-semibold text-slate-700">
+                                  qty: {user.quantity}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No unavailable users for this day.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Empty state when search yields no matching meals or users */}
+            {filteredCurrentDayMeals.length === 0 && !showUnavailable && searchQuery && (
+              <div className="p-8 text-center text-slate-500 text-xs sm:text-sm bg-white rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                <Search size={24} className="text-slate-400" />
+                <p className="font-semibold text-slate-800">No results found for "{searchQuery}"</p>
+                <p className="text-slate-400 text-xs">Try searching for a different meal or user name</p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="mt-2 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+
+            {/* Empty state when day has no meals */}
+            {filteredCurrentDayMeals.length === 0 && !showUnavailable && !searchQuery && (
               <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-100">
-                No meals assigned for {currentDayName}.
+                {isHoliday
+                  ? `No meal delivery needed for ${currentDayName} (Holiday).`
+                  : `No meals assigned for ${currentDayName}.`}
               </div>
             )}
           </div>
@@ -341,7 +629,7 @@ export function SelectionActivity() {
               aria-label="Previous day navigation"
               disabled={currentDayIndex === 0}
               onClick={() => setCurrentDayIndex((prev) => Math.max(0, prev - 1))}
-              className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               <ChevronLeft size={18} />
             </button>
@@ -353,24 +641,79 @@ export function SelectionActivity() {
               aria-label="Next day navigation"
               disabled={currentDayIndex === menuDays.length - 1}
               onClick={() => setCurrentDayIndex((prev) => Math.min(menuDays.length - 1, prev + 1))}
-              className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
-          {/* Pill 2: Export Button */}
+          {/* Pill 2: Export Button (Opens Export Modal) */}
           <button
             type="button"
             aria-label="Export report"
-            onClick={handleExport}
-            className="h-11 px-4 shrink-0 flex items-center gap-1.5 bg-white rounded-2xl border border-slate-100 shadow-md shadow-slate-200/50 text-slate-700 hover:text-slate-900 active:scale-95 transition-transform text-xs font-semibold"
+            onClick={() => setIsExportModalOpen(true)}
+            className="h-11 px-4 shrink-0 flex items-center gap-1.5 bg-white rounded-2xl border border-slate-100 shadow-md shadow-slate-200/50 text-slate-700 hover:text-slate-900 active:scale-95 transition-transform text-xs font-semibold cursor-pointer"
           >
             <Download size={16} />
             <span>Export</span>
           </button>
         </footer>
       )}
+
+      {/* EXPORT FOOD ASSIGNMENT MODAL */}
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        variant="bottom"
+        showCloseButton={false}
+      >
+        <div className="relative flex flex-col p-4 pt-3 pb-6 w-full font-sans">
+          {/* Top-Right Circular Close Button */}
+          <button
+            type="button"
+            onClick={() => setIsExportModalOpen(false)}
+            aria-label="Close modal"
+            className="absolute right-3 top-2 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+
+          {/* Burger Illustration */}
+          <div className="flex justify-center my-3">
+            <img
+              src={MenuIllustration}
+              alt="Export food assignment"
+              className="w-24 h-20 sm:w-28 sm:h-24 object-contain"
+            />
+          </div>
+
+          {/* Title */}
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-3 text-left">
+            Export food assignment
+          </h2>
+
+          {/* Export Options */}
+          <div className="flex flex-col gap-2.5 w-full">
+            <button
+              type="button"
+              onClick={handleExportDay}
+              className="flex w-full items-center justify-between p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
+            >
+              <span>For {currentDayName.toLowerCase()}</span>
+              <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportWeek}
+              className="flex w-full items-center justify-between p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
+            >
+              <span>For the week</span>
+              <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* CHANGE MEAL MODAL */}
       {changingMeal && (

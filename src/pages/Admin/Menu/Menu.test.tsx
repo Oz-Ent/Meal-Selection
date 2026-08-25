@@ -201,5 +201,73 @@ describe('Menu Component', () => {
 
     expect(mockUpdateMenu).toHaveBeenCalled();
   });
+
+  it('allows reordering menus using Move down and Move up in options menu', async () => {
+    const menu2 = {
+      id: 2,
+      title: 'Second Menu',
+      description: 'Second lunch plan',
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+    };
+    mockUseMenusQuery.mockReturnValue({
+      data: [menu, menu2],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useMenusQuery>);
+
+    render(
+      <MemoryRouter>
+        <Menu />
+      </MemoryRouter>,
+    );
+
+    const moreOptionsBtns = screen.getAllByRole('button', { name: /More options/i });
+
+    // Open options on first menu
+    fireEvent.click(moreOptionsBtns[0]);
+    const moveDownBtn = screen.getByText('Move down');
+    expect(moveDownBtn).toBeInTheDocument();
+    fireEvent.click(moveDownBtn);
+
+    expect(mockUpdateMenu).toHaveBeenCalled();
+  });
+
+  it('allows touch / pointer dragging using the grip handle to reorder menus', () => {
+    const menu2 = {
+      id: 2,
+      title: 'Second Menu',
+      description: 'Second lunch plan',
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+    };
+    mockUseMenusQuery.mockReturnValue({
+      data: [menu, menu2],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useMenusQuery>);
+
+    render(
+      <MemoryRouter>
+        <Menu />
+      </MemoryRouter>,
+    );
+
+    const gripButtons = screen.getAllByTitle('Drag to reorder');
+    expect(gripButtons).toHaveLength(2);
+
+    // Mock pointer capture methods on elements
+    window.HTMLElement.prototype.setPointerCapture = jest.fn();
+    window.HTMLElement.prototype.releasePointerCapture = jest.fn();
+
+    const cards = screen.getAllByRole('button', { name: /More options/i }).map((btn) => btn.closest('[data-menu-index]')!);
+    document.elementFromPoint = jest.fn().mockReturnValue(cards[1]);
+
+    fireEvent.pointerDown(gripButtons[0], { pointerId: 1, button: 0, pointerType: 'touch' });
+    fireEvent.pointerMove(gripButtons[0], { pointerId: 1, clientX: 50, clientY: 200 });
+    fireEvent.pointerUp(gripButtons[0], { pointerId: 1 });
+
+    expect(mockUpdateMenu).toHaveBeenCalled();
+  });
 });
 

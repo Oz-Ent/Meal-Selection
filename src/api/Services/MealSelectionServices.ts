@@ -105,6 +105,9 @@ export interface UserWithoutWeeklySelections {
 export interface WeeklyReportUser {
   id: number | null;
   name: string;
+  createdForName: string | null;
+  createdByName: string | null;
+  isGuest: boolean;
   quantity: number;
 }
 
@@ -118,13 +121,23 @@ export interface WeeklyReportMeal {
   users: WeeklyReportUser[];
 }
 
-export type WeeklyMealReport = Record<
-  string,
-  {
-    total: number;
-    response: WeeklyReportMeal[];
-  }
->;
+export interface WeeklyReportHoliday {
+  id?: number;
+  title: string;
+  description?: string | null;
+  isCompany?: boolean;
+  source?: string;
+}
+
+export interface WeeklyReportDay {
+  total: number;
+  isHoliday?: boolean;
+  holidayTitle?: string | null;
+  holiday?: WeeklyReportHoliday | null;
+  response: WeeklyReportMeal[];
+}
+
+export type WeeklyMealReport = Record<string, WeeklyReportDay>;
 
 export interface WeeklyHistoryFilterParams {
   page?: number;

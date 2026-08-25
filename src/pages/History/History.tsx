@@ -747,33 +747,45 @@ export function History() {
                                   {isDishExpanded && (
                                     <div className="border-t border-slate-100 bg-slate-50/80 px-4 py-3">
                                       <span className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                                        Selected by ({dish.users.length}):
+                                        Selected by / for ({dish.users.length}):
                                       </span>
                                       {dish.users.length === 0 ? (
                                         <p className="text-xs text-slate-400">No users found for this meal.</p>
                                       ) : (
                                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                          {dish.users.map((user, idx) => (
-                                            <div
-                                              key={`${user.id ?? 'guest'}-${idx}`}
-                                              className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white px-3 py-1.5 shadow-2xs"
-                                            >
-                                              <div className="flex items-center gap-2 min-w-0">
-                                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-bold text-primary border border-emerald-100">
-                                                  {user.name.charAt(0).toUpperCase()}
+                                          {dish.users.map((user, idx) => {
+                                            const displayName = user.createdForName || (user.isGuest ? 'Guest Selection' : user.name);
+                                            const showCreatedBy = user.createdByName && user.createdByName !== user.createdForName;
+                                            
+                                            return (
+                                              <div
+                                                key={`${user.id ?? 'guest'}-${idx}`}
+                                                className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white px-3 py-1.5 shadow-2xs"
+                                              >
+                                                <div className="flex flex-col min-w-0 flex-1">
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-bold text-primary border border-emerald-100">
+                                                      {displayName.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className="truncate text-xs font-medium text-slate-800" title={displayName}>
+                                                      {displayName}
+                                                    </span>
+                                                  </div>
+                                                  {showCreatedBy && (
+                                                    <span className="text-[10px] text-slate-500 ml-8 truncate -mt-0.5" title={`Selected by ${user.createdByName}`}>
+                                                      by {user.createdByName}
+                                                    </span>
+                                                  )}
                                                 </div>
-                                                <span className="truncate text-xs font-medium text-slate-800" title={user.name}>
-                                                  {user.name}
-                                                </span>
-                                              </div>
 
-                                              {user.quantity > 1 && (
-                                                <span className="ml-2 shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                                                  x{user.quantity}
-                                                </span>
-                                              )}
-                                            </div>
-                                          ))}
+                                                {user.quantity > 1 && (
+                                                  <span className="ml-2 shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                                                    x{user.quantity}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
                                         </div>
                                       )}
                                     </div>

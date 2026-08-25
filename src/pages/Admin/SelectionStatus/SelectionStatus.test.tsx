@@ -217,13 +217,13 @@ describe('SelectionStatus Admin Page', () => {
 
     renderComponent();
 
-    // 1. Copy all names
+    // 1. Copy all names (unique first names: Alice, Bob, Charlie)
     const copyButton = screen.getByRole('button', { name: /copy names/i });
     fireEvent.click(copyButton);
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'Alice Smith, Bob Johnson, Charlie Brown',
+        `*_Those who haven't made selection for this week_*\n*Alice*\n*Bob*\n*Charlie*`,
       );
     });
 
@@ -234,7 +234,34 @@ describe('SelectionStatus Admin Page', () => {
     fireEvent.click(copyButton);
 
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Alice Smith');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        `*_Those who haven't made selection for this week_*\n*Alice*`,
+      );
     });
   });
+
+  it('allows selecting individual users, toggling select all, and navigating to batch select meals', () => {
+    renderComponent();
+
+    // Check individual user
+    const aliceCheckbox = screen.getByRole('button', { name: /select alice smith/i });
+    fireEvent.click(aliceCheckbox);
+
+    expect(screen.getByText(/1 user selected/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /batch select meals/i })).toBeInTheDocument();
+
+    // Click "Select All"
+    const selectAllBtn = screen.getByRole('button', { name: /select all/i });
+    fireEvent.click(selectAllBtn);
+
+    expect(screen.getByText(/3 users selected/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /deselect all/i })).toBeInTheDocument();
+
+    // Click Batch Select Meals
+    const batchBtn = screen.getByRole('button', { name: /batch select meals/i });
+    fireEvent.click(batchBtn);
+
+    expect(screen.getByTestId('select-meal-route')).toBeInTheDocument();
+  });
 });
+

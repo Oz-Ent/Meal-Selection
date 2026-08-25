@@ -6,6 +6,7 @@ import {
   useMenuDaysQuery,
   useMenuMealsQuery,
   useReplaceWeeklyMealMutation,
+  useWeeklyHolidaysQuery,
   useWeekScheduleQuery,
   useWeeklyMealReportQuery,
 } from '../../../api/useApiQueries';
@@ -16,6 +17,7 @@ jest.mock('../../../api/useApiQueries', () => ({
   useMenuDaysQuery: jest.fn(),
   useMenuMealsQuery: jest.fn(),
   useMealsQuery: jest.fn(),
+  useWeeklyHolidaysQuery: jest.fn(),
   useWeeklyMealReportQuery: jest.fn(),
   useReplaceWeeklyMealMutation: jest.fn(),
 }));
@@ -24,6 +26,7 @@ const mockedUseWeekScheduleQuery = useWeekScheduleQuery as jest.Mock;
 const mockedUseMenuDaysQuery = useMenuDaysQuery as jest.Mock;
 const mockedUseMenuMealsQuery = useMenuMealsQuery as jest.Mock;
 const mockedUseMealsQuery = useMealsQuery as jest.Mock;
+const mockedUseWeeklyHolidaysQuery = useWeeklyHolidaysQuery as jest.Mock;
 const mockedUseWeeklyMealReportQuery = useWeeklyMealReportQuery as jest.Mock;
 const mockedUseReplaceWeeklyMealMutation = useReplaceWeeklyMealMutation as jest.Mock;
 
@@ -158,6 +161,11 @@ describe('SelectionActivity (Food Assignment)', () => {
       isLoading: false,
       isError: false,
     });
+    mockedUseWeeklyHolidaysQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    });
     mockedUseWeeklyMealReportQuery.mockReturnValue({
       data: sampleWeeklyReport,
       isLoading: false,
@@ -177,6 +185,7 @@ describe('SelectionActivity (Food Assignment)', () => {
     expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
     expect(screen.getByText('Fried Rice with Fish')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search meal or user...')).toBeInTheDocument();
   });
 
   it('switches days via bottom day navigation buttons', () => {
@@ -237,12 +246,17 @@ describe('SelectionActivity (Food Assignment)', () => {
     expect(await screen.findByText(/Meal changed successfully/)).toBeInTheDocument();
   });
 
-  it('triggers PDF export when Export button next to day navigation is clicked', () => {
+  it('opens export modal and triggers PDF export for current day', () => {
     const exportSpy = jest.spyOn(exportPdfModule, 'exportWeeklyReportToPdf').mockImplementation(() => {});
     renderComponent();
 
     const exportButton = screen.getByRole('button', { name: /export report/i });
     fireEvent.click(exportButton);
+
+    expect(screen.getByRole('heading', { name: 'Export food assignment' })).toBeInTheDocument();
+
+    const forDayButton = screen.getByRole('button', { name: /for monday/i });
+    fireEvent.click(forDayButton);
 
     expect(exportSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -251,7 +265,201 @@ describe('SelectionActivity (Food Assignment)', () => {
         titlePrefix: 'Food Assignment Report',
       }),
     );
+    expect(screen.getByText('Menu exported successfully.')).toBeInTheDocument();
     exportSpy.mockRestore();
+  });
+
+  it('opens export modal and triggers PDF export for the week', () => {
+    const exportSpy = jest.spyOn(exportPdfModule, 'exportWeeklyReportToPdf').mockImplementation(() => {});
+    renderComponent();
+
+    const exportButton = screen.getByRole('button', { name: /export report/i });
+    fireEvent.click(exportButton);
+
+    expect(screen.getByRole('heading', { name: 'Export food assignment' })).toBeInTheDocument();
+
+    const forWeekButton = screen.getByRole('button', { name: /for the week/i });
+    fireEvent.click(forWeekButton);
+
+    expect(exportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        report: sampleWeeklyReport,
+        selectedDay: 'ALL',
+        titlePrefix: 'Food Assignment Report',
+      }),
+    );
+    expect(screen.getByText('Menu exported successfully.')).toBeInTheDocument();
+    exportSpy.mockRestore();
+  });
+
+  it('filters meals by meal name in top search bar', () => {
+    renderComponent();
+
+    const searchInput = screen.getByPlaceholderText('Search meal or user...');
+    fireEvent.change(searchInput, { target: { value: 'Jollof' } });
+
+    expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
+    expect(screen.queryByText('Fried Rice with Fish')).not.toBeInTheDocument();
+  });
+
+  it('searches for a user and displays the chosen meal and the user under that selection', () => {
+    renderComponent();
+
+    const searchInput = screen.getByPlaceholderText('Search meal or user...');
+    fireEvent.change(searchInput, { target: { value: 'Alice' } });
+
+    // Shows Jollof (the meal Alice chose)
+    expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
+    // Fried Rice with Fish was chosen by Charlie, so it's not shown
+    expect(screen.queryByText('Fried Rice with Fish')).not.toBeInTheDocument();
+
+    // Alice is automatically visible under the Jollof selection
+    expect(screen.getByText(/Alice Smith/i)).toBeInTheDocument();
+  });
+
+  it('filters strictly by createdFor / recipient and ignores createdBy creator name', () => {
+    mockedUseWeeklyMealReportQuery.mockReturnValue({
+      data: {
+        MONDAY: {
+          total: 2,
+          response: [
+            {
+              id: 1,
+              name: 'Jollof Rice with Chicken',
+              foodCode: 'JL-01',
+              calories: 650,
+              imagePath: null,
+              count: 1,
+              users: [
+                {
+                  id: 2,
+                  name: 'Caleb Kwabena',
+                  createdForName: 'Caleb Kwabena',
+                  createdByName: 'Hubert Kingsley',
+                  isGuest: false,
+                  quantity: 1,
+                },
+              ],
+            },
+            {
+              id: 2,
+              name: 'Fried Rice with Fish',
+              foodCode: 'FR-02',
+              calories: 700,
+              imagePath: null,
+              count: 1,
+              users: [
+                {
+                  id: 1,
+                  name: 'Hubert Kingsley',
+                  createdForName: 'Hubert Kingsley',
+                  createdByName: 'Hubert Kingsley',
+                  isGuest: false,
+                  quantity: 1,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    renderComponent();
+
+    const searchInput = screen.getByPlaceholderText('Search meal or user...');
+    // Searching Hubert should only return Fried Rice (created for Hubert), NOT Jollof (created for Caleb by Hubert)
+    fireEvent.change(searchInput, { target: { value: 'Hubert' } });
+
+    expect(screen.getByText('Fried Rice with Fish')).toBeInTheDocument();
+    expect(screen.queryByText('Jollof Rice with Chicken')).not.toBeInTheDocument();
+    expect(screen.getByText(/Hubert Kingsley/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Caleb Kwabena/i)).not.toBeInTheDocument();
+  });
+
+  it('displays guest selections as "Guest" and matches search by keyword "guest" only', () => {
+    mockedUseWeeklyMealReportQuery.mockReturnValue({
+      data: {
+        MONDAY: {
+          total: 6,
+          response: [
+            {
+              id: 1,
+              name: 'Jollof Rice with Chicken',
+              foodCode: 'JL-01',
+              calories: 650,
+              imagePath: null,
+              count: 5,
+              users: [
+                {
+                  id: null,
+                  name: 'Hubert Kingsley Ocran (Guest)',
+                  createdForName: null,
+                  createdByName: 'Hubert Kingsley Ocran',
+                  isGuest: true,
+                  quantity: 5,
+                },
+              ],
+            },
+            {
+              id: 2,
+              name: 'Fried Rice with Fish',
+              foodCode: 'FR-02',
+              calories: 700,
+              imagePath: null,
+              count: 1,
+              users: [
+                {
+                  id: 1,
+                  name: 'Hubert Kingsley Ocran',
+                  createdForName: 'Hubert Kingsley Ocran',
+                  createdByName: 'Hubert Kingsley Ocran',
+                  isGuest: false,
+                  quantity: 1,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    renderComponent();
+
+    const searchInput = screen.getByPlaceholderText('Search meal or user...');
+
+    // When searching for Hubert, only Hubert's own meal (Fried Rice with Fish) shows, NOT the guest meal (Jollof Rice with Chicken)
+    fireEvent.change(searchInput, { target: { value: 'hubert' } });
+    expect(screen.getByText('Fried Rice with Fish')).toBeInTheDocument();
+    expect(screen.queryByText('Jollof Rice with Chicken')).not.toBeInTheDocument();
+    expect(screen.getByText(/1\. Hubert Kingsley Ocran/i)).toBeInTheDocument();
+
+    // When searching for "guest", the guest meal shows with "Guest" as the recipient name (not creator name)
+    fireEvent.change(searchInput, { target: { value: 'guest' } });
+    expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
+    expect(screen.queryByText('Fried Rice with Fish')).not.toBeInTheDocument();
+    expect(screen.getByText(/1\. Guest/i)).toBeInTheDocument();
+    expect(screen.getByText('qty: 5')).toBeInTheDocument();
+    expect(screen.queryByText(/Hubert Kingsley Ocran \(Guest\)/i)).not.toBeInTheDocument();
+  });
+
+  it('displays empty state when search finds no results and can be cleared', () => {
+    renderComponent();
+
+    const searchInput = screen.getByPlaceholderText('Search meal or user...');
+    fireEvent.change(searchInput, { target: { value: 'NonExistentDishOrUser' } });
+
+    expect(screen.getByText(/No results found for "NonExistentDishOrUser"/i)).toBeInTheDocument();
+
+    const clearButtons = screen.getAllByRole('button', { name: /clear search/i });
+    expect(clearButtons.length).toBeGreaterThan(0);
+    fireEvent.click(clearButtons[0]);
+
+    expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
+    expect(screen.getByText('Fried Rice with Fish')).toBeInTheDocument();
   });
 
   it('renders empty state when there are no menu days', () => {
@@ -263,5 +471,74 @@ describe('SelectionActivity (Food Assignment)', () => {
     renderComponent();
 
     expect(screen.getByText(/There are no food assignments available for this week/i)).toBeInTheDocument();
+  });
+
+  it('renders Unavailable selections card with count and expands recipients', () => {
+    const reportWithUnavailable = {
+      MONDAY: {
+        total: 6,
+        response: [
+          ...sampleWeeklyReport.MONDAY.response,
+          {
+            id: -1,
+            name: 'Unavailable',
+            imagePath: '',
+            calories: 0,
+            foodCode: 'UNAVAILABLE',
+            count: 1,
+            users: [{ id: 10, name: 'Grace Hopper', quantity: 1 }],
+          },
+        ],
+      },
+      TUESDAY: sampleWeeklyReport.TUESDAY,
+    };
+
+    mockedUseWeeklyMealReportQuery.mockReturnValue({
+      data: reportWithUnavailable,
+      isLoading: false,
+      isError: false,
+    });
+
+    renderComponent();
+
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Opted out of lunch delivery')).toBeInTheDocument();
+
+    const unavailableCard = screen.getByText('Unavailable');
+    fireEvent.click(unavailableCard);
+
+    expect(screen.getByText(/Unavailable Recipients/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\. Grace Hopper/i)).toBeInTheDocument();
+  });
+
+  it('renders holiday banner and indicator when day is marked as a holiday', () => {
+    const reportWithHoliday = {
+      MONDAY: {
+        total: 0,
+        isHoliday: true,
+        holidayTitle: 'Independence Day',
+        holiday: {
+          id: 5,
+          title: 'Independence Day',
+          description: 'Official Ghana Public Holiday',
+          isCompany: false,
+          source: 'PUBLIC',
+        },
+        response: [],
+      },
+      TUESDAY: sampleWeeklyReport.TUESDAY,
+    };
+
+    mockedUseWeeklyMealReportQuery.mockReturnValue({
+      data: reportWithHoliday,
+      isLoading: false,
+      isError: false,
+    });
+
+    renderComponent();
+
+    expect(screen.getByText('Independence Day')).toBeInTheDocument();
+    expect(screen.getByText('Official Ghana Public Holiday')).toBeInTheDocument();
+    expect(screen.getAllByText('Holiday').length).toBeGreaterThan(0);
   });
 });

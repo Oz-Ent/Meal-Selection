@@ -45,9 +45,24 @@ export function exportWeeklyReportToPdf({
   const tableRows: string[][] = [];
 
   selectedDays.forEach(([day, data]) => {
-    data.response.forEach((meal, index) => {
-      tableRows.push([index === 0 ? formatDay(day) : '', meal.name, String(meal.count)]);
-    });
+    if (data.isHoliday) {
+      tableRows.push([
+        formatDay(day),
+        `Holiday: ${data.holidayTitle || 'Public / Company Holiday'}`,
+        '-',
+      ]);
+    }
+    if (data.response.length === 0 && !data.isHoliday) {
+      tableRows.push([formatDay(day), 'No selections recorded', '0']);
+    } else {
+      data.response.forEach((meal, index) => {
+        tableRows.push([
+          index === 0 && !data.isHoliday ? formatDay(day) : '',
+          meal.name,
+          String(meal.count),
+        ]);
+      });
+    }
   });
 
   doc.text(`${titlePrefix} - ${selectedDayLabel}`, 14, 15);

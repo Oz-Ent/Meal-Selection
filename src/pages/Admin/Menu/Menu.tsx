@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   CalendarCheck,
   Check,
   CheckCircle2,
@@ -83,6 +85,18 @@ export function Menu() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const isDraggingRef = useRef(false);
 
+  const pointerDragRef = useRef<{
+    isPointerDown: boolean;
+    pointerId: number | null;
+    startIndex: number | null;
+    currentIndex: number | null;
+  }>({
+    isPointerDown: false,
+    pointerId: null,
+    startIndex: null,
+    currentIndex: null,
+  });
+
   const [toastState, setToastState] = useState<{
     isOpen: boolean;
     type: 'success' | 'error';
@@ -110,9 +124,10 @@ export function Menu() {
       }
     });
 
-    idMap.forEach((m) => {
-      sorted.push(m);
-    });
+    const remaining = Array.from(idMap.values()).sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0),
+    );
+    sorted.push(...remaining);
 
     return sorted;
   }, [activeMenus, orderedMenuIds]);
@@ -139,6 +154,157 @@ export function Menu() {
     setToastState({ isOpen: true, type, message });
   };
 
+  const reorderMenus = async (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= menus.length ||
+      toIndex >= menus.length
+    ) {
+      return;
+    }
+
+    const reordered = [...menus];
+    const [movedItem] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, movedItem);
+
+    const newOrderIds = reordered.map((m) => m.id);
+    setOrderedMenuIds(newOrderIds);
+    saveMenuOrder(newOrderIds);
+
+    showToast('success', 'Menu order updated successfully.');
+
+    // Sync order attribute to backend to update cron job loop order
+    try {
+      await Promise.all(
+        reordered.map((m, idx) =>
+          updateMenuMutation.mutateAsync({
+            id: m.id,
+            data: { title: m.title, order: idx + 1 },
+          }),
+        ),
+      );
+    } catch (err) {
+      console.error('Failed to sync menu order to backend:', err);
+    }
+  };
+
+  // Pointer / Touch Drag & Drop handlers
+  const handlePointerDownHandle = (
+    e: React.PointerEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    isDraggingRef.current = true;
+    setDraggedIndex(index);
+    setDragOverIndex(index);
+
+    pointerDragRef.current = {
+      isPointerDown: true,
+      pointerId: e.pointerId,
+      startIndex: index,
+      currentIndex: index,
+    };
+  };
+
+  const handlePointerMoveHandle = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!pointerDragRef.current.isPointerDown) return;
+    e.preventDefault();
+
+    const element = document.elementFromPoint(e.clientX, e.clientY);
+    const cardElement = element?.closest('[data-menu-index]');
+    if (cardElement) {
+      const rawIdx = cardElement.getAttribute('data-menu-index');
+      if (rawIdx !== null) {
+        const targetIdx = parseInt(rawIdx, 10);
+        if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < menus.length) {
+          if (pointerDragRef.current.currentIndex !== targetIdx) {
+            pointerDragRef.current.currentIndex = targetIdx;
+            setDragOverIndex(targetIdx);
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              try {
+                navigator.vibrate(20);
+              } catch {
+                // ignore
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Auto-scroll near edges on mobile
+    const scrollThreshold = 70;
+    if (e.clientY < scrollThreshold) {
+      window.scrollBy({ top: -8, behavior: 'smooth' });
+    } else if (e.clientY > window.innerHeight - scrollThreshold) {
+      window.scrollBy({ top: 8, behavior: 'smooth' });
+    }
+  };
+
+  const handlePointerUpHandle = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!pointerDragRef.current.isPointerDown) return;
+    e.preventDefault();
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    const { startIndex, currentIndex } = pointerDragRef.current;
+    pointerDragRef.current = {
+      isPointerDown: false,
+      pointerId: null,
+      startIndex: null,
+      currentIndex: null,
+    };
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    if (startIndex !== null && currentIndex !== null && startIndex !== currentIndex) {
+      void reorderMenus(startIndex, currentIndex);
+    }
+
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 100);
+  };
+
+  const handlePointerCancelHandle = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!pointerDragRef.current.isPointerDown) return;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    pointerDragRef.current = {
+      isPointerDown: false,
+      pointerId: null,
+      startIndex: null,
+      currentIndex: null,
+    };
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 100);
+  };
+
+  // HTML5 Drag & Drop handlers (Desktop mouse)
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     setDraggedIndex(index);
     isDraggingRef.current = true;
@@ -158,43 +324,16 @@ export function Menu() {
     e.preventDefault();
     e.stopPropagation();
 
-    if (draggedIndex === null || draggedIndex === dropIndex) {
-      setDraggedIndex(null);
-      setDragOverIndex(null);
-      setTimeout(() => {
-        isDraggingRef.current = false;
-      }, 50);
-      return;
-    }
-
-    const reordered = [...menus];
-    const [movedItem] = reordered.splice(draggedIndex, 1);
-    reordered.splice(dropIndex, 0, movedItem);
-
-    const newOrderIds = reordered.map((m) => m.id);
-    setOrderedMenuIds(newOrderIds);
-    saveMenuOrder(newOrderIds);
-
+    const fromIndex = draggedIndex;
     setDraggedIndex(null);
     setDragOverIndex(null);
-    showToast('success', 'Menu order updated successfully.');
 
     setTimeout(() => {
       isDraggingRef.current = false;
-    }, 50);
+    }, 100);
 
-    // Sync order attribute to backend to update cron job loop order
-    try {
-      await Promise.all(
-        reordered.map((m, idx) =>
-          updateMenuMutation.mutateAsync({
-            id: m.id,
-            data: { title: m.title, order: idx + 1 },
-          }),
-        ),
-      );
-    } catch (err) {
-      console.error('Failed to sync menu order to backend:', err);
+    if (fromIndex !== null && fromIndex !== dropIndex) {
+      await reorderMenus(fromIndex, dropIndex);
     }
   };
 
@@ -203,7 +342,7 @@ export function Menu() {
     setDragOverIndex(null);
     setTimeout(() => {
       isDraggingRef.current = false;
-    }, 50);
+    }, 100);
   };
 
   const handleSetActiveForWeek = async (menuToActivate: MenuRecord) => {
@@ -355,6 +494,7 @@ export function Menu() {
               return (
                 <div
                   key={menu.id}
+                  data-menu-index={index}
                   draggable
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -367,17 +507,26 @@ export function Menu() {
                   }}
                   className={`group relative flex items-center justify-between rounded-3xl border p-4 sm:p-5 shadow-2xs cursor-grab active:cursor-grabbing transition-all select-none ${
                     isBeingDragged
-                      ? 'opacity-40 scale-[0.98] border-dashed border-slate-300 bg-slate-50 shadow-none'
+                      ? 'opacity-40 scale-[0.98] border-dashed border-primary/50 bg-primary/5 shadow-none'
                       : isDragTarget
                       ? 'border-primary ring-2 ring-primary/40 bg-primary/5 scale-[1.02] shadow-md'
                       : 'border-slate-100 bg-white hover:shadow-md hover:border-slate-200'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <GripVertical
-                      size={18}
-                      className="text-slate-300 group-hover:text-slate-500 transition-colors shrink-0"
-                    />
+                    <button
+                      type="button"
+                      aria-label={`Drag to reorder ${menu.title}`}
+                      title="Drag to reorder"
+                      onPointerDown={(e) => handlePointerDownHandle(e, index)}
+                      onPointerMove={handlePointerMoveHandle}
+                      onPointerUp={handlePointerUpHandle}
+                      onPointerCancel={handlePointerCancelHandle}
+                      onClick={(e) => e.stopPropagation()}
+                      className="touch-none p-1.5 -m-1.5 rounded-lg text-slate-300 group-hover:text-slate-500 hover:bg-slate-100/80 active:text-primary active:bg-primary/10 transition-colors cursor-grab active:cursor-grabbing shrink-0 flex items-center justify-center"
+                    >
+                      <GripVertical size={18} />
+                    </button>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                         {menu.title}
@@ -450,19 +599,49 @@ export function Menu() {
                           <span>Edit / View menu</span>
                         </button>
 
+                        {/* Move up / Move down for mobile and accessibility */}
+                        {menus.length > 1 && (
+                          <div className="border-y border-slate-100/60 my-0.5 py-0.5">
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => {
+                                setOpenKebabMenuId(null);
+                                void reorderMenus(index, index - 1);
+                              }}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed text-left transition-colors"
+                            >
+                              <ArrowUp size={15} className="text-slate-500" />
+                              <span>Move up</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === menus.length - 1}
+                              onClick={() => {
+                                setOpenKebabMenuId(null);
+                                void reorderMenus(index, index + 1);
+                              }}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed text-left transition-colors"
+                            >
+                              <ArrowDown size={15} className="text-slate-500" />
+                              <span>Move down</span>
+                            </button>
+                          </div>
+                        )}
+
                         {/* Set as Active for Current Week / Revert to Loop */}
                         {isActive ? (
                           isManuallyOverridden ? (
                             <button
                               type="button"
                               onClick={() => void handleRevertToLoop()}
-                              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 text-left transition-colors border-y border-slate-100/60"
+                              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 text-left transition-colors border-b border-slate-100/60"
                             >
                               <RotateCcw size={15} className="text-amber-600" />
                               <span>Revert to scheduled loop</span>
                             </button>
                           ) : (
-                            <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-primary bg-primary-light/40 rounded-lg border-y border-slate-100/60">
+                            <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-primary bg-primary-light/40 rounded-lg border-b border-slate-100/60">
                               <CheckCircle2 size={15} className="text-primary shrink-0" />
                               <span>Active (Auto scheduled)</span>
                             </div>
@@ -471,7 +650,7 @@ export function Menu() {
                           <button
                             type="button"
                             onClick={() => void handleSetActiveForWeek(menu)}
-                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left transition-colors border-y border-slate-100/60"
+                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left transition-colors border-b border-slate-100/60"
                           >
                             <CalendarCheck size={15} className="text-primary" />
                             <span>Set as active for this week</span>

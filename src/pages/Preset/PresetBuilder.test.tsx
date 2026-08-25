@@ -71,7 +71,7 @@ describe('PresetBuilder', () => {
     fireEvent.click(radioBtn);
 
     // Save button opens name modal
-    const saveBtn = screen.getByRole('button', { name: 'Save Preset' });
+    const saveBtn = screen.getByRole('button', { name: 'Save' });
     expect(saveBtn).not.toBeDisabled();
     fireEvent.click(saveBtn);
 

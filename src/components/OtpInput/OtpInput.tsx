@@ -6,13 +6,13 @@ interface IOtpInputProps {
   onChange: (value: string) => void;
   hasError?: boolean;
   errorMessage?: string;
-  handleRequestOTP: ()=> void;
+  handleRequestOTP?: () => void;
   isPending?: boolean;
   requestLabel?: string;
-  requestCooldown: number;
+  requestCooldown?: number;
 }
 
-export function OtpInput({ length = 5, value, onChange, hasError = false, errorMessage, handleRequestOTP, isPending, requestCooldown,requestLabel}: IOtpInputProps) {
+export function OtpInput({ length = 5, value, onChange, hasError = false, errorMessage, handleRequestOTP, isPending, requestCooldown = 0, requestLabel}: IOtpInputProps) {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   const focusInput = (index: number) => {

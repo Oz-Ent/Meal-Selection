@@ -1,6 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import SelectMealPage from './SelectMeal';
+import { type CreateSelectionRequest, type WeeklyUserSelections } from '../../api/Services/MealSelectionServices';
 
 const mockSubmitSelections = jest.fn();
 const mockAdminOverrideSelections = jest.fn();
@@ -12,7 +13,7 @@ let mockPresetsData = [
   { id: 103, name: 'Other Menu Preset', menuId: 999, userId: 132 },
 ];
 
-let mockWeeklySelectionsData: any = null;
+let mockWeeklySelectionsData: WeeklyUserSelections | null = null;
 
 jest.mock('../Auth/useAuth/useAuth', () => ({
   useAuth: () => ({
@@ -33,7 +34,7 @@ jest.mock('../../api/Services/PresetServices', () => ({
   },
 }));
 
-let mockUsersData = [
+const mockUsersData = [
   { id: 200, name: 'Alice Smith', email: 'alice@example.com' },
   { id: 201, name: 'Bob Jones', email: null, referenceEmail: 'bob.jones@company.com' },
 ];
@@ -142,6 +143,7 @@ describe('SelectMealPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentUserRole = 'user';
+    mockWeeklySelectionsData = null;
     mockPresetsData = [
       { id: 101, name: 'Rice Maniac', menuId: 1, userId: 132 },
       { id: 102, name: 'Swallow Wahala', menuId: 1, userId: 132 },
@@ -198,8 +200,11 @@ describe('SelectMealPage', () => {
     expect(saveBtn).not.toBeDisabled();
     fireEvent.click(saveBtn);
 
-    // Confirm modal should be open
-    expect(screen.getByText('Confirm Meal')).toBeInTheDocument();
+    // Confirm modal should be open with self-selection description
+    expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Please confirm that you are satisfied with your food choices for this week./i),
+    ).toBeInTheDocument();
 
     // Click Confirm
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
@@ -242,7 +247,7 @@ describe('SelectMealPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('submits using admin override mutation when admin selects for guests', async () => {
+  it('submits using admin override mutation when admin selects for guests and shows guest confirmation description', async () => {
     mockCurrentUserRole = 'admin';
     render(
       <MemoryRouter initialEntries={['/select-meal?isGuest=true']}>
@@ -266,6 +271,13 @@ describe('SelectMealPage', () => {
     // Click save in header
     const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
     fireEvent.click(saveBtn);
+
+    // Confirm modal should show guest description
+    expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Please confirm that you are satisfied with the food choices for/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('a guest')).toBeInTheDocument();
 
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
     fireEvent.click(confirmBtn);
@@ -317,12 +329,17 @@ describe('SelectMealPage', () => {
 
   it('pre-populates existing weekly selections so user can view/change without re-selecting all days, and sends existing selection IDs on submit', async () => {
     mockWeeklySelectionsData = {
+      createdById: 132,
+      createdBy: 'Bismark Owiredu Owusu',
+      createdForId: 132,
+      createdFor: 'Bismark Owiredu Owusu',
+      selectionStatus: 'SUBMITTED',
       mealSelections: {
-        MONDAY: { id: 501, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
-        TUESDAY: { id: 502, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
-        WEDNESDAY: { id: 503, mealID: null, mealName: 'Unavailable', selectionType: 'UNAVAILABLE' },
-        THURSDAY: { id: 504, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
-        FRIDAY: { id: 505, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
+        MONDAY: { id: 501, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        TUESDAY: { id: 502, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        WEDNESDAY: { id: 503, mealID: null, mealName: 'Unavailable', mealImagePath: null, foodCode: '', calories: null, selectionType: 'UNAVAILABLE' },
+        THURSDAY: { id: 504, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        FRIDAY: { id: 505, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
       },
     };
 
@@ -348,7 +365,7 @@ describe('SelectMealPage', () => {
     fireEvent.click(saveBtn);
 
     // Confirm Modal is displayed
-    expect(screen.getByText('Confirm Meal')).toBeInTheDocument();
+    expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
 
     // Click Confirm
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
@@ -378,12 +395,17 @@ describe('SelectMealPage', () => {
 
   it('cancels modal when Cancel button is clicked in Confirm Meal modal', () => {
     mockWeeklySelectionsData = {
+      createdById: 132,
+      createdBy: 'Bismark Owiredu Owusu',
+      createdForId: 132,
+      createdFor: 'Bismark Owiredu Owusu',
+      selectionStatus: 'SUBMITTED',
       mealSelections: {
-        MONDAY: { id: 501, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
-        TUESDAY: { id: 502, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
-        WEDNESDAY: { id: 503, mealID: null, mealName: 'Unavailable', selectionType: 'UNAVAILABLE' },
-        THURSDAY: { id: 504, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
-        FRIDAY: { id: 505, mealID: 1, mealName: 'Pizza', selectionType: 'MEAL' },
+        MONDAY: { id: 501, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        TUESDAY: { id: 502, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        WEDNESDAY: { id: 503, mealID: null, mealName: 'Unavailable', mealImagePath: null, foodCode: '', calories: null, selectionType: 'UNAVAILABLE' },
+        THURSDAY: { id: 504, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        FRIDAY: { id: 505, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
       },
     };
 
@@ -396,18 +418,18 @@ describe('SelectMealPage', () => {
     const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
     fireEvent.click(saveBtn);
 
-    expect(screen.getByText('Confirm Meal')).toBeInTheDocument();
+    expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
 
     // Click Cancel
     const cancelBtn = screen.getByRole('button', { name: 'Cancel' });
     fireEvent.click(cancelBtn);
 
     // Confirm Meal modal should be closed
-    expect(screen.queryByText('Confirm Meal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Confirm Meals')).not.toBeInTheDocument();
     expect(mockSubmitSelections).not.toHaveBeenCalled();
   });
 
-  it('searches users safely when forSomeone=true without crashing on users with null email', async () => {
+  it('searches users safely when forSomeone=true, sets user, and displays user name in Confirm modal', async () => {
     render(
       <MemoryRouter initialEntries={['/select-meal?forSomeone=true']}>
         <SelectMealPage />
@@ -439,6 +461,140 @@ describe('SelectMealPage', () => {
 
     // Modal closes and selection header displays Bob Jones
     expect(screen.getByText('Selecting for: Bob Jones')).toBeInTheDocument();
+
+    // Select pizza across all 5 days for Bob
+    for (let i = 0; i < 5; i++) {
+      const pizzaRadio = screen.getAllByRole('radio')[0];
+      fireEvent.click(pizzaRadio);
+
+      if (i < 4) {
+        const nextBtn = screen.getByRole('button', { name: 'Next' });
+        fireEvent.click(nextBtn);
+      }
+    }
+
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    // Confirm modal should show Bob Jones name in description
+    expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Please confirm that you are satisfied with the food choices for/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Bob Jones', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('clears selections and existing IDs when changing from one user to another', async () => {
+    render(
+      <MemoryRouter initialEntries={['/select-meal?forSomeone=true']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // 1. Select Alice Smith first
+    const aliceBtn = screen.getByText('Alice Smith').closest('button');
+    expect(aliceBtn).toBeTruthy();
+    fireEvent.click(aliceBtn!);
+
+    const continueBtn = screen.getByRole('button', { name: /Continue/i });
+    fireEvent.click(continueBtn);
+    expect(screen.getByText('Selecting for: Alice Smith')).toBeInTheDocument();
+
+    // Select meals for Alice across all 5 days
+    for (let i = 0; i < 5; i++) {
+      const pizzaRadio = screen.getAllByRole('radio')[0];
+      fireEvent.click(pizzaRadio);
+      if (i < 4) {
+        const nextBtn = screen.getByRole('button', { name: 'Next' });
+        fireEvent.click(nextBtn);
+      }
+    }
+
+    // Alice has 5/5 selected
+    expect(screen.getByRole('button', { name: /Save \(5\/5\)/i })).toBeInTheDocument();
+
+    // 2. Click "Change" in header to switch to Bob Jones
+    const changeBtn = screen.getByRole('button', { name: 'Change' });
+    fireEvent.click(changeBtn);
+
+    expect(screen.getByText('Select user')).toBeInTheDocument();
+    const bobBtn = screen.getByText('Bob Jones').closest('button');
+    expect(bobBtn).toBeTruthy();
+    fireEvent.click(bobBtn!);
+
+    const continueBtn2 = screen.getByRole('button', { name: /Continue/i });
+    fireEvent.click(continueBtn2);
+
+    // 3. User is now Bob Jones, and Alice's selections should be cleared (Save 0/5)
+    expect(screen.getByText('Selecting for: Bob Jones')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save \(0\/5\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save \(0\/5\)/i })).toBeDisabled();
+  });
+
+  it('supports batch meal selection for multiple users via userIds URL param and submits batch override payload', async () => {
+    mockCurrentUserRole = 'admin';
+    mockAdminOverrideSelections.mockResolvedValue({});
+
+    render(
+      <MemoryRouter initialEntries={['/select-meal?forSomeone=true&userIds=200,201']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Header displays 2 Users
+    expect(screen.getByText(/Selecting for:/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 Users/i)).toBeInTheDocument();
+
+    // Select pizza across all 5 days for both users
+    for (let i = 0; i < 5; i++) {
+      const pizzaRadio = screen.getAllByRole('radio')[0];
+      fireEvent.click(pizzaRadio);
+      if (i < 4) {
+        const nextBtn = screen.getByRole('button', { name: 'Next' });
+        fireEvent.click(nextBtn);
+      }
+    }
+
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    // Confirm modal should show 2 selected users
+    expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
+    expect(screen.getByText(/2 selected users/i)).toBeInTheDocument();
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockAdminOverrideSelections).toHaveBeenCalledTimes(1);
+      const payload = mockAdminOverrideSelections.mock.calls[0][0];
+      // 5 days * 2 users = 10 items
+      expect(payload).toHaveLength(10);
+      expect(payload.filter((item: CreateSelectionRequest) => item.createdFor === 200)).toHaveLength(5);
+      expect(payload.filter((item: CreateSelectionRequest) => item.createdFor === 201)).toHaveLength(5);
+    });
+  });
+
+  it('allows selecting all users from the user selection modal in admin mode', async () => {
+    mockCurrentUserRole = 'admin';
+    render(
+      <MemoryRouter initialEntries={['/select-meal?forSomeone=true']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Select user(s)')).toBeInTheDocument();
+
+    // Click "Select All"
+    const selectAllBtn = screen.getByRole('button', { name: /Select All/i });
+    fireEvent.click(selectAllBtn);
+
+    // Continue button shows (2 users)
+    const continueBtn = screen.getByRole('button', { name: /Continue \(2 users\)/i });
+    fireEvent.click(continueBtn);
+
+    expect(screen.getByText(/2 Users/i)).toBeInTheDocument();
   });
 });
+
 

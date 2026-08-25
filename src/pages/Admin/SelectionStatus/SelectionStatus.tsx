@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,7 @@ import {
   useWeekScheduleQuery,
 } from '../../../api/useApiQueries';
 import { formatWeekDateRange, getDateFromISOWeek, getISOWeekAndYear } from '../../../utils/dateHelpers';
+import { formatPendingUsersForClipboard } from '../../../utils/pendingUsersHelpers';
 
 export function SelectionStatus() {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ export function SelectionStatus() {
   const [selectedWeek, setSelectedWeek] = useState<number>(currentWeekInfo.week);
   const [selectedYear, setSelectedYear] = useState<number>(currentWeekInfo.year);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [targetStatusToSet, setTargetStatusToSet] = useState<'ACTIVE' | 'CLOSED'>('CLOSED');
   const [isCopied, setIsCopied] = useState(false);
@@ -82,8 +85,7 @@ export function SelectionStatus() {
     return rawPendingUsers.filter(
       (user) =>
         (user.name || '').toLowerCase().includes(q) ||
-        (user.email || '').toLowerCase().includes(q) ||
-        ((user as any).referenceEmail || '').toLowerCase().includes(q),
+        (user.email || '').toLowerCase().includes(q),
     );
   }, [rawPendingUsers, searchQuery]);
 
@@ -176,12 +178,43 @@ export function SelectionStatus() {
     }
   };
 
+  // Selection handlers
+  const handleToggleSelectUser = (userId: number) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
+    );
+  };
+
+  const isAllSelected =
+    filteredPendingUsers.length > 0 &&
+    filteredPendingUsers.every((u) => selectedUserIds.includes(u.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      const visibleIds = new Set(filteredPendingUsers.map((u) => u.id));
+      setSelectedUserIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+    } else {
+      const visibleIds = filteredPendingUsers.map((u) => u.id);
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUserIds([]);
+  };
+
+  const handleBatchSelectMeals = () => {
+    if (selectedUserIds.length === 0) return;
+    navigate(`/select-meal?forSomeone=true&userIds=${selectedUserIds.join(',')}`);
+  };
+
   // Copy user names list to clipboard (copies currently visible/filtered list)
   const handleCopyNames = async () => {
     if (!filteredPendingUsers.length) return;
-    const names = filteredPendingUsers.map((u) => u.name).filter(Boolean).join(', ');
+    const formattedText = formatPendingUsersForClipboard(filteredPendingUsers);
+    if (!formattedText) return;
     try {
-      await navigator.clipboard.writeText(names);
+      await navigator.clipboard.writeText(formattedText);
       setIsCopied(true);
       showToast(
         'success',
@@ -443,6 +476,27 @@ export function SelectionStatus() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={handleToggleSelectAll}
+                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors shadow-2xs cursor-pointer ${
+                    isAllSelected
+                      ? 'border-primary bg-primary-light text-primary font-bold'
+                      : 'border-slate-200 bg-white text-secondary hover:bg-slate-50'
+                  }`}
+                >
+                  <div
+                    className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                      isAllSelected
+                        ? 'border-primary bg-primary text-white'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {isAllSelected && <Check size={11} strokeWidth={3} />}
+                  </div>
+                  <span>{isAllSelected ? 'Deselect All' : `Select All (${filteredPendingUsers.length})`}</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleCopyNames}
                   className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-secondary hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                 >
@@ -470,8 +524,8 @@ export function SelectionStatus() {
             </div>
           )}
 
-          {/* Users List Card / Container */}
-          <div className="rounded-2xl border border-slate-100 bg-white shadow-2xs overflow-hidden">
+          {/* Users List Card / Container - Scrollable internally */}
+          <div className="rounded-2xl border border-slate-100 bg-white shadow-2xs overflow-hidden flex flex-col">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-500">
                 <LoadingSpinner />
@@ -517,8 +571,9 @@ export function SelectionStatus() {
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-slate-100 overscroll-contain">
                 {filteredPendingUsers.map((user) => {
+                  const isSelected = selectedUserIds.includes(user.id);
                   const initials = user.name
                     .split(' ')
                     .map((n) => n[0])
@@ -529,9 +584,23 @@ export function SelectionStatus() {
                   return (
                     <div
                       key={user.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 hover:bg-slate-50/70 transition-colors"
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 transition-colors ${
+                        isSelected ? 'bg-primary-light/40 hover:bg-primary-light/50' : 'hover:bg-slate-50/70'
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSelectUser(user.id)}
+                          aria-label={`Select ${user.name}`}
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'border-primary bg-primary text-white'
+                              : 'border-slate-300 bg-white hover:border-primary text-transparent'
+                          }`}
+                        >
+                          <Check size={12} strokeWidth={3} />
+                        </button>
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary font-bold text-xs sm:text-sm">
                           {initials || <Users size={16} />}
                         </div>
@@ -563,6 +632,37 @@ export function SelectionStatus() {
             )}
           </div>
         </section>
+
+        {/* Batch Selection Action Floating Bar */}
+        {selectedUserIds.length > 0 && (
+          <div className="sticky bottom-4 z-30 mx-auto w-full max-w-2xl rounded-2xl border border-primary/20 bg-slate-900/95 text-white p-3.5 sm:p-4 shadow-xl backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">
+                {selectedUserIds.length}
+              </span>
+              <span>
+                {selectedUserIds.length} user{selectedUserIds.length === 1 ? '' : 's'} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchSelectMeals}
+                className="flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer"
+              >
+                <Utensils size={14} />
+                <span>Batch Select Meals</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Confirmation Modal for Selection Window Toggle */}
