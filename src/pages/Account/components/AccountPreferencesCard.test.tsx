@@ -9,29 +9,35 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
+const mockPreferences = {
+  dislikes: {
+    foodItems: ['PK'],
+    meals: [10],
+  },
+  excludedMealIds: [10],
+};
+
+const mockFoodLibrary = [
+  { id: 1, foodCode: 'PK', name: 'Pork', foodGroup: 'Meat' },
+  { id: 2, foodCode: 'BF', name: 'Beef', foodGroup: 'Meat' },
+];
+
+const mockMeals = {
+  meals: [
+    { id: 10, name: 'Pork Fried Rice', isActive: true },
+    { id: 20, name: 'Grilled Chicken', isActive: true },
+  ],
+};
+
 jest.mock('../../../api/useApiQueries', () => ({
   useUserPreferencesQuery: () => ({
-    data: {
-      dislikes: {
-        foodItems: ['PK'],
-        meals: [10],
-      },
-      excludedMealIds: [10],
-    },
+    data: mockPreferences,
   }),
   useFoodLibraryQuery: () => ({
-    data: [
-      { id: 1, foodCode: 'PK', name: 'Pork', foodGroup: 'Meat' },
-      { id: 2, foodCode: 'BF', name: 'Beef', foodGroup: 'Meat' },
-    ],
+    data: mockFoodLibrary,
   }),
   useMealsQuery: () => ({
-    data: {
-      meals: [
-        { id: 10, name: 'Pork Fried Rice', isActive: true },
-        { id: 20, name: 'Grilled Chicken', isActive: true },
-      ],
-    },
+    data: mockMeals,
   }),
   useUpdateUserPreferencesMutation: () => ({
     mutateAsync: jest.fn(),
