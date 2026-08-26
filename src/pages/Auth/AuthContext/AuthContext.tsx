@@ -50,10 +50,9 @@ export const AuthProvider = ({children}:{children: ReactNode}) => {
 
     useEffect(() => {
         if (token && !profile) {
-            queueMicrotask(logout);
+            logout();
         }
-    }
-, [token, refreshToken, profile, logout]);
+    }, [token, profile, logout]);
 
 return <AuthContext.Provider value={{ profile, token, refreshToken, login, logout }}>
     {children}

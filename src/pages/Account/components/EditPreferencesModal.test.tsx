@@ -3,30 +3,36 @@ import { EditPreferencesModal } from './EditPreferencesModal';
 
 const mockMutateAsync = jest.fn();
 
+const mockPreferences = {
+  dislikes: {
+    foodItems: ['PK'],
+    meals: [10],
+  },
+};
+
+const mockFoodLibrary = [
+  { id: 1, foodCode: 'PK', name: 'Pork', foodGroup: 'Meat' },
+  { id: 2, foodCode: 'BF', name: 'Beef', foodGroup: 'Meat' },
+  { id: 3, foodCode: 'EG', name: 'Egg', foodGroup: 'Poultry' },
+];
+
+const mockMeals = {
+  meals: [
+    { id: 10, name: 'Pork Fried Rice', description: 'With pork chunks', isActive: true },
+    { id: 20, name: 'Grilled Chicken', description: 'With spicy sauce', isActive: true },
+  ],
+};
+
 jest.mock('../../../api/useApiQueries', () => ({
   useUserPreferencesQuery: () => ({
-    data: {
-      dislikes: {
-        foodItems: ['PK'],
-        meals: [10],
-      },
-    },
+    data: mockPreferences,
   }),
   useFoodLibraryQuery: () => ({
-    data: [
-      { id: 1, foodCode: 'PK', name: 'Pork', foodGroup: 'Meat' },
-      { id: 2, foodCode: 'BF', name: 'Beef', foodGroup: 'Meat' },
-      { id: 3, foodCode: 'EG', name: 'Egg', foodGroup: 'Poultry' },
-    ],
+    data: mockFoodLibrary,
     isLoading: false,
   }),
   useMealsQuery: () => ({
-    data: {
-      meals: [
-        { id: 10, name: 'Pork Fried Rice', description: 'With pork chunks', isActive: true },
-        { id: 20, name: 'Grilled Chicken', description: 'With spicy sauce', isActive: true },
-      ],
-    },
+    data: mockMeals,
     isLoading: false,
   }),
   useUpdateUserPreferencesMutation: () => ({

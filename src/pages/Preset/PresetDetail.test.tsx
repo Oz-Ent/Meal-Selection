@@ -19,20 +19,23 @@ const mockPresetWithDetails = {
   presetItems: [{ id: 1, presetId: 10, menuDayId: 1, dayMealId: 101 }],
 };
 
+const mockMenuDays = [{ id: 1, day: 'MONDAY' }];
+const mockMenuMeals = [
+  {
+    id: 101,
+    menuDayId: 1,
+    isActive: true,
+    meal: { id: 1, name: 'Rice And Goat Stew', imagePath: '' },
+  },
+];
+
 jest.mock('../../api/useApiQueries', () => ({
   usePresetWithDetailsQuery: () => ({ data: mockPresetWithDetails, isLoading: false }),
   useMenuDaysQuery: () => ({
-    data: [{ id: 1, day: 'MONDAY' }],
+    data: mockMenuDays,
   }),
   useMenuMealsQuery: () => ({
-    data: [
-      {
-        id: 101,
-        menuDayId: 1,
-        isActive: true,
-        meal: { id: 1, name: 'Rice And Goat Stew', imagePath: '' },
-      },
-    ],
+    data: mockMenuMeals,
   }),
   useUpdatePresetMutation: () => ({
     mutateAsync: mockUpdateMutateAsync,
@@ -58,13 +61,13 @@ describe('PresetDetail', () => {
     expect(screen.getByText('Rice And Goat Stew')).toBeInTheDocument();
 
     // Click Edit button
-    const editBtn = screen.getByRole('button', { name: 'Edit Preset' });
+    const editBtn = screen.getByRole('button', { name: 'Edit' });
     fireEvent.click(editBtn);
 
     expect(screen.getByText('Editing Banku Maniac...')).toBeInTheDocument();
 
     // Save changes
-    const saveBtn = screen.getByRole('button', { name: 'Save Changes' });
+    const saveBtn = screen.getByRole('button', { name: 'Save' });
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
