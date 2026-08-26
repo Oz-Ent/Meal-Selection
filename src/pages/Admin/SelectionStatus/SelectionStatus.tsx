@@ -75,8 +75,11 @@ export function SelectionStatus() {
 
   const currentSchedule = weekScheduleQuery.data ?? null;
   const isScheduleActive = currentSchedule?.status === 'ACTIVE';
-  const rawPendingUsers = noSelectionsQuery.data ?? [];
-  const allActiveUsers = (allUsersQuery.data ?? []).filter((u) => u.status === 'ACTIVE' || !u.status);
+  const rawPendingUsers = useMemo(() => noSelectionsQuery.data ?? [], [noSelectionsQuery.data]);
+  const allActiveUsers = useMemo(
+    () => (allUsersQuery.data ?? []).filter((u) => u.status === 'ACTIVE' || !u.status),
+    [allUsersQuery.data],
+  );
 
   // Filter pending users based on search
   const filteredPendingUsers = useMemo(() => {

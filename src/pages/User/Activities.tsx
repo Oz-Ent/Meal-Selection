@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, ChevronRight, LogOut, Search } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, Search } from 'lucide-react';
 
 import Modal from '../../components/Modal/Modal';
 import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
@@ -8,7 +8,6 @@ import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
 import MealForeground from '../../assets/MealForeground.webp';
-import AppIcon from '../../assets/App Icon.svg';
 import SelectMealIcon from '../../assets/Select Meal.svg';
 import PresetsIcon from '../../assets/Presets.svg';
 import ClockIllustration from '../../assets/Clock Illustration.svg';
@@ -19,12 +18,13 @@ import { useAuth } from '../Auth/useAuth/useAuth';
 import { days } from '../../utils/Enums/DayOfWeek';
 import { useUsersQuery, useWeeklySelectionsQuery } from '../../api/useApiQueries';
 import type { User } from '../../api/Services/UserServices';
+import type { WeeklyUserMealSelection } from '../../api/Services/MealSelectionServices';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
 
 export function UserActivities() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const userId = profile?.user?.id ?? (profile as any)?.id;
+  const userId = profile?.user?.id;
   const today = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -64,24 +64,37 @@ export function UserActivities() {
     }
 
     // Normalize different potential data structures (object with mealSelections, array of selections, wrapped in data)
-    const mealSelectionsMap: Record<string, any> = {};
+    type RawMealSelection = Partial<WeeklyUserMealSelection> & {
+      menuDay?: { day?: string };
+      dayName?: string;
+      day?: string;
+      dayMeal?: { id?: number; meal?: { id?: number; name?: string; imagePath?: string } };
+      dayMealId?: number;
+      meal?: { id?: number; name?: string; imagePath?: string };
+    };
+
+    const mealSelectionsMap: Record<string, RawMealSelection> = {};
+    const rawDataRecord = (rawData as unknown) as Record<string, unknown>;
 
     if (Array.isArray(rawData)) {
-      for (const item of rawData) {
+      for (const item of rawData as RawMealSelection[]) {
         const dayKey = (item.menuDay?.day || item.dayName || item.day || '')?.toString().toUpperCase();
         if (dayKey) {
           mealSelectionsMap[dayKey] = item;
         }
       }
-    } else if (rawData.mealSelections && typeof rawData.mealSelections === 'object') {
-      Object.assign(mealSelectionsMap, rawData.mealSelections);
-    } else if ((rawData as any).data?.mealSelections && typeof (rawData as any).data.mealSelections === 'object') {
-      Object.assign(mealSelectionsMap, (rawData as any).data.mealSelections);
-    } else if (Array.isArray((rawData as any).data)) {
-      for (const item of (rawData as any).data) {
-        const dayKey = (item.menuDay?.day || item.dayName || item.day || '')?.toString().toUpperCase();
-        if (dayKey) {
-          mealSelectionsMap[dayKey] = item;
+    } else if (rawDataRecord.mealSelections && typeof rawDataRecord.mealSelections === 'object') {
+      Object.assign(mealSelectionsMap, rawDataRecord.mealSelections as Record<string, RawMealSelection>);
+    } else if (rawDataRecord.data && typeof rawDataRecord.data === 'object') {
+      const dataObj = rawDataRecord.data as Record<string, unknown>;
+      if (dataObj.mealSelections && typeof dataObj.mealSelections === 'object') {
+        Object.assign(mealSelectionsMap, dataObj.mealSelections as Record<string, RawMealSelection>);
+      } else if (Array.isArray(dataObj)) {
+        for (const item of dataObj as RawMealSelection[]) {
+          const dayKey = (item.menuDay?.day || item.dayName || item.day || '')?.toString().toUpperCase();
+          if (dayKey) {
+            mealSelectionsMap[dayKey] = item;
+          }
         }
       }
     }

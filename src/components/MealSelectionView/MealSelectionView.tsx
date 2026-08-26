@@ -14,8 +14,6 @@ import Modal from '../Modal/Modal';
 import SpinWheel from '../SpinWheel/SpinWheel';
 import type { MenuDay, MenuDayMeal } from '../../api/Services/MenuServices';
 import type { HolidayItem } from '../../api/Services/HolidayServices';
-import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
-import { useLongPress } from '../../hooks/useLongPress';
 import MealButton from '../MealButton/MealButton';
 import MealDetailsModal from './MealDetailsModal';
 
@@ -313,10 +311,13 @@ export function MealSelectionView({
         </div>
       </main>
         <MealDetailsModal
-        isOpen={detailsModalOpen}
-        foodCode={selectedFoodCode}
-        onClose={()=>{setDetailsModalOpen(false), setSelectedFoodCode(null)}}
-          />
+          isOpen={detailsModalOpen}
+          foodCode={selectedFoodCode}
+          onClose={() => {
+            setDetailsModalOpen(false);
+            setSelectedFoodCode(null);
+          }}
+        />
 
       {/* Floating Bottom Control Bar */}
       <footer className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md md:max-w-lg px-4 flex items-center gap-2 z-20">

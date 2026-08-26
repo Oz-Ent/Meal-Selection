@@ -4,7 +4,6 @@ import {
   Briefcase,
   Hash,
   Calendar,
-  ShieldCheck,
   Pencil,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -18,7 +17,7 @@ import Button from '../../../components/Button/Button';
 import Modal from '../../../components/Modal/Modal';
 import InputField from '../../../components/InputField/InputField';
 
-import { updateUserProfileMutation } from '../../../api/useApiQueries';
+import { useUpdateUserProfileMutation } from '../../../api/useApiQueries';
 import { EMAIL_REGEX } from '../../../helpers/regex';
 
 interface AccountProfileCardProps {
@@ -35,7 +34,7 @@ export const AccountProfileCard = ({
     name: profile.name,
   });
 
-  const userUpdateMutation = updateUserProfileMutation();
+  const userUpdateMutation = useUpdateUserProfileMutation();
 
   const isEmailValid = useMemo(() => {
     const email = form.email?.trim();
@@ -68,7 +67,7 @@ export const AccountProfileCard = ({
         id: profile.id,
         data: {
           ...form,
-          email: form.email.trim(),
+          email: form.email?.trim() ?? '',
         },
       });
 

@@ -30,23 +30,23 @@ export const AccountPreferencesCard = ({
   const mealsQuery = useMealsQuery();
 
   const preferences = serverPreferences ?? initialPreferences;
-  const foodItems = foodLibraryQuery.data ?? [];
-  const meals = mealsQuery.data?.meals ?? [];
 
   // Map food codes to human-readable names
   const foodCodeToNameMap = useMemo(() => {
     const map = new Map<string, string>();
+    const foodItems = foodLibraryQuery.data ?? [];
     foodItems.forEach((item) => {
       map.set(item.foodCode, item.name);
     });
     return map;
-  }, [foodItems]);
+  }, [foodLibraryQuery.data]);
 
   // Extract disliked food items and meal names
   const { dislikedFoodNames, dislikedMealNames, totalDislikesCount } = useMemo(() => {
     const rawDislikes = preferences?.dislikes;
     const foodNames: string[] = [];
     const mealNames: string[] = [];
+    const meals = mealsQuery.data?.meals ?? [];
 
     if (Array.isArray(rawDislikes)) {
       rawDislikes.forEach((codeOrName) => {
@@ -72,7 +72,7 @@ export const AccountPreferencesCard = ({
       dislikedMealNames: mealNames,
       totalDislikesCount: foodNames.length + mealNames.length,
     };
-  }, [preferences, foodCodeToNameMap, meals]);
+  }, [preferences, foodCodeToNameMap, mealsQuery.data?.meals]);
 
   const excludedMealsCount = preferences?.excludedMealIds?.length ?? 0;
 

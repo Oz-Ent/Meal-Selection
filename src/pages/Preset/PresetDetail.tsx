@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Check, Edit3, Loader2 } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
@@ -42,7 +42,7 @@ export function PresetDetail() {
   const menuDayMealsQuery = useMenuMealsQuery(menuId);
   const updatePresetMutation = useUpdatePresetMutation();
 
-  const menuDays: MenuDay[] = menuDaysQuery.data ?? [];
+  const menuDays: MenuDay[] = useMemo(() => menuDaysQuery.data ?? [], [menuDaysQuery.data]);
   const menuDayMeals = menuDayMealsQuery.data ?? [];
 
   // Handle toast from navigation state (e.g. from preset creation)
@@ -81,13 +81,14 @@ export function PresetDetail() {
     }
 
     // 2. Fallback: check items object (keyed by day name)
+    const presetRecord = preset as { items?: Record<string, { dayMealId?: number }> } | undefined;
     if (
       Object.keys(initialMap).length === 0 &&
-      (preset as any).items &&
-      typeof (preset as any).items === 'object' &&
+      presetRecord?.items &&
+      typeof presetRecord.items === 'object' &&
       menuDays.length > 0
     ) {
-      for (const [dayName, item] of Object.entries((preset as any).items)) {
+      for (const [dayName, item] of Object.entries(presetRecord.items)) {
         const itemObj = item as { dayMealId?: number };
         if (itemObj?.dayMealId) {
           const matchedDay = menuDays.find(

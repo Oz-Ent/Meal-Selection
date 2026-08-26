@@ -37,6 +37,7 @@ jest.mock('../../api/useApiQueries', () => ({
   useUpdatePresetMutation: () => ({
     mutateAsync: mockUpdateMutateAsync,
   }),
+  useMealDetailsQuery: () => ({ data: null, isPending: false, isError: false }),
 }));
 
 describe('PresetDetail', () => {

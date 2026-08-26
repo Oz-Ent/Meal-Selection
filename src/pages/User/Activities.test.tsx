@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { UserActivities } from './Activities';
@@ -15,12 +16,12 @@ jest.mock('lucide-react', () => ({
 
 // Mock Swiper
 jest.mock('swiper/react', () => ({
-  Swiper: ({ children, className }: any) => (
+  Swiper: ({ children, className }: { children?: ReactNode; className?: string }) => (
     <div data-testid="swiper-carousel" className={className}>
       {children}
     </div>
   ),
-  SwiperSlide: ({ children, className }: any) => (
+  SwiperSlide: ({ children, className }: { children?: ReactNode; className?: string }) => (
     <div data-testid="swiper-slide" className={className}>
       {children}
     </div>
@@ -62,9 +63,9 @@ jest.mock('../Auth/useAuth/useAuth', () => ({
 }));
 
 // Mock API queries
-let mockWeeklySelectionsData: any = null;
+let mockWeeklySelectionsData: unknown = null;
 let mockWeeklySelectionsLoading = false;
-const mockUsersData: any = [
+const mockUsersData: { id: number; name: string; email: string }[] = [
   { id: 1, name: 'Alice Smith', email: 'alice@example.com' },
   { id: 2, name: 'Bob Jones', email: 'bob@example.com' },
 ];

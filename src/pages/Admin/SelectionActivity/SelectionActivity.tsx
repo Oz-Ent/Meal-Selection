@@ -38,14 +38,14 @@ import {
 import type { MenuDayMeal } from '../../../api/Services/MenuServices';
 import type { WeeklyReportUser } from '../../../api/Services/MealSelectionServices';
 
-export const getRecipientDisplayName = (u: WeeklyReportUser): string => {
+const getRecipientDisplayName = (u: WeeklyReportUser): string => {
   if (u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)'))) {
     return 'Guest';
   }
   return u.createdForName || u.name || 'Unknown';
 };
 
-export const doesUserMatchSearch = (u: WeeklyReportUser, q: string): boolean => {
+const doesUserMatchSearch = (u: WeeklyReportUser, q: string): boolean => {
   if (!q) return false;
   if (u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)'))) {
     return 'guest'.includes(q) || q.includes('guest');
@@ -90,20 +90,20 @@ export function SelectionActivity() {
     setToastState({ isOpen: true, type, message });
   };
 
-  const rawMenuDays = daysQuery.data ?? [];
   const menuDays = useMemo(() => {
+    const rawMenuDays = daysQuery.data ?? [];
     return [...rawMenuDays].sort(
       (a, b) => DAY_ORDER.indexOf(a.day.toUpperCase()) - DAY_ORDER.indexOf(b.day.toUpperCase()),
     );
-  }, [rawMenuDays]);
+  }, [daysQuery.data]);
 
   const currentDay = menuDays[currentDayIndex];
-  const dayMeals = mealsQuery.data ?? [];
   const currentDayMeals = useMemo(() => {
+    const dayMeals = mealsQuery.data ?? [];
     return currentDay
       ? dayMeals.filter((meal) => meal.menuDayId === currentDay.id && meal.isActive)
       : [];
-  }, [currentDay, dayMeals]);
+  }, [currentDay, mealsQuery.data]);
 
   const weeklyReport = reportQuery.data ?? {};
   const currentDayReport = currentDay ? weeklyReport[currentDay.day.toUpperCase()] : undefined;
@@ -180,6 +180,7 @@ export function SelectionActivity() {
 
   const availableReplacementMeals = useMemo(() => {
     if (!changingMeal || !currentDay) return [];
+    const dayMeals = mealsQuery.data ?? [];
     // Same-day alternative menu meals that are active and not the current one
     const sameDayAlternatives = dayMeals.filter(
       (meal) =>
@@ -194,7 +195,7 @@ export function SelectionActivity() {
 
     // Fallback: map other active meals in the menu or master library
     return dayMeals.filter((meal) => meal.isActive && meal.id !== changingMeal.id);
-  }, [changingMeal, currentDay, dayMeals]);
+  }, [changingMeal, currentDay, mealsQuery.data]);
 
   const filteredReplacementMeals = useMemo(() => {
     const query = mealSearchQuery.trim().toLowerCase();

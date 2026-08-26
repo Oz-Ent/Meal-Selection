@@ -3,6 +3,10 @@ import { MealSelectionView } from './MealSelectionView';
 import type { MenuDay, MenuDayMeal } from '../../api/Services/MenuServices';
 import type { HolidayItem } from '../../api/Services/HolidayServices';
 
+jest.mock('../../api/useApiQueries', () => ({
+  useMealDetailsQuery: () => ({ data: null, isPending: false, isError: false }),
+}));
+
 const mockMenuDays: MenuDay[] = [
   { id: 1, day: 'MONDAY' },
   { id: 2, day: 'TUESDAY' },

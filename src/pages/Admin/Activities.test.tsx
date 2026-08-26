@@ -91,7 +91,7 @@ describe('Admin Activities Component', () => {
       </MemoryRouter>
     );
 
-    const logoutButton = screen.getByRole('button', { name: /log out/i });
+    const logoutButton = screen.getByRole('button', { name: /sign out|log out/i });
     expect(logoutButton).toBeInTheDocument();
     fireEvent.click(logoutButton);
 

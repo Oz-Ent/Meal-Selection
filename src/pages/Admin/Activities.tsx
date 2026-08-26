@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
 
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
-import AppIcon from '../../assets/App Icon.svg';
 import menuIcon from '../../assets/admin/menu.svg';
 import mealIcon from '../../assets/admin/meal.svg';
 import reportIcon from '../../assets/admin/AdminReport.svg';
@@ -17,15 +15,8 @@ import { TitleBar } from '../../components/TitleBar/TitleBar';
 export function Activities() {
   const navigate = useNavigate();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  let userName = 'Admin';
-  try {
-    const { profile } = useAuth();
-    if (profile?.user?.name) {
-      userName = profile.user.name.split(' ')[0];
-    }
-  } catch {
-    // Fallback if rendered without AuthContext provider
-  }
+  const { profile } = useAuth();
+  const userName = profile?.user?.name ? profile.user.name.split(' ')[0] : 'Admin';
 
   const activities = [
     {

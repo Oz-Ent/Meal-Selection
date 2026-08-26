@@ -132,6 +132,7 @@ jest.mock('../../api/useApiQueries', () => ({
   }),
   useCreateMealSelectionsMutation: () => ({ mutateAsync: mockSubmitSelections }),
   useAdminOverrideSelectionsMutation: () => ({ mutateAsync: mockAdminOverrideSelections }),
+  useMealDetailsQuery: () => ({ data: null, isPending: false, isError: false }),
 }));
 
 // Mock SuccessModal to prevent complex child rendering

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Utensils,
   Search,
@@ -50,8 +50,12 @@ export const EditPreferencesModal = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Initialize selected values from existing preferences
-  useEffect(() => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevPreferences, setPrevPreferences] = useState(preferences);
+
+  if (isOpen !== prevIsOpen || preferences !== prevPreferences) {
+    setPrevIsOpen(isOpen);
+    setPrevPreferences(preferences);
     if (isOpen && preferences?.dislikes) {
       if (Array.isArray(preferences.dislikes)) {
         setSelectedFoodCodes(preferences.dislikes);
@@ -66,21 +70,20 @@ export const EditPreferencesModal = ({
     }
     setErrorMessage(null);
     setSuccessMessage(null);
-  }, [isOpen, preferences]);
-
-  const foodItems = foodLibraryQuery.data ?? [];
-  const meals = mealsQuery.data?.meals ?? [];
+  }
 
   // Group food items
   const availableGroups = useMemo(() => {
     const groups = new Set<string>();
+    const foodItems = foodLibraryQuery.data ?? [];
     foodItems.forEach((item) => {
       if (item.foodGroup) groups.add(item.foodGroup);
     });
     return Array.from(groups);
-  }, [foodItems]);
+  }, [foodLibraryQuery.data]);
 
   const filteredFoodItems = useMemo(() => {
+    const foodItems = foodLibraryQuery.data ?? [];
     return foodItems.filter((item) => {
       const matchesSearch =
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,13 +91,14 @@ export const EditPreferencesModal = ({
       const matchesGroup = selectedGroup === 'ALL' || item.foodGroup === selectedGroup;
       return matchesSearch && matchesGroup;
     });
-  }, [foodItems, searchTerm, selectedGroup]);
+  }, [foodLibraryQuery.data, searchTerm, selectedGroup]);
 
   const filteredMeals = useMemo(() => {
+    const meals = mealsQuery.data?.meals ?? [];
     return meals.filter((meal) => {
       return meal.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
-  }, [meals, searchTerm]);
+  }, [mealsQuery.data?.meals, searchTerm]);
 
   const toggleFoodCode = (code: string) => {
     setSelectedFoodCodes((prev) =>
@@ -124,9 +128,10 @@ export const EditPreferencesModal = ({
       setTimeout(() => {
         onClose();
       }, 900);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
       setErrorMessage(
-        err?.response?.data?.message || err?.message || 'Failed to update preferences.'
+        error?.response?.data?.message || error?.message || 'Failed to update preferences.'
       );
     }
   };

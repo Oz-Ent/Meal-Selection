@@ -494,15 +494,15 @@ export const useUserProfileQuery = () =>
   });
 
 
-export const updateUserProfileMutation=()=> {
+export const useUpdateUserProfileMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn:({id, data}:{id:number, data: UpdateUserRequest})=> userService.update(id, data),
-    onSuccess:()=>{
-      void queryClient.invalidateQueries({queryKey: queryKeys.userProfile()})
+    mutationFn: ({ id, data }: { id: number; data: UpdateUserRequest }) => userService.update(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile() });
     },
-  })
-}
+  });
+};
 
 export const useUserPreferencesQuery = () =>
   useQuery({

@@ -1,15 +1,16 @@
+import type { ReactNode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WeeklyMealCarousel, type CarouselMealItem } from './WeeklyMealCarousel';
 
 // Mock Swiper
 jest.mock('swiper/react', () => ({
-  Swiper: ({ children, className }: any) => (
+  Swiper: ({ children, className }: { children?: ReactNode; className?: string }) => (
     <div data-testid="swiper-carousel" className={className}>
       {children}
     </div>
   ),
-  SwiperSlide: ({ children, className }: any) => (
+  SwiperSlide: ({ children, className }: { children?: ReactNode; className?: string }) => (
     <div data-testid="swiper-slide" className={className}>
       {children}
     </div>

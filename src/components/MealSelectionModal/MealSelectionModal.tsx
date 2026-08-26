@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Check, ChevronLeft, ChevronRight, Shuffle, X } from 'lucide-react';
 import type { MenuDay, MenuDayMeal } from '../../api/Services/MenuServices';
 import Modal from '../Modal/Modal';
@@ -36,6 +36,15 @@ export default function MealSelectionModal({
   showCloseButton = true,
 }: MealSelectionModalProps) {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setCurrentDayIndex(0);
+    }
+  }
+
   const currentDay = menuDays[currentDayIndex];
   const currentDayMeals = currentDay
     ? menuDayMeals.filter((meal) => meal.menuDayId === currentDay.id && meal.isActive)
@@ -45,10 +54,6 @@ export default function MealSelectionModal({
   const dayLabel = currentDay?.day
     ? currentDay.day.charAt(0).toUpperCase() + currentDay.day.slice(1).toLowerCase()
     : 'Weekly meals';
-
-  useEffect(() => {
-    if (isOpen) setCurrentDayIndex(0);
-  }, [isOpen]);
 
   const moveForward = () => {
     if (isFinalDay) {

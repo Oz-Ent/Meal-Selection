@@ -108,8 +108,10 @@ export function Menu() {
   });
 
   const { week, year } = getISOWeekAndYear();
-  const rawMenus = Array.isArray(menusQuery.data) ? menusQuery.data : [];
-  const activeMenus = useMemo(() => rawMenus.filter((m) => m?.isActive), [rawMenus]);
+  const activeMenus = useMemo(() => {
+    const rawMenus = Array.isArray(menusQuery.data) ? menusQuery.data : [];
+    return rawMenus.filter((m) => m?.isActive);
+  }, [menusQuery.data]);
 
   const menus = useMemo(() => {
     if (activeMenus.length === 0) return [];

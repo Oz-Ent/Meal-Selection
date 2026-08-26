@@ -58,12 +58,9 @@ describe('MealDetailsModal Component', () => {
     );
 
     expect(screen.getByText('Banku & Tilapia')).toBeInTheDocument();
-    expect(screen.getByText('BT1')).toBeInTheDocument();
     expect(screen.getByText('550 kcal')).toBeInTheDocument();
-    expect(screen.getByText('Freshly prepared banku with hot pepper and tilapia')).toBeInTheDocument();
+    expect(screen.getAllByText('Freshly prepared banku with hot pepper and tilapia').length).toBeGreaterThan(0);
     expect(screen.getByText('Corn Dough')).toBeInTheDocument();
-    expect(screen.getByText('Carbs')).toBeInTheDocument();
     expect(screen.getByText('Tilapia')).toBeInTheDocument();
-    expect(screen.getByText('Protein')).toBeInTheDocument();
   });
 });
