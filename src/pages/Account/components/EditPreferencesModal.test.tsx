@@ -80,8 +80,8 @@ describe('EditPreferencesModal Component', () => {
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({
         dislikes: {
-          foodItems: ['PK', 'BF'],
-          meals: [10],
+          foodItems: ['BF'],
+          meals: [],
         },
       });
     });

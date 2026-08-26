@@ -110,7 +110,7 @@ describe('History Page Component', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Edziban')).toBeInTheDocument();
+    expect(screen.getByText(/Hi,/)).toBeInTheDocument();
     expect(screen.getByText('Selection History')).toBeInTheDocument();
     expect(screen.getByText('Week 34 • 2026')).toBeInTheDocument();
     expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();

@@ -59,7 +59,7 @@ describe('AccountPreferencesCard Component', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Meal & Dietary Preferences')).toBeInTheDocument();
+    expect(screen.getByText('Dietary Preferences')).toBeInTheDocument();
     expect(screen.getByText('2 exclusions active')).toBeInTheDocument();
     expect(screen.getByText('Pork')).toBeInTheDocument();
     expect(screen.getByText('Pork Fried Rice')).toBeInTheDocument();

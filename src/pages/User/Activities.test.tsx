@@ -258,7 +258,7 @@ describe('UserActivities Banner and Page Component', () => {
       </MemoryRouter>
     );
 
-    const logoutButton = screen.getByRole('button', { name: /log out/i });
+    const logoutButton = screen.getByRole('button', { name: /sign out/i });
     expect(logoutButton).toBeInTheDocument();
     fireEvent.click(logoutButton);
 

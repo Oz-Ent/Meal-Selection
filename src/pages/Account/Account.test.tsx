@@ -103,6 +103,10 @@ jest.mock('../../api/useApiQueries', () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+  useUpdateUserProfileMutation: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
 }));
 
 jest.mock('../../api/Services/AuthServices', () => ({
@@ -148,7 +152,7 @@ describe('Account Page', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Meal & Dietary Preferences/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Dietary Preferences/i })).toBeInTheDocument();
     expect(screen.getByText('Pork')).toBeInTheDocument();
     expect(screen.getByText('Mushrooms')).toBeInTheDocument();
     expect(screen.getByText(/3 active presets/i)).toBeInTheDocument();
