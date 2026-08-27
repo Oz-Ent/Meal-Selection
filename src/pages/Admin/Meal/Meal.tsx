@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Check,
   Copy,
@@ -6,6 +6,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  Search,
   Trash2,
   X,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
+import { SearchBar } from '../../../components/SearchBar/SearchBar';
 
 import PresetIllustration from '../../../assets/Preset Illustration.svg';
 import BurgerSvg from '../../../assets/admin/BurgeronAdminCard.svg';
@@ -37,6 +39,7 @@ export function Meal() {
   const [deletingMeal, setDeletingMeal] = useState<MealRecord | null>(null);
   const [duplicatingMealId, setDuplicatingMealId] = useState<number | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [openKebabMealId, setOpenKebabMealId] = useState<number | null>(null);
 
   const [toastState, setToastState] = useState<{
@@ -51,6 +54,17 @@ export function Meal() {
 
   const rawMeals = Array.isArray(mealsQuery.data?.meals) ? mealsQuery.data.meals : [];
   const meals = rawMeals.filter((m) => m?.isActive);
+
+  const filteredMeals = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return meals;
+    return meals.filter((meal) => {
+      const nameMatch = meal.name.toLowerCase().includes(q);
+      const codeMatch = meal.foodCode ? meal.foodCode.toLowerCase().includes(q) : false;
+      return nameMatch || codeMatch;
+    });
+  }, [meals, searchQuery]);
+
   const isDuplicating = duplicatingMealId !== null || createMealMutation.isPending;
   const isLoading = mealsQuery.isLoading || isDuplicating;
 
@@ -125,8 +139,16 @@ export function Meal() {
       {/* MEALS LIST VIEW */}
       {!isLoading && meals.length > 0 && (
         <div className="px-4 sm:px-6 pt-5">
+          {/* Top Search Bar */}
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Search meal..."
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {meals.map((meal) => (
+            {filteredMeals.map((meal) => (
               <div
                 key={meal.id}
                 onClick={() => setEditingMeal(meal)}
@@ -222,6 +244,22 @@ export function Meal() {
               </div>
             ))}
           </div>
+
+          {/* Empty search results state */}
+          {filteredMeals.length === 0 && searchQuery && (
+            <div className="p-8 text-center text-slate-500 text-xs sm:text-sm bg-white rounded-2xl border border-slate-100 flex flex-col items-center gap-2 mt-2 shadow-2xs">
+              <Search size={24} className="text-slate-400" />
+              <p className="font-semibold text-slate-800">No results found for "{searchQuery}"</p>
+              <p className="text-slate-400 text-xs">Try searching for a different meal name</p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="mt-2 text-xs font-semibold text-primary hover:underline cursor-pointer"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
         </div>
       )}
 
