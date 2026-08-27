@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
-import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
 import menuIcon from '../../assets/admin/MenuIcon.webp';
 import mealIcon from '../../assets/admin/MenuFood.webp';
 import reportIcon from '../../assets/admin/SelectionsReports.webp';
@@ -12,10 +8,9 @@ import chefIcon from '../../assets/admin/ChefOnAdminCard.svg';
 import burgerIcon from '../../assets/admin/BurgeronAdminCard.svg';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
+import MenuCard from '../../components/MenuCard/MenuCard';
 
 export function Activities() {
-  const navigate = useNavigate();
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const { profile } = useAuth();
   const userName = profile?.user?.name ? profile.user.name.split(' ')[0] : 'Admin';
 
@@ -95,38 +90,17 @@ export function Activities() {
           <h2 className="mb-3 text-base font-bold text-text-primary">Activities</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {activities.map((activity) => (
-              <button
-                key={activity.id}
-                type="button"
-                onClick={() => navigate(activity.path)}
-                className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
-              >
-                <div className="w-full overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center">
-                  <img
-                    src={activity.image}
-                    alt={activity.title}
-                    className="h-24 sm:h-28 w-full object-contain rounded-xl"
-                  />
-                </div>
-                <div className="mt-3 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900">{activity.title}</h3>
-                    <p className="mt-1 text-[11px] sm:text-xs leading-tight text-slate-500">
-                      {activity.description}
-                    </p>
-                  </div>
-                </div>
-              </button>
+              <MenuCard
+              key={activity.id}
+              label={activity.title}
+              subtitle={activity.description}
+              icon={activity.image}
+              path={activity.path}
+              />
             ))}
           </div>
         </section>
       </div>
-
-      {/* Logout Confirmation Modal */}
-      <LogoutConfirmModal
-        isOpen={isLogoutModalOpen}
-        onClose={() => setIsLogoutModalOpen(false)}
-      />
 
       <BottomNavbar activeTab="admin" />
     </main>
