@@ -79,10 +79,10 @@ export const useMenuDaysQuery = (menuId: number) =>
     enabled: Number.isInteger(menuId) && menuId > 0,
   });
 
-export const useMenuMealsQuery = (menuId: number) =>
+export const useMenuMealsQuery = (menuId: number, userId?: number) =>
   useQuery({
-    queryKey: queryKeys.menuMeals(menuId),
-    queryFn: () => menuService.getMeals(menuId),
+    queryKey: queryKeys.menuMeals(menuId, userId),
+    queryFn: () => menuService.getMeals(menuId, userId),
     enabled: Number.isInteger(menuId) && menuId > 0,
   });
 
