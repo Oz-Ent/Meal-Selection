@@ -1,58 +1,59 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useState, type ReactNode } from "react";
 import type { IAuthContextType } from "../../../utils/interfaces/IAuthContextType";
 import type { IAuthUser } from "../../../utils/interfaces/IAuthUser";
+import { authStorage } from "../../../utils/misc/authStorage";
 
 const AuthContext = createContext<IAuthContextType | null>(null);
 
-export const AuthProvider = ({children}:{children: ReactNode}) => {
-    const [token, setToken] = useState<string | null>(()=> localStorage.getItem("token") || sessionStorage.getItem("token"));
-    const [refreshToken, setRefreshToken] = useState<string | null>(()=> localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"));
-    const [profile, setProfile] = useState<IAuthUser | null>(()=> {
-        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if(!storedUser) return null;
-        try{
-            return JSON.parse(storedUser) as IAuthUser;
+// Read and validate the persisted session once so React never has to reconcile
+// an inconsistent state (e.g. a token without a parseable user) inside an effect.
+const loadInitialSession = (): {
+    profile: IAuthUser | null;
+    token: string | null;
+    refreshToken: string | null;
+} => {
+    const token = authStorage.getToken();
+    const refreshToken = authStorage.getRefreshToken();
+    const storedUser = authStorage.getRawUser();
 
+    let profile: IAuthUser | null = null;
+    if (storedUser) {
+        try {
+            profile = JSON.parse(storedUser) as IAuthUser;
         } catch (error) {
             console.error("Failed to parse stored user:", error);
-            localStorage.removeItem("user");
-            localStorage.removeItem("token");
-            localStorage.removeItem("refreshToken");
-            sessionStorage.removeItem("user");
-            sessionStorage.removeItem("token");
-            sessionStorage.removeItem("refreshToken");
-            return null;
-
+            authStorage.clear();
+            return { profile: null, token: null, refreshToken: null };
         }
-    });
+    }
+
+    if (token && !profile) {
+        authStorage.clear();
+        return { profile: null, token: null, refreshToken: null };
+    }
+
+    return { profile, token, refreshToken };
+};
+
+export const AuthProvider = ({children}:{children: ReactNode}) => {
+    const [initialSession] = useState(loadInitialSession);
+    const [token, setToken] = useState<string | null>(initialSession.token);
+    const [refreshToken, setRefreshToken] = useState<string | null>(initialSession.refreshToken);
+    const [profile, setProfile] = useState<IAuthUser | null>(initialSession.profile);
 
     const login = useCallback((profile: IAuthUser, token: string, refreshToken: string, isPersistent: boolean = true) => {
-        const storage = isPersistent ? localStorage : sessionStorage;
         setProfile(profile);
         setToken(token);
         setRefreshToken(refreshToken);
-        storage.setItem("user", JSON.stringify(profile));
-        storage.setItem("token", token);
-        storage.setItem("refreshToken", refreshToken);
+        authStorage.setSession(profile, token, refreshToken, isPersistent);
     }, []);
 
     const logout = useCallback(() => {
         setProfile(null);
         setToken(null);
         setRefreshToken(null);
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("refreshToken");
+        authStorage.clear();
     }, []);
-
-    useEffect(() => {
-        if (token && !profile) {
-            logout();
-        }
-    }, [token, profile, logout]);
 
 return <AuthContext.Provider value={{ profile, token, refreshToken, login, logout }}>
     {children}

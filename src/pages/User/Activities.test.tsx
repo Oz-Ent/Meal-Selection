@@ -12,6 +12,7 @@ jest.mock('lucide-react', () => ({
   Search: () => <span data-testid="icon-search" />,
   Pencil: () => <span data-testid="icon-pencil" />,
   Loader2: () => <span data-testid="icon-loader" />,
+  LoaderCircle: () => <span data-testid="icon-loader-circle" />,
 }));
 
 // Mock Swiper

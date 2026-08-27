@@ -6,6 +6,7 @@ import axios, {
 import { MEAL_APP_CORE } from '../utils/misc/config';
 import { authService } from './Services/AuthServices';
 import { getErrorMessage } from '../helpers/errorMessageHelper';
+import { authStorage } from '../utils/misc/authStorage';
 
 const apiClient = axios.create({
   baseURL: `${MEAL_APP_CORE}`,
@@ -16,9 +17,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token =
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('token');
+    const token = authStorage.getToken();
 
     const existingAuthHeader =
       (config.headers as Record<string, unknown> | undefined)?.[
@@ -36,7 +35,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    throw error;
+    return Promise.reject(error);
   },
 );
 
@@ -100,24 +99,11 @@ apiClient.interceptors.response.use(
         });
       }
 
-      const refreshToken =
-        localStorage.getItem('refreshToken') ||
-        sessionStorage.getItem('refreshToken');
-
-      const isPersistent =
-        !!localStorage.getItem('refreshToken');
-
-      const storage = isPersistent
-        ? localStorage
-        : sessionStorage;
+      const refreshToken = authStorage.getRefreshToken();
+      const isPersistent = authStorage.isPersistent();
 
       if (!refreshToken) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('refreshToken');
-
+        authStorage.clear();
         window.location.href = '/login';
 
         return Promise.reject(
@@ -136,11 +122,7 @@ apiClient.interceptors.response.use(
           refreshToken: newRefreshToken,
         } = response;
 
-        storage.setItem('token', accessToken);
-        storage.setItem(
-          'refreshToken',
-          newRefreshToken,
-        );
+        authStorage.setTokens(accessToken, newRefreshToken, isPersistent);
 
         processQueue(null, accessToken);
 
@@ -151,14 +133,7 @@ apiClient.interceptors.response.use(
 
         return apiClient(originalRequest);
       } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('refreshToken');
-        sessionStorage.removeItem('user');
-
+        authStorage.clear();
         window.location.href = '/login';
 
         processQueue(err, null);

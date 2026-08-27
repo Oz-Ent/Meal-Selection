@@ -45,7 +45,7 @@ const mockUsersData = [
   { id: 201, name: 'Bob Jones', email: null, referenceEmail: 'bob.jones@company.com' },
 ];
 
-let mockWeekScheduleData: any = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
+let mockWeekScheduleData: { id: number; menu: { id: number }; status: string } = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
 
 jest.mock('../../api/useApiQueries', () => ({
   useUsersQuery: () => ({
