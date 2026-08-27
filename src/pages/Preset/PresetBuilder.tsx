@@ -23,7 +23,7 @@ export function PresetBuilder() {
   const [searchParams] = useSearchParams();
   const menuId = Number(params.menuId) || Number(searchParams.get('menuId')) || 0;
   const { profile } = useAuth();
-
+  const userId = profile?.user?.id;
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [selections, setSelections] = useState<Record<number, DaySelectionValue>>({});
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
@@ -41,7 +41,7 @@ export function PresetBuilder() {
 
   const menuQuery = useMenuQuery(menuId);
   const menuDaysQuery = useMenuDaysQuery(menuId);
-  const menuDayMealsQuery = useMenuMealsQuery(menuId);
+  const menuDayMealsQuery = useMenuMealsQuery(menuId, userId);
   const createPresetMutation = useCreatePresetMutation();
 
   const menu = menuQuery.data;
@@ -86,9 +86,8 @@ export function PresetBuilder() {
   };
 
   const handleCreatePreset = async () => {
-    const userId = profile?.user?.id;
-    const trimmedName = presetNameInput.trim();
 
+    const trimmedName = presetNameInput.trim();
     if (!userId || !menuId || !trimmedName) {
       return;
     }
