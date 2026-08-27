@@ -8,8 +8,8 @@ import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
 import MealForeground from '../../assets/MealForeground.webp';
-import SelectMealIcon from '../../assets/Select Meal.svg';
-import PresetsIcon from '../../assets/Presets.svg';
+import SelectMealIcon from '../../assets/admin/MenuIcon.webp';
+import PresetsIcon from '../../assets/admin/PresetsIcon.webp';
 import ClockIllustration from '../../assets/Clock Illustration.svg';
 import ChipsIcon from '../../assets/chips.svg';
 import PizzaIcon from '../../assets/pizza.svg';
@@ -256,11 +256,11 @@ export function UserActivities() {
               onClick={() => setIsSelectionOpen(true)}
               className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
             >
-              <div className="w-full overflow-hidden rounded-xl bg-rose-500/5 flex items-center justify-center">
+              <div className="w-full overflow-hidden rounded-xl bg-gray-50 flex items-center justify-center">
                 <img
                   src={SelectMealIcon}
                   alt="Select Meals"
-                  className="h-24 sm:h-28 w-full object-contain rounded-xl"
+                  className="h-24 sm:h-28 w-full object-contain"
                 />
               </div>
               <div className="mt-3">
@@ -277,7 +277,7 @@ export function UserActivities() {
               onClick={() => navigate('/preset-meals')}
               className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
             >
-              <div className="w-full overflow-hidden rounded-xl bg-emerald-500/5 flex items-center justify-center">
+              <div className="w-full overflow-hidden rounded-xl bg-gray-50 flex items-center justify-center">
                 <img
                   src={PresetsIcon}
                   alt="Preset Meals"
