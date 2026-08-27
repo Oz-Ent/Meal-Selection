@@ -1,6 +1,5 @@
 import { LogOut, RefreshCw } from 'lucide-react';
 import AppIcon from '../../assets/App Icon.svg';
-import { useAuth } from '../../pages/Auth/useAuth/useAuth';
 import { LogoutConfirmModal } from '../../pages/Account/components/LogoutConfirmModal';
 import { useState, type ReactNode } from 'react';
 
@@ -10,7 +9,6 @@ interface TitleBar{
     refetchAction?: ()=>void
 }
 export function TitleBar({ isLoading, extraActions, refetchAction }:TitleBar){
-    const { profile } = useAuth();
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false)
 
     return (
@@ -24,7 +22,7 @@ export function TitleBar({ isLoading, extraActions, refetchAction }:TitleBar){
         <div className="flex items-center gap-2.5">
           <img src={AppIcon} alt="App Icon" className="h-8 w-8 object-contain"/>
           <span className="text-base font-bold tracking-tight text-slate-800">
-            Hi, {profile?.user.name.split(" ")[0]}
+            Edziban
           </span>
         </div>
 

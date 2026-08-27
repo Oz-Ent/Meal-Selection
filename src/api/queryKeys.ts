@@ -5,7 +5,7 @@ export const queryKeys = {
   menus: ['menus'] as const,
   menu: (menuId: number) => ['menus', menuId] as const,
   menuDays: (menuId: number) => ['menus', menuId, 'days'] as const,
-  menuMeals: (menuId: number) => ['menus', menuId, 'meals'] as const,
+  menuMeals: (menuId: number, userId?:number) => ['menus', menuId, userId, 'meals'] as const,
   weekSchedules: ['week-menu-schedules'] as const,
   weekSchedule: (week: number, year: number) =>
     ['week-menu-schedules', 'by-week-year', week, year] as const,
