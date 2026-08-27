@@ -28,6 +28,12 @@ jest.mock('../../components/TitleBar/TitleBar', () => ({
   TitleBar: () => <div>Hi Test User,</div>,
 }));
 
+jest.mock('../../utils/dateHelpers', () => ({
+  ...jest.requireActual('../../utils/dateHelpers'),
+  isMenuDayPast: () => false,
+  getISOWeekAndYear: () => ({ week: 35, year: 2026 }),
+}));
+
 jest.mock('../../api/Services/PresetServices', () => ({
   presetService: {
     getWithDetails: jest.fn(),
@@ -39,15 +45,18 @@ const mockUsersData = [
   { id: 201, name: 'Bob Jones', email: null, referenceEmail: 'bob.jones@company.com' },
 ];
 
+let mockWeekScheduleData: any = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
+
 jest.mock('../../api/useApiQueries', () => ({
   useUsersQuery: () => ({
     data: mockUsersData,
   }),
-  useWeekScheduleQuery: () => ({ data: { id: 1, menu: { id: 1 } } }),
+  useWeekScheduleQuery: () => ({ data: mockWeekScheduleData }),
   useWeeklyHolidaysQuery: () => ({ data: [] }),
   useWeeklySelectionsQuery: () => ({
     data: mockWeeklySelectionsData,
   }),
+
   usePresetsByUserQuery: () => ({
     data: mockPresetsData,
     isLoading: false,
@@ -145,6 +154,7 @@ describe('SelectMealPage', () => {
     jest.clearAllMocks();
     mockCurrentUserRole = 'user';
     mockWeeklySelectionsData = null;
+    mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
     mockPresetsData = [
       { id: 101, name: 'Rice Maniac', menuId: 1, userId: 132 },
       { id: 102, name: 'Swallow Wahala', menuId: 1, userId: 132 },
@@ -244,7 +254,7 @@ describe('SelectMealPage', () => {
     fireEvent.click(confirmBtn);
 
     expect(
-      await screen.findByText('Something went wrong while submitting choices. Please try again.'),
+      await screen.findByText('Network error'),
     ).toBeInTheDocument();
   });
 
@@ -260,8 +270,8 @@ describe('SelectMealPage', () => {
 
     // Select pizza across all 5 days
     for (let i = 0; i < 5; i++) {
-      const pizzaRadio = screen.getAllByRole('radio')[0];
-      fireEvent.click(pizzaRadio);
+      const pizzaRow = screen.getByText('Pizza');
+      fireEvent.click(pizzaRow);
 
       if (i < 4) {
         const nextBtn = screen.getByRole('button', { name: 'Next' });
@@ -276,9 +286,9 @@ describe('SelectMealPage', () => {
     // Confirm modal should show guest description
     expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
     expect(
-      screen.getByText(/Please confirm that you are satisfied with the food choices for/i),
+      screen.getByText(/Please confirm the food choices for/i),
     ).toBeInTheDocument();
-    expect(screen.getByText('a guest')).toBeInTheDocument();
+    expect(screen.getByText('guests')).toBeInTheDocument();
 
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
     fireEvent.click(confirmBtn);
@@ -287,6 +297,46 @@ describe('SelectMealPage', () => {
     expect(mockAdminOverrideSelections).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ createdFor: null, guestCount: 1 }),
+      ]),
+    );
+  });
+
+  it('allows selecting different quantities for multiple dishes on the same day in guest mode', async () => {
+    mockCurrentUserRole = 'admin';
+    render(
+      <MemoryRouter initialEntries={['/select-meal?isGuest=true']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // On Monday, select Pizza and increment to quantity 3
+    const pizzaRow = screen.getByText('Pizza');
+    fireEvent.click(pizzaRow);
+
+    const increaseBtn = screen.getByRole('button', { name: /Increase quantity of Pizza/i });
+    fireEvent.click(increaseBtn); // qty = 2
+    fireEvent.click(increaseBtn); // qty = 3
+
+    expect(screen.getByText(/3 meals selected/i)).toBeInTheDocument();
+
+    // Fill the remaining 4 days
+    for (let i = 1; i < 5; i++) {
+      const nextBtn = screen.getByRole('button', { name: 'Next' });
+      fireEvent.click(nextBtn);
+      const row = screen.getByText('Pizza');
+      fireEvent.click(row);
+    }
+
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmBtn);
+
+    expect(await screen.findByTestId('success-modal')).toBeInTheDocument();
+    expect(mockAdminOverrideSelections).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ menuDayId: 1, createdFor: null, guestCount: 3 }),
       ]),
     );
   });
@@ -596,6 +646,86 @@ describe('SelectMealPage', () => {
 
     expect(screen.getByText(/2 Users/i)).toBeInTheDocument();
   });
+
+  it('displays closed notice banner and disables Save button when schedule is CLOSED', () => {
+    mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'CLOSED' };
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Meal selection for this week is currently closed/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+  });
+
+  it('displays warning banner and disables Save button when selecting for a user who already selected', () => {
+    mockWeeklySelectionsData = {
+      createdById: 200,
+      createdBy: 'Alice Smith',
+      createdForId: 200,
+      createdFor: 'Alice Smith',
+      selectionStatus: 'SUBMITTED',
+      mealSelections: {
+        MONDAY: {
+          id: 501,
+          mealName: 'Pizza',
+          mealID: 1,
+          mealImagePath: 'pizza.png',
+          foodCode: '',
+          calories: null,
+          selectionType: 'MEAL',
+        },
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/select-meal?forSomeone=true&userId=200']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Alice Smith has already made meal selections for this week/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+  });
+
+  it('displays server error message in toast when submit fails', async () => {
+    mockSubmitSelections.mockRejectedValue({
+      response: {
+        data: {
+          message: 'The recipient has already made meal selections for this week.',
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Select meals across all 5 days
+    for (let i = 0; i < 5; i++) {
+      const pizzaRadio = screen.getAllByRole('radio')[0];
+      fireEvent.click(pizzaRadio);
+      if (i < 4) {
+        const nextBtn = screen.getByRole('button', { name: 'Next' });
+        fireEvent.click(nextBtn);
+      }
+    }
+
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('The recipient has already made meal selections for this week.')).toBeInTheDocument();
+    });
+  });
 });
+
 
 

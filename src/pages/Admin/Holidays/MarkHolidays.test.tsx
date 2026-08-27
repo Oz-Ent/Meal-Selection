@@ -9,9 +9,73 @@ const mockPublicHolidays = [
   {
     id: 1,
     title: "New Year's Day",
-    date: '2026-01-01',
-    dayName: 'Thursday',
-    source: 'PUBLIC',
+    date: '2020-01-01',
+    dayName: 'Wednesday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  {
+    id: 2,
+    title: 'Christmas Day',
+    date: '2099-12-25',
+    dayName: 'Friday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  // Test duplicates & co-occurring holidays
+  {
+    id: 3,
+    title: 'Kwame Nkrumah Memorial Day',
+    date: '2099-09-21',
+    dayName: 'Monday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  {
+    id: 4,
+    title: "Founders' Day",
+    date: '2099-09-21',
+    dayName: 'Monday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  {
+    id: 5,
+    title: 'Founders Day',
+    date: '2099-09-21',
+    dayName: 'Monday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  {
+    id: 6,
+    title: "National Farmers' Day",
+    date: '2099-12-04',
+    dayName: 'Friday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  {
+    id: 7,
+    title: "Farmer's Day",
+    date: '2099-12-04',
+    dayName: 'Friday',
+    source: 'PUBLIC' as const,
+    isIgnored: false,
+    adjustedDate: null,
+  },
+  {
+    id: 8,
+    title: "Farmers' Day",
+    date: '2099-12-04',
+    dayName: 'Friday',
+    source: 'PUBLIC' as const,
     isIgnored: false,
     adjustedDate: null,
   },
@@ -19,23 +83,33 @@ const mockPublicHolidays = [
 
 const mockCompanyHolidays = [
   {
-    id: 2,
-    title: 'Company Founders Day',
-    date: '2026-08-15',
-    endDate: '2026-08-16',
+    id: 9,
+    title: 'Past Founders Day',
+    date: '2020-08-15',
+    endDate: '2020-08-16',
     dayName: 'Saturday',
-    source: 'COMPANY',
+    source: 'COMPANY' as const,
     description: 'Annual retreat day',
+    isCompany: true,
+  },
+  {
+    id: 10,
+    title: 'Future End of Year Break',
+    date: '2099-12-20',
+    endDate: '2099-12-31',
+    dayName: 'Sunday',
+    source: 'COMPANY' as const,
+    description: 'Upcoming annual break',
     isCompany: true,
   },
 ];
 
 const mockWeeklyEffectiveHolidays = [
   {
-    title: "New Year's Day",
-    date: '2026-01-01',
-    dayName: 'Thursday',
-    source: 'PUBLIC',
+    title: 'Christmas Day',
+    date: '2099-12-25',
+    dayName: 'Friday',
+    source: 'PUBLIC' as const,
   },
 ];
 
@@ -78,7 +152,7 @@ describe('MarkHolidays Page', () => {
     jest.clearAllMocks();
   });
 
-  it('renders holiday sections and tab controls', () => {
+  it('renders holiday sections and defaults to Upcoming filter scope', () => {
     render(
       <MemoryRouter>
         <MarkHolidays />
@@ -86,9 +160,63 @@ describe('MarkHolidays Page', () => {
     );
 
     expect(screen.getByText('Mark & Override Holidays')).toBeInTheDocument();
-    expect(screen.getByText("New Year's Day")).toBeInTheDocument();
-    expect(screen.getByText('Company Founders Day')).toBeInTheDocument();
+    // In upcoming mode, future holidays are shown
+    expect(screen.getByText('Christmas Day')).toBeInTheDocument();
+    expect(screen.getByText('Future End of Year Break')).toBeInTheDocument();
+
+    // Past holidays should be hidden in upcoming mode
+    expect(screen.queryByText("New Year's Day")).not.toBeInTheDocument();
+    expect(screen.queryByText('Past Founders Day')).not.toBeInTheDocument();
+
+    // Toggle buttons exist
+    expect(screen.getByRole('button', { name: /Upcoming/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /All 2026/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mark Company Holiday' })).toBeInTheDocument();
+  });
+
+  it('deduplicates holidays with same name and date while keeping different holidays on same date', () => {
+    render(
+      <MemoryRouter>
+        <MarkHolidays />
+      </MemoryRouter>
+    );
+
+    // Kwame Nkrumah Memorial Day and Founders' Day are on 2099-09-21 (different names) -> both kept
+    expect(screen.getByText('Kwame Nkrumah Memorial Day')).toBeInTheDocument();
+    expect(screen.getByText("Founders' Day")).toBeInTheDocument();
+    // Duplicate "Founders Day" (same name, same date as "Founders' Day") is deduplicated so only original appears
+    expect(screen.queryByText('Founders Day')).not.toBeInTheDocument();
+
+    // National Farmers' Day and Farmer's Day on 2099-12-04 (different names) -> both kept
+    expect(screen.getByText("National Farmers' Day")).toBeInTheDocument();
+    expect(screen.getByText("Farmer's Day")).toBeInTheDocument();
+    // Duplicate "Farmers' Day" is deduplicated against "Farmer's Day"
+    expect(screen.queryByText("Farmers' Day")).not.toBeInTheDocument();
+  });
+
+  it('toggles between Upcoming and All Year scope to display all holidays of the year', () => {
+    render(
+      <MemoryRouter>
+        <MarkHolidays />
+      </MemoryRouter>
+    );
+
+    // Click "All 2026" toggle
+    const allYearToggle = screen.getByRole('button', { name: /All 2026/i });
+    fireEvent.click(allYearToggle);
+
+    // Past holidays are now visible
+    expect(screen.getByText("New Year's Day")).toBeInTheDocument();
+    expect(screen.getByText('Past Founders Day')).toBeInTheDocument();
+    expect(screen.getByText('Christmas Day')).toBeInTheDocument();
+    expect(screen.getByText('Future End of Year Break')).toBeInTheDocument();
+
+    // Switch back to Upcoming
+    const upcomingToggle = screen.getByRole('button', { name: /Upcoming/i });
+    fireEvent.click(upcomingToggle);
+
+    expect(screen.queryByText("New Year's Day")).not.toBeInTheDocument();
+    expect(screen.getByText('Christmas Day')).toBeInTheDocument();
   });
 
   it('filters by tabs (Selection Week, Public, Company)', () => {
@@ -104,7 +232,7 @@ describe('MarkHolidays Page', () => {
 
     const companyTab = screen.getByRole('button', { name: /^Company \(/i });
     fireEvent.click(companyTab);
-    expect(screen.getByText('Company Founders Day')).toBeInTheDocument();
+    expect(screen.getByText('Future End of Year Break')).toBeInTheDocument();
   });
 
   it('opens modal to create a new company holiday', async () => {
@@ -119,7 +247,11 @@ describe('MarkHolidays Page', () => {
     const markBtn = screen.getByRole('button', { name: 'Mark Company Holiday' });
     fireEvent.click(markBtn);
 
-    expect(screen.getByText('Schedule a special company closure or team day off. Meal selections automatically lock for this date.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Schedule a special company closure or team day off. Meal selections automatically lock for this date.'
+      )
+    ).toBeInTheDocument();
 
     const titleInput = screen.getByPlaceholderText(/Company Retreat/i);
     fireEvent.change(titleInput, { target: { value: 'Independence Picnic' } });
@@ -141,13 +273,13 @@ describe('MarkHolidays Page', () => {
       </MemoryRouter>
     );
 
-    const overrideBtn = screen.getByRole('button', { name: /Mark as Working Day/i });
-    fireEvent.click(overrideBtn);
+    const overrideBtns = screen.getAllByRole('button', { name: /Mark as Working Day/i });
+    fireEvent.click(overrideBtns[0]!);
 
     await waitFor(() => {
       expect(mockOverrideHoliday).toHaveBeenCalledWith(
         expect.objectContaining({
-          originalDate: '2026-01-01',
+          originalDate: '2099-12-25',
           isIgnored: true,
         })
       );

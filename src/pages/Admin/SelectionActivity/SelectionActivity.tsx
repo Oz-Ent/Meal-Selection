@@ -38,17 +38,24 @@ import {
 import type { MenuDayMeal } from '../../../api/Services/MenuServices';
 import type { WeeklyReportUser } from '../../../api/Services/MealSelectionServices';
 
+const isGuestUser = (u: WeeklyReportUser): boolean => {
+  return Boolean(u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)')));
+};
+
 const getRecipientDisplayName = (u: WeeklyReportUser): string => {
-  if (u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)'))) {
-    return 'Guest';
+  if (isGuestUser(u)) {
+    const qty = u.quantity !== undefined && u.quantity !== null ? u.quantity : 1;
+    return `Guest (${qty})`;
   }
   return u.createdForName || u.name || 'Unknown';
 };
 
 const doesUserMatchSearch = (u: WeeklyReportUser, q: string): boolean => {
   if (!q) return false;
-  if (u.isGuest || (u.name && u.name.toLowerCase().includes('(guest)'))) {
-    return 'guest'.includes(q) || q.includes('guest');
+  if (isGuestUser(u)) {
+    const qty = u.quantity !== undefined && u.quantity !== null ? u.quantity : 1;
+    const guestLabel = `guest (${qty})`;
+    return 'guest'.includes(q) || q.includes('guest') || guestLabel.includes(q);
   }
   const name = u.createdForName || u.name;
   return Boolean(name && name.toLowerCase().includes(q));
@@ -482,6 +489,7 @@ export function SelectionActivity() {
                             const displayName = getRecipientDisplayName(user);
                             const isUserMatch =
                               Boolean(trimmedQuery) && doesUserMatchSearch(user, trimmedQuery);
+                            const isGuest = isGuestUser(user);
                             return (
                               <div
                                 key={`${user.id ?? 'guest'}-${index}`}
@@ -496,7 +504,7 @@ export function SelectionActivity() {
                                 >
                                   {index + 1}. {displayName}
                                 </span>
-                                {user.quantity > 1 && (
+                                {!isGuest && user.quantity > 1 && (
                                   <span className="font-semibold text-slate-700">
                                     qty: {user.quantity}
                                   </span>
@@ -561,6 +569,7 @@ export function SelectionActivity() {
                           const displayName = getRecipientDisplayName(user);
                           const isUserMatch =
                             Boolean(trimmedQuery) && doesUserMatchSearch(user, trimmedQuery);
+                          const isGuest = isGuestUser(user);
                           return (
                             <div
                               key={`${user.id ?? 'guest'}-${index}`}
@@ -575,7 +584,7 @@ export function SelectionActivity() {
                               >
                                 {index + 1}. {displayName}
                               </span>
-                              {user.quantity > 1 && (
+                              {!isGuest && user.quantity > 1 && (
                                 <span className="font-semibold text-slate-700">
                                   qty: {user.quantity}
                                 </span>

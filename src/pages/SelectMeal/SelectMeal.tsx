@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Check, Loader2, Search } from 'lucide-react';
+import { ArrowRight, Ban, Check, Loader2, Search, AlertCircle } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
 import Modal from '../../components/Modal/Modal';
 import { SuccessModal } from './SuccessModal';
@@ -8,7 +8,7 @@ import { SelectPresetModal } from './SelectPresetModal';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
-import { MealSelectionView, type DaySelectionValue } from '../../components/MealSelectionView/MealSelectionView';
+import { MealSelectionView, type DaySelectionValue, type GuestDaySelection } from '../../components/MealSelectionView/MealSelectionView';
 
 // API Services
 import { type User } from '../../api/Services/UserServices';
@@ -27,7 +27,7 @@ import {
 } from '../../api/useApiQueries';
 
 // Helpers
-import { getISOWeekAndYear } from '../../utils/dateHelpers';
+import { getISOWeekAndYear, isMenuDayPast, isMenuDayToday } from '../../utils/dateHelpers';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { type OverviewMeal } from './MealOverview';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
@@ -46,7 +46,7 @@ export default function SelectMealPage() {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [selections, setSelections] = useState<Record<number, DaySelectionValue>>({});
   const [existingSelectionIds, setExistingSelectionIds] = useState<Record<number, number>>({});
-  const [guestCount, setGuestCount] = useState<number>(1);
+  const [guestSelections, setGuestSelections] = useState<Record<number, GuestDaySelection>>({});
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,6 +84,20 @@ export default function SelectMealPage() {
   const menuDayMeals = useMemo(() => menuDayMealsQuery.data ?? [], [menuDayMealsQuery.data]);
   const weeklyHolidays = useMemo(() => weeklyHolidaysQuery.data ?? [], [weeklyHolidaysQuery.data]);
   const currentUserId = profile?.user?.id;
+  const isScheduleClosed = Boolean(weekMenuSchedule && weekMenuSchedule.status !== 'ACTIVE');
+
+  // Determine which menu days are in the past for this scheduled week
+  const pastDayIds = useMemo(() => {
+    if (!menuDays.length) return [];
+    return menuDays
+      .filter((day) => day.day && isMenuDayPast(week, year, day.day))
+      .map((day) => day.id);
+  }, [menuDays, week, year]);
+
+  const todayDayId = useMemo(() => {
+    if (!menuDays.length) return undefined;
+    return menuDays.find((day) => day.day && isMenuDayToday(week, year, day.day))?.id;
+  }, [menuDays, week, year]);
 
   const isBatchMode = !isGuest && selectedUsers.length > 1;
   const isSingleUserMode = !isGuest && selectedUsers.length === 1;
@@ -94,12 +108,29 @@ export default function SelectMealPage() {
     today,
   );
 
+  const isTargetUserAlreadySelected = useMemo(() => {
+    if (isAdminOrHr || isGuest || !targetUserId || targetUserId === currentUserId) return false;
+    const userSelections = weeklySelectionsQuery.data?.mealSelections;
+    return Boolean(userSelections && Object.keys(userSelections).length > 0);
+  }, [isAdminOrHr, isGuest, targetUserId, currentUserId, weeklySelectionsQuery.data]);
+
   const initializedUserIdRef = useRef<number | null | undefined>(undefined);
+  const hasInitializedDayIndexRef = useRef(false);
+
+  // Set initial day index to the first upcoming/editable day when days load
+  useEffect(() => {
+    if (!menuDays.length || hasInitializedDayIndexRef.current) return;
+    const firstUpcomingIndex = menuDays.findIndex((d) => !pastDayIds.includes(d.id));
+    if (firstUpcomingIndex > 0) {
+      setCurrentDayIndex(firstUpcomingIndex);
+    }
+    hasInitializedDayIndexRef.current = true;
+  }, [menuDays, pastDayIds]);
 
   const selectedMeals = useMemo(() => {
     return Object.entries(selections).map(([menuDayId, selection]) => {
       const day = menuDays.find(
-        (day) => day.id === Number(menuDayId)
+        (d) => d.id === Number(menuDayId),
       );
 
       const menuDayMeal =
@@ -107,7 +138,7 @@ export default function SelectMealPage() {
           ? menuDayMeals.find(
               (item) =>
                 item.id === selection &&
-                item.menuDayId === Number(menuDayId)
+                item.menuDayId === Number(menuDayId),
             )
           : null;
 
@@ -158,48 +189,75 @@ export default function SelectMealPage() {
 
   const prevTargetKeyRef = useRef<string>(targetKey);
 
-  const getInitialHolidaySelections = useCallback((): Record<number, DaySelectionValue> => {
-    const holidaySelections: Record<number, DaySelectionValue> = {};
+  const getInitialDefaultSelections = useCallback((): Record<number, DaySelectionValue> => {
+    const defaultSelections: Record<number, DaySelectionValue> = {};
     for (const day of menuDays) {
       const hasHoliday = weeklyHolidays.some(
         (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
       );
       if (hasHoliday) {
-        holidaySelections[day.id] = 'HOLIDAY';
+        defaultSelections[day.id] = 'HOLIDAY';
+      } else if (pastDayIds.includes(day.id)) {
+        defaultSelections[day.id] = 'UNAVAILABLE';
       }
     }
-    return holidaySelections;
-  }, [menuDays, weeklyHolidays]);
+    return defaultSelections;
+  }, [menuDays, weeklyHolidays, pastDayIds]);
 
   // Reset selections and existing IDs whenever target user(s) or guest mode changes
   useEffect(() => {
     if (prevTargetKeyRef.current !== targetKey) {
       prevTargetKeyRef.current = targetKey;
       initializedUserIdRef.current = undefined;
-      setSelections(getInitialHolidaySelections());
+      setSelections(getInitialDefaultSelections());
+      setGuestSelections({});
       setExistingSelectionIds({});
-      setCurrentDayIndex(0);
+      const firstUpcomingIndex = menuDays.findIndex((d) => !pastDayIds.includes(d.id));
+      setCurrentDayIndex(firstUpcomingIndex >= 0 ? firstUpcomingIndex : 0);
     }
-  }, [targetKey, getInitialHolidaySelections]);
+  }, [targetKey, getInitialDefaultSelections, menuDays, pastDayIds]);
 
-  // Pre-populate holidays into selections when menu days or holidays load
+  // Pre-populate holidays and past days defaults into selections
   useEffect(() => {
-    if (!menuDays.length || !weeklyHolidays.length) return;
-    setSelections((prev) => {
-      let updated = false;
-      const next = { ...prev };
-      for (const day of menuDays) {
-        const hasHoliday = weeklyHolidays.some(
-          (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
-        );
-        if (hasHoliday && next[day.id] !== 'HOLIDAY') {
-          next[day.id] = 'HOLIDAY';
-          updated = true;
+    if (!menuDays.length) return;
+    if (isGuest) {
+      setGuestSelections((prev) => {
+        let updated = false;
+        const next = { ...prev };
+        for (const day of menuDays) {
+          const hasHoliday = weeklyHolidays.some(
+            (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
+          );
+          if (hasHoliday && next[day.id]?.nonMeal !== 'HOLIDAY') {
+            next[day.id] = { mealQuantities: {}, nonMeal: 'HOLIDAY' };
+            updated = true;
+          } else if (pastDayIds.includes(day.id) && !next[day.id]) {
+            next[day.id] = { mealQuantities: {}, nonMeal: 'UNAVAILABLE' };
+            updated = true;
+          }
         }
-      }
-      return updated ? next : prev;
-    });
-  }, [menuDays, weeklyHolidays]);
+        return updated ? next : prev;
+      });
+    } else {
+      setSelections((prev) => {
+        let updated = false;
+        const next = { ...prev };
+        for (const day of menuDays) {
+          const hasHoliday = weeklyHolidays.some(
+            (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
+          );
+          if (hasHoliday && next[day.id] !== 'HOLIDAY') {
+            next[day.id] = 'HOLIDAY';
+            updated = true;
+          } else if (pastDayIds.includes(day.id) && next[day.id] === undefined) {
+            next[day.id] = 'UNAVAILABLE';
+            updated = true;
+          }
+        }
+        return updated ? next : prev;
+      });
+    }
+  }, [isGuest, menuDays, weeklyHolidays, pastDayIds]);
 
   // Pre-populate existing weekly selections if available for a single target user
   useEffect(() => {
@@ -219,7 +277,7 @@ export default function SelectMealPage() {
 
     initializedUserIdRef.current = targetUserId;
     const loadedExistingIds: Record<number, number> = {};
-    const next: Record<number, DaySelectionValue> = getInitialHolidaySelections();
+    const next: Record<number, DaySelectionValue> = getInitialDefaultSelections();
 
     for (const day of menuDays) {
       const dayUpper = day.day?.toUpperCase();
@@ -231,7 +289,16 @@ export default function SelectMealPage() {
           ([k]) => k.toUpperCase() === dayUpper,
         )?.[1];
 
-      if (!existingSelection) continue;
+      if (!existingSelection) {
+        // If past day with no previous selection, default to holiday or unavailable
+        if (pastDayIds.includes(day.id) && next[day.id] === undefined) {
+          const isHolidayDay = weeklyHolidays.some(
+            (h) => h.dayName?.toUpperCase() === dayUpper,
+          );
+          next[day.id] = isHolidayDay ? 'HOLIDAY' : 'UNAVAILABLE';
+        }
+        continue;
+      }
 
       if (existingSelection.id) {
         loadedExistingIds[day.id] = existingSelection.id;
@@ -257,7 +324,8 @@ export default function SelectMealPage() {
             item.isActive &&
             (item.meal?.id === existingSelection.mealID ||
               (existingSelection.mealName &&
-                item.meal?.name?.toLowerCase() === (existingSelection.mealName || '').toLowerCase())),
+                item.meal?.name?.trim().toLowerCase() ===
+                  existingSelection.mealName.trim().toLowerCase())),
         );
         if (matchingMeal) {
           next[day.id] = matchingMeal.id;
@@ -265,114 +333,157 @@ export default function SelectMealPage() {
       }
     }
 
-    setSelections(next);
     setExistingSelectionIds(loadedExistingIds);
+    setSelections(next);
   }, [
-    menuDays,
-    menuDayMeals,
+    isBatchMode,
+    isGuest,
+    targetUserId,
     weeklySelectionsQuery.data,
     weeklySelectionsQuery.isLoading,
     weeklySelectionsQuery.isFetching,
+    menuDays,
+    menuDayMeals,
     weeklyHolidays,
-    targetUserId,
-    isBatchMode,
-    isGuest,
-    getInitialHolidaySelections,
+    pastDayIds,
+    getInitialDefaultSelections,
   ]);
 
-  const handleSelectionChange = (menuDayId: number, value: DaySelectionValue | undefined) => {
+  const handleSelectionChange = useCallback((menuDayId: number, value: DaySelectionValue | undefined) => {
     setSelections((prev) => {
-      const next = { ...prev };
       if (value === undefined) {
+        const next = { ...prev };
         delete next[menuDayId];
+        return next;
+      }
+      return {
+        ...prev,
+        [menuDayId]: value,
+      };
+    });
+  }, []);
+
+  const handleGuestMealQuantityChange = useCallback((menuDayId: number, dayMealId: number, qty: number) => {
+    setGuestSelections((prev) => {
+      const currentDay = prev[menuDayId] || { mealQuantities: {} };
+      const nextQuantities = { ...currentDay.mealQuantities };
+      if (qty <= 0) {
+        delete nextQuantities[dayMealId];
       } else {
-        next[menuDayId] = value;
+        nextQuantities[dayMealId] = qty;
       }
-      return next;
+      return {
+        ...prev,
+        [menuDayId]: {
+          mealQuantities: nextQuantities,
+          nonMeal: undefined,
+        },
+      };
     });
-  };
+  }, []);
 
-  const handleClearDaySelection = (menuDayId: number) => {
-    setSelections((prev) => {
-      const next = { ...prev };
-      delete next[menuDayId];
-      return next;
-    });
-  };
-
-  const handleClearAllSelections = () => {
-    const holidaySelections: Record<number, DaySelectionValue> = {};
-    for (const day of menuDays) {
-      const hasHoliday = weeklyHolidays.some(
-        (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
-      );
-      if (hasHoliday) {
-        holidaySelections[day.id] = 'HOLIDAY';
+  const handleGuestNonMealChange = useCallback((menuDayId: number, nonMeal: 'UNAVAILABLE' | 'HOLIDAY' | undefined) => {
+    setGuestSelections((prev) => {
+      if (!nonMeal) {
+        const next = { ...prev };
+        delete next[menuDayId];
+        return next;
       }
+      return {
+        ...prev,
+        [menuDayId]: {
+          mealQuantities: {},
+          nonMeal,
+        },
+      };
+    });
+  }, []);
+
+  const handleClearDaySelection = useCallback((menuDayId: number) => {
+    if (isGuest) {
+      setGuestSelections((prev) => {
+        const next = { ...prev };
+        delete next[menuDayId];
+        return next;
+      });
+    } else {
+      setSelections((prev) => {
+        const next = { ...prev };
+        delete next[menuDayId];
+        return next;
+      });
     }
-    setSelections(holidaySelections);
-  };
+  }, [isGuest]);
+
+  const handleClearAllSelections = useCallback(() => {
+    if (isGuest) {
+      const defaultGuest: Record<number, GuestDaySelection> = {};
+      for (const day of menuDays) {
+        const hasHoliday = weeklyHolidays.some(
+          (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
+        );
+        if (hasHoliday) {
+          defaultGuest[day.id] = { mealQuantities: {}, nonMeal: 'HOLIDAY' };
+        } else if (pastDayIds.includes(day.id)) {
+          defaultGuest[day.id] = { mealQuantities: {}, nonMeal: 'UNAVAILABLE' };
+        }
+      }
+      setGuestSelections(defaultGuest);
+    } else {
+      setSelections(getInitialDefaultSelections());
+    }
+  }, [isGuest, menuDays, weeklyHolidays, pastDayIds, getInitialDefaultSelections]);
+
+  const isGuestDayComplete = useCallback((dayId: number) => {
+    const daySel = guestSelections[dayId];
+    if (!daySel) return false;
+    if (daySel.nonMeal === 'UNAVAILABLE' || daySel.nonMeal === 'HOLIDAY') return true;
+    return Object.values(daySel.mealQuantities).some((qty) => qty > 0);
+  }, [guestSelections]);
+
+  const isSelectionComplete = useMemo(() => {
+    if (!menuDays.length) return false;
+    return isGuest
+      ? menuDays.every((d) => isGuestDayComplete(d.id))
+      : menuDays.every((d) => selections[d.id] !== undefined);
+  }, [isGuest, menuDays, isGuestDayComplete, selections]);
+
+  const selectedCount = useMemo(() => {
+    return isGuest
+      ? menuDays.filter((d) => isGuestDayComplete(d.id)).length
+      : menuDays.filter((d) => selections[d.id] !== undefined).length;
+  }, [isGuest, menuDays, isGuestDayComplete, selections]);
 
   const handleApplyPreset = async (preset: Preset) => {
     try {
-      const details = await presetService.getWithDetails(preset.id);
-      const nextSelections: Record<number, DaySelectionValue> = {};
+      const detailedPreset = await presetService.getWithDetails(preset.id);
+      const newSelections: Record<number, DaySelectionValue> = getInitialDefaultSelections();
 
-      // Keep holidays auto-marked
-      for (const day of menuDays) {
-        const isHoliday = weeklyHolidays.some(
-          (h) => h.dayName?.toUpperCase() === day.day?.toUpperCase(),
-        );
-        if (isHoliday) {
-          nextSelections[day.id] = 'HOLIDAY';
-        }
-      }
-
-      // Map preset items
-      if (Array.isArray(details.presetItems) && details.presetItems.length > 0) {
-        for (const item of details.presetItems) {
+      if (Array.isArray(detailedPreset.presetItems) && detailedPreset.presetItems.length > 0) {
+        for (const item of detailedPreset.presetItems) {
           if (item.menuDayId && item.dayMealId) {
-            if (nextSelections[item.menuDayId] !== 'HOLIDAY') {
-              nextSelections[item.menuDayId] = item.dayMealId;
+            if (newSelections[item.menuDayId] !== 'HOLIDAY' && !pastDayIds.includes(item.menuDayId)) {
+              newSelections[item.menuDayId] = item.dayMealId;
             }
           } else if (item.menuDay?.day && item.dayMealId) {
             const matchedDay = menuDays.find(
               (d) => d.day?.toUpperCase() === item.menuDay?.day?.toUpperCase(),
             );
-            if (matchedDay && nextSelections[matchedDay.id] !== 'HOLIDAY') {
-              nextSelections[matchedDay.id] = item.dayMealId;
+            if (matchedDay && newSelections[matchedDay.id] !== 'HOLIDAY' && !pastDayIds.includes(matchedDay.id)) {
+              newSelections[matchedDay.id] = item.dayMealId;
             }
-          }
-        }
-      } else if (
-        Array.isArray(details.presetItemsGrouped) &&
-        details.presetItemsGrouped.length > 0 &&
-        menuDays.length > 0
-      ) {
-        for (const group of details.presetItemsGrouped) {
-          const matchedDay = menuDays.find(
-            (d) => d.day?.toUpperCase() === group.day?.toUpperCase(),
-          );
-          if (!matchedDay || nextSelections[matchedDay.id] === 'HOLIDAY') continue;
-          const firstItem = group.items?.[0];
-          if (firstItem?.dayMealId) {
-            nextSelections[matchedDay.id] = firstItem.dayMealId;
           }
         }
       }
 
-      setSelections((prev) => ({
-        ...prev,
-        ...nextSelections,
-      }));
-
+      setSelections(newSelections);
       setToast({
         isOpen: true,
         type: 'success',
-        message: `${preset.name || 'Preset'} preset menu applied.`,
+        message: `${preset.name || 'Preset'} combo applied successfully!`,
       });
-    } catch (error) {
-      console.error('Failed to apply preset:', error);
+      setIsPresetModalOpen(false);
+    } catch {
       setToast({
         isOpen: true,
         type: 'error',
@@ -392,70 +503,132 @@ export default function SelectMealPage() {
       return;
     }
 
+    if (isScheduleClosed && !isAdminOrHr) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: 'Meal selection for this week is closed.',
+      });
+      setIsConfirmModalOpen(false);
+      return;
+    }
+
+    if (isTargetUserAlreadySelected) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: `${selectedUsers[0]?.name || 'The selected user'} has already made meal selections for this week.`,
+      });
+      setIsConfirmModalOpen(false);
+      return;
+    }
+
     const payload: CreateSelectionRequest[] = [];
-    const targetUserIdsList: (number | null)[] = isGuest
-      ? [null]
-      : selectedUsers.length > 0
-        ? selectedUsers.map((u) => u.id)
-        : [currentUserId ?? null];
 
-    for (const uid of targetUserIdsList) {
+    if (isGuest) {
       for (const mDay of menuDays) {
-        const selection = selections[mDay.id];
-        if (selection === undefined) continue;
-
-        const existingId =
-          !isBatchMode && !isGuest && uid === targetUserId
-            ? existingSelectionIds[mDay.id]
-            : undefined;
-
-        if (selection === 'UNAVAILABLE') {
+        const daySel = guestSelections[mDay.id];
+        if (!daySel) continue;
+        if (daySel.nonMeal === 'UNAVAILABLE') {
           payload.push({
-            ...(existingId ? { id: existingId } : {}),
             dayMealId: null,
             selectionType: 'UNAVAILABLE',
-            createdFor: uid,
-            ...(isGuest ? { guestCount: Math.max(1, guestCount) } : {}),
+            createdFor: null,
+            guestCount: 1,
             weekMenuScheduleId: weekMenuSchedule.id,
             menuDayId: mDay.id,
           });
-        } else if (selection === 'HOLIDAY') {
+        } else if (daySel.nonMeal === 'HOLIDAY') {
           payload.push({
-            ...(existingId ? { id: existingId } : {}),
             dayMealId: null,
             selectionType: 'HOLIDAY',
-            createdFor: uid,
-            ...(isGuest ? { guestCount: Math.max(1, guestCount) } : {}),
+            createdFor: null,
+            guestCount: 1,
             weekMenuScheduleId: weekMenuSchedule.id,
             menuDayId: mDay.id,
           });
         } else {
-          payload.push({
-            ...(existingId ? { id: existingId } : {}),
-            dayMealId: typeof selection === 'number' ? selection : null,
-            selectionType: 'MEAL',
-            createdFor: uid,
-            ...(isGuest ? { guestCount: Math.max(1, guestCount) } : {}),
-            weekMenuScheduleId: weekMenuSchedule.id,
-            menuDayId: mDay.id,
-          });
+          for (const [dayMealIdStr, qty] of Object.entries(daySel.mealQuantities)) {
+            if (qty > 0) {
+              payload.push({
+                dayMealId: Number(dayMealIdStr),
+                selectionType: 'MEAL',
+                createdFor: null,
+                guestCount: qty,
+                weekMenuScheduleId: weekMenuSchedule.id,
+                menuDayId: mDay.id,
+              });
+            }
+          }
         }
       }
-    }
 
-    const isSelectionComplete =
-      menuDays.length > 0 && menuDays.every((day) => selections[day.id] !== undefined);
+      if (menuDays.length === 0 || !isSelectionComplete || payload.length === 0) {
+        setToast({
+          isOpen: true,
+          type: 'error',
+          message: `Please make a choice for all ${menuDays.length || 5} days (meal, unavailable, or holiday) before submitting.`,
+        });
+        setIsConfirmModalOpen(false);
+        return;
+      }
+    } else {
+      const targetUserIdsList: (number | null)[] = selectedUsers.length > 0
+        ? selectedUsers.map((u) => u.id)
+        : [currentUserId ?? null];
 
-    const expectedCount = menuDays.length * targetUserIdsList.length;
+      for (const uid of targetUserIdsList) {
+        for (const mDay of menuDays) {
+          const selection = selections[mDay.id];
+          if (selection === undefined) continue;
 
-    if (menuDays.length === 0 || !isSelectionComplete || payload.length !== expectedCount) {
-      setToast({
-        isOpen: true,
-        type: 'error',
-        message: `Please make a choice for all ${menuDays.length || 5} days (meal, unavailable, or holiday) before submitting.`,
-      });
-      setIsConfirmModalOpen(false);
-      return;
+          const existingId =
+            !isBatchMode && uid === targetUserId
+              ? existingSelectionIds[mDay.id]
+              : undefined;
+
+          if (selection === 'UNAVAILABLE') {
+            payload.push({
+              ...(existingId ? { id: existingId } : {}),
+              dayMealId: null,
+              selectionType: 'UNAVAILABLE',
+              createdFor: uid,
+              weekMenuScheduleId: weekMenuSchedule.id,
+              menuDayId: mDay.id,
+            });
+          } else if (selection === 'HOLIDAY') {
+            payload.push({
+              ...(existingId ? { id: existingId } : {}),
+              dayMealId: null,
+              selectionType: 'HOLIDAY',
+              createdFor: uid,
+              weekMenuScheduleId: weekMenuSchedule.id,
+              menuDayId: mDay.id,
+            });
+          } else {
+            payload.push({
+              ...(existingId ? { id: existingId } : {}),
+              dayMealId: typeof selection === 'number' ? selection : null,
+              selectionType: 'MEAL',
+              createdFor: uid,
+              weekMenuScheduleId: weekMenuSchedule.id,
+              menuDayId: mDay.id,
+            });
+          }
+        }
+      }
+
+      const expectedCount = menuDays.length * targetUserIdsList.length;
+
+      if (menuDays.length === 0 || !isSelectionComplete || payload.length !== expectedCount) {
+        setToast({
+          isOpen: true,
+          type: 'error',
+          message: `Please make a choice for all ${menuDays.length || 5} days (meal, unavailable, or holiday) before submitting.`,
+        });
+        setIsConfirmModalOpen(false);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -468,56 +641,97 @@ export default function SelectMealPage() {
       }
       setIsConfirmed(true);
       setIsConfirmModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit selections:', error);
       setIsConfirmModalOpen(false);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Something went wrong while submitting choices. Please try again.';
       setToast({
         isOpen: true,
         type: 'error',
-        message: 'Something went wrong while submitting choices. Please try again.',
+        message: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const overviewMeals = menuDays.reduce<Record<string, OverviewMeal>>((mealsByDay, day) => {
-    const selection = selections[day.id];
-    if (selection === undefined) return mealsByDay;
+  const overviewMeals = useMemo(() => {
+    if (isGuest) {
+      return menuDays.reduce<Record<string, OverviewMeal>>((mealsByDay, day) => {
+        const daySel = guestSelections[day.id];
+        const dayKey = day.day || `Day ${day.id}`;
+        if (!daySel) return mealsByDay;
 
-    const dayKey = day.day || `Day ${day.id}`;
+        if (daySel.nonMeal === 'UNAVAILABLE') {
+          mealsByDay[dayKey] = {
+            title: 'Unavailable',
+            imageUrl: FALLBACK_MEAL_IMAGE_URL,
+          };
+        } else if (daySel.nonMeal === 'HOLIDAY') {
+          mealsByDay[dayKey] = {
+            title: 'Holiday',
+            imageUrl: FALLBACK_MEAL_IMAGE_URL,
+          };
+        } else {
+          const mealEntries = Object.entries(daySel.mealQuantities).filter(([_, qty]) => qty > 0);
+          if (mealEntries.length > 0) {
+            const firstMeal = menuDayMeals.find((m) => m.id === Number(mealEntries[0][0]))?.meal;
+            const titles = mealEntries
+              .map(([mid, q]) => {
+                const m = menuDayMeals.find((item) => item.id === Number(mid))?.meal;
+                return `${q}x ${m?.name || 'Meal'}`;
+              })
+              .join(', ');
+            mealsByDay[dayKey] = {
+              title: titles,
+              imageUrl: firstMeal?.imagePath || FALLBACK_MEAL_IMAGE_URL,
+            };
+          }
+        }
+        return mealsByDay;
+      }, {});
+    }
 
-    if (selection === 'UNAVAILABLE') {
-      mealsByDay[dayKey] = {
-        title: 'Unavailable',
-        imageUrl: FALLBACK_MEAL_IMAGE_URL,
-      };
-    } else if (selection === 'HOLIDAY') {
-      mealsByDay[dayKey] = {
-        title: 'Holiday',
-        imageUrl: FALLBACK_MEAL_IMAGE_URL,
-      };
-    } else {
-      const meal = menuDayMeals.find((item) => item.id === selection)?.meal;
-      if (meal) {
+    return menuDays.reduce<Record<string, OverviewMeal>>((mealsByDay, day) => {
+      const selection = selections[day.id];
+      if (selection === undefined) return mealsByDay;
+
+      const dayKey = day.day || `Day ${day.id}`;
+
+      if (selection === 'UNAVAILABLE') {
         mealsByDay[dayKey] = {
-          title: meal.name,
-          imageUrl: meal.imagePath || FALLBACK_MEAL_IMAGE_URL,
+          title: 'Unavailable',
+          imageUrl: FALLBACK_MEAL_IMAGE_URL,
+        };
+      } else if (selection === 'HOLIDAY') {
+        mealsByDay[dayKey] = {
+          title: 'Holiday',
+          imageUrl: FALLBACK_MEAL_IMAGE_URL,
+        };
+      } else {
+        const meal = menuDayMeals.find(
+          (item) => item.id === selection && item.menuDayId === day.id,
+        )?.meal;
+
+        mealsByDay[dayKey] = {
+          title: meal?.name || 'Meal',
+          imageUrl: meal?.imagePath || FALLBACK_MEAL_IMAGE_URL,
         };
       }
-    }
-    return mealsByDay;
-  }, {});
+
+      return mealsByDay;
+    }, {});
+  }, [isGuest, guestSelections, selections, menuDays, menuDayMeals]);
 
   const isLoading =
     weekMenuScheduleQuery.isLoading ||
     menuDaysQuery.isLoading ||
     menuDayMealsQuery.isLoading ||
     weeklyHolidaysQuery.isLoading;
-
-  const isSelectionComplete =
-    menuDays.length > 0 && menuDays.every((day) => selections[day.id] !== undefined);
-  const selectedCount = menuDays.filter((day) => selections[day.id] !== undefined).length;
 
   const filteredUsersForModal = useMemo(() => {
     return users.filter((u) => {
@@ -577,25 +791,40 @@ export default function SelectMealPage() {
             <Check size={16} strokeWidth={2.5} />
           ),
           onClick: () => setIsConfirmModalOpen(true),
-          disabled: !isSelectionComplete || isSubmitting || isLoading,
+          disabled:
+            !isSelectionComplete ||
+            isSubmitting ||
+            isLoading ||
+            (isScheduleClosed && !isAdminOrHr) ||
+            isTargetUserAlreadySelected,
         }}
       />
+
+      {/* Schedule Closed Notice */}
+      {isScheduleClosed && (
+        <div className="bg-rose-50 border-b border-rose-100 py-2.5 px-4 flex items-center justify-between text-xs text-rose-800">
+          <div className="flex items-center gap-2">
+            <Ban size={16} className="text-rose-600 shrink-0" />
+            <span className="font-medium">
+              Meal selection for this week is currently {weekMenuSchedule?.status ? weekMenuSchedule.status.toLowerCase() : 'closed'}.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Target User Already Selected Notice */}
+      {isTargetUserAlreadySelected && (
+        <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
+          <AlertCircle size={16} className="text-amber-600 shrink-0" />
+          <span className="font-semibold">
+            {selectedUsers[0]?.name || 'Selected user'} has already made meal selections for this week.
+          </span>
+        </div>
+      )}
 
       {isGuest && (
         <div className="bg-primary-light py-2.5 px-4 flex items-center justify-between text-xs font-semibold text-primary border-b border-slate-100">
           <span>Selecting for: Guests</span>
-          <div className="flex items-center gap-2">
-            <label htmlFor="guest-count" className="text-slate-600 font-medium">Headcount:</label>
-            <input
-              id="guest-count"
-              type="number"
-              min={1}
-              max={500}
-              value={guestCount}
-              onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              className="w-14 px-2 py-0.5 rounded border border-slate-300 bg-white text-slate-900 text-center text-xs font-bold"
-            />
-          </div>
         </div>
       )}
 
@@ -658,6 +887,25 @@ export default function SelectMealPage() {
           showPresetButton={true}
           onPresetClick={() => setIsPresetModalOpen(true)}
           onToast={(type, message) => setToast({ isOpen: true, type, message })}
+          isGuestMode={isGuest}
+          guestSelections={guestSelections}
+          onGuestMealQuantityChange={handleGuestMealQuantityChange}
+          onGuestNonMealChange={handleGuestNonMealChange}
+          pastDayIds={pastDayIds}
+          todayDayId={todayDayId}
+          isScheduleClosed={isScheduleClosed && !isAdminOrHr}
+          closedMessage={
+            weekMenuSchedule
+              ? `Meal selection for this week is ${weekMenuSchedule.status.toLowerCase()}. You can view your selections below.`
+              : 'Meal selection for this week is closed.'
+          }
+          mode={
+            isScheduleClosed && !isAdminOrHr
+              ? 'view'
+              : isTargetUserAlreadySelected
+              ? 'view'
+              : 'select'
+          }
         />
       )}
 
@@ -770,10 +1018,8 @@ export default function SelectMealPage() {
           <p className="text-slate-500 mb-6 text-sm leading-relaxed text-left">
             {isGuest ? (
               <>
-                Please confirm that you are satisfied with the food choices for{' '}
-                <span className="font-semibold text-slate-800">
-                  {guestCount > 1 ? `${guestCount} guests` : 'a guest'}
-                </span>{' '}
+                Please confirm the food choices for{' '}
+                <span className="font-semibold text-slate-800">guests</span>{' '}
                 for this week.
               </>
             ) : selectedUsers.length > 1 ? (
@@ -795,14 +1041,59 @@ export default function SelectMealPage() {
             )}
           </p>
           <section>
-            <div className="flex flex-col gap-2 border-2 rounded-md border-gray-200">
-              {selectedMeals.map((item) => (
-                <div key={item.menuDayId} className="flex flex-col border-b p-2 border-gray-100 last:border-0">
-                  <span className="text-xs text-slate-500">{item.dayName}</span>
-                  <span className="text-base">{item.mealName}</span>
-                </div>
-              ))}
-            </div>
+            {isGuest ? (
+              <div className="flex flex-col gap-2 border-2 rounded-xl border-gray-200 divide-y divide-gray-100 max-h-60 overflow-y-auto p-1">
+                {menuDays.map((day) => {
+                  const daySel = guestSelections[day.id];
+                  const dayName = day.day || `Day ${day.id}`;
+                  if (!daySel) return null;
+                  if (daySel.nonMeal === 'UNAVAILABLE') {
+                    return (
+                      <div key={day.id} className="flex flex-col p-2.5">
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>
+                        <span className="text-sm font-medium text-slate-700">Unavailable</span>
+                      </div>
+                    );
+                  }
+                  if (daySel.nonMeal === 'HOLIDAY') {
+                    return (
+                      <div key={day.id} className="flex flex-col p-2.5">
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>
+                        <span className="text-sm font-medium text-slate-700">Holiday</span>
+                      </div>
+                    );
+                  }
+                  const activeItems = Object.entries(daySel.mealQuantities).filter(([_, qty]) => qty > 0);
+                  return (
+                    <div key={day.id} className="flex flex-col p-2.5">
+                      <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>
+                      <div className="flex flex-col gap-1 mt-1">
+                        {activeItems.map(([dayMealIdStr, qty]) => {
+                          const mealObj = menuDayMeals.find((m) => m.id === Number(dayMealIdStr))?.meal;
+                          return (
+                            <div key={dayMealIdStr} className="flex items-center justify-between text-sm">
+                              <span className="font-medium text-slate-800">{mealObj?.name || 'Meal'}</span>
+                              <span className="rounded bg-primary-light px-2 py-0.5 text-xs font-bold text-primary border border-primary/20">
+                                Qty: {qty}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 border-2 rounded-md border-gray-200">
+                {selectedMeals.map((item) => (
+                  <div key={item.menuDayId} className="flex flex-col border-b p-2 border-gray-100 last:border-0">
+                    <span className="text-xs text-slate-500">{item.dayName}</span>
+                    <span className="text-base">{item.mealName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
           <div className="flex items-center gap-3 w-full mt-4">
             <button
@@ -833,9 +1124,7 @@ export default function SelectMealPage() {
           selectedMeals={overviewMeals}
           targetName={
             isGuest
-              ? guestCount > 1
-                ? `${guestCount} guests`
-                : 'a guest'
+              ? 'guests'
               : selectedUsers.length > 1
                 ? `${selectedUsers.length} users`
                 : selectedUsers[0]
