@@ -17,6 +17,7 @@ import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
+import { SearchBar } from '../../../components/SearchBar/SearchBar';
 
 import EmptyFoodAssignmentSvg from '../../../assets/admin/EmptyFoodAssignment.svg';
 import MenuIllustration from '../../../assets/Menu Illustration.svg';
@@ -312,29 +313,12 @@ export function SelectionActivity() {
       {!isLoading && menuDays.length > 0 && (
         <main className="px-4 sm:px-6 pt-4">
           {/* Top Search Bar */}
-          <div className="relative mb-4 w-full">
-            <Search
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search meal or user..."
-              className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-colors"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Search meal or user..."
+          />
 
           {/* Active Holiday Information Banner */}
           {isHoliday && (
