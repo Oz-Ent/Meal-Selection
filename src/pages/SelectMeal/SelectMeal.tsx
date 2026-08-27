@@ -649,13 +649,17 @@ export default function SelectMealPage() {
       }
       setIsConfirmed(true);
       setIsConfirmModalOpen(false);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
       console.error('Failed to submit selections:', error);
       setIsConfirmModalOpen(false);
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
         'Something went wrong while submitting choices. Please try again.';
       setToast({
         isOpen: true,
@@ -685,7 +689,7 @@ export default function SelectMealPage() {
             imageUrl: FALLBACK_MEAL_IMAGE_URL,
           };
         } else {
-          const mealEntries = Object.entries(daySel.mealQuantities).filter(([_, qty]) => qty > 0);
+          const mealEntries = Object.entries(daySel.mealQuantities).filter(([, qty]) => qty > 0);
           if (mealEntries.length > 0) {
             const firstMeal = menuDayMealsById.get(Number(mealEntries[0][0]))?.meal;
             const titles = mealEntries
@@ -1069,7 +1073,7 @@ export default function SelectMealPage() {
                       </div>
                     );
                   }
-                  const activeItems = Object.entries(daySel.mealQuantities).filter(([_, qty]) => qty > 0);
+                  const activeItems = Object.entries(daySel.mealQuantities).filter(([, qty]) => qty > 0);
                   return (
                     <div key={day.id} className="flex flex-col p-2.5">
                       <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>

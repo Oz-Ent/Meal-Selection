@@ -22,7 +22,8 @@ describe('TitleBar Component', () => {
         <TitleBar />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/Hi, Eric/i)).toBeInTheDocument();
+    //Changed the greeting text check to match the updated TitleBar component which now displays "Edziban" instead of "Hi, Eric"
+    expect(screen.getByText(/Edziban/i)).toBeInTheDocument();
     const logoutBtn = screen.getByRole('button', { name: /sign out/i });
     expect(logoutBtn).toBeInTheDocument();
     expect(logoutBtn.querySelector('svg')).toBeInTheDocument();
