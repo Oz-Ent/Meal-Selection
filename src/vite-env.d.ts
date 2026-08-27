@@ -1,3 +1,11 @@
+interface ImportMetaEnv {
+  readonly VITE_MEAL_APP_CORE?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 declare module '*.svg' {
   const content: string;
   export default content;

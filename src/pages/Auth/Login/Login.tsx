@@ -35,9 +35,9 @@ function Login() {
       } else {
         navigate('/activities');
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError('Invalid email or password.');
       }

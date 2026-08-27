@@ -102,7 +102,7 @@ export function PresetDetail() {
     }
 
     setSelections(initialMap);
-  }, [preset, menuDaysQuery.data]);
+  }, [preset, menuDays]);
 
   const handleSelectionChange = (menuDayId: number, value: DaySelectionValue | undefined) => {
     setSelections((prev) => {

@@ -17,8 +17,9 @@ export default {
     '^swiper/css.*$': 'identity-obj-proxy',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(gif|ttf|eot|svg|png|jpg|jpeg|webp)$': '<rootDir>/src/__mocks__/fileMock.js',
+    'utils/misc/config$': '<rootDir>/src/utils/misc/config.jest.ts',
   },
-  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/main.tsx', '!src/index.css'],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/main.tsx', '!src/index.css', '!src/utils/misc/config.jest.ts'],
   coverageThreshold: {
     global: {
       branches: 60,
