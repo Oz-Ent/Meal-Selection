@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
-import menuIcon from '../../assets/admin/menu.svg';
-import mealIcon from '../../assets/admin/meal.svg';
-import reportIcon from '../../assets/admin/AdminReport.svg';
-import foodAssignmentIcon from '../../assets/admin/FoodAssignment.svg';
+import menuIcon from '../../assets/admin/MenuIcon.webp';
+import mealIcon from '../../assets/admin/MenuFood.webp';
+import reportIcon from '../../assets/admin/SelectionsReports.webp';
+import holidaysIcon from '../../assets/admin/HolidaySchedules.webp';
+import foodAssignmentIcon from '../../assets/admin/FoodAssignment.webp';
 import chefIcon from '../../assets/admin/ChefOnAdminCard.svg';
 import burgerIcon from '../../assets/admin/BurgeronAdminCard.svg';
 import { useAuth } from '../Auth/useAuth/useAuth';
@@ -44,7 +45,7 @@ export function Activities() {
       id: 'mark-holidays',
       title: 'Mark Holidays',
       description: 'Schedule and manage company holidays and view public holiday closures.',
-      image: reportIcon,
+      image: holidaysIcon,
       path: '/admin/holidays',
     },
     {
