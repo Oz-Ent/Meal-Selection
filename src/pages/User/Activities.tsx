@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, ChevronRight, Search } from 'lucide-react';
 
 import Modal from '../../components/Modal/Modal';
-import { LogoutConfirmModal } from '../Account/components/LogoutConfirmModal';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
@@ -12,7 +11,7 @@ import SelectMealIcon from '../../assets/admin/MenuIcon.webp';
 import PresetsIcon from '../../assets/admin/PresetsIcon.webp';
 import ClockIllustration from '../../assets/Clock Illustration.svg';
 import ChipsIcon from '../../assets/chips.svg';
-import PizzaIcon from '../../assets/pizza.svg';
+import MenuIcon from '../../assets/admin/MenuIcon.webp';
 
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { days } from '../../utils/Enums/DayOfWeek';
@@ -20,6 +19,7 @@ import { useUsersQuery, useWeeklySelectionsQuery } from '../../api/useApiQueries
 import type { User } from '../../api/Services/UserServices';
 import type { WeeklyUserMealSelection } from '../../api/Services/MealSelectionServices';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
+import MenuCard from '../../components/MenuCard/MenuCard';
 
 export function UserActivities() {
   const navigate = useNavigate();
@@ -39,7 +39,6 @@ export function UserActivities() {
 
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
   const [isUserPickerOpen, setIsUserPickerOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedUserForPicker, setSelectedUserForPicker] = useState<User | null>(null);
 
@@ -251,46 +250,20 @@ export function UserActivities() {
           <h2 className="mb-3 text-base font-bold text-text-primary">Activities</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Card 1: Select Meals */}
-            <button
-              type="button"
-              onClick={() => setIsSelectionOpen(true)}
-              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
-            >
-              <div className="w-full overflow-hidden rounded-xl bg-gray-50 flex items-center justify-center">
-                <img
-                  src={SelectMealIcon}
-                  alt="Select Meals"
-                  className="h-24 sm:h-28 w-full object-contain"
-                />
-              </div>
-              <div className="mt-3">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">Select Meals</h3>
-                <p className="mt-1 text-[11px] sm:text-xs leading-tight text-slate-500">
-                  Pick dishes for the upcoming week for yourself or on behalf of other users.
-                </p>
-              </div>
-            </button>
-
+          <MenuCard
+          label='SelectMeals'
+          subtitle='Pick dishes for the upcoming week for yourself or on behalf of other users.'
+          onClick={() => setIsSelectionOpen(true)}
+          icon={SelectMealIcon}
+          />
             {/* Card 2: Preset Meals */}
-            <button
-              type="button"
-              onClick={() => navigate('/preset-meals')}
-              className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-3 sm:p-4 text-left shadow-2xs transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
-            >
-              <div className="w-full overflow-hidden rounded-xl bg-gray-50 flex items-center justify-center">
-                <img
-                  src={PresetsIcon}
-                  alt="Preset Meals"
-                  className="h-24 sm:h-28 w-full object-contain rounded-xl"
-                />
-              </div>
-              <div className="mt-3">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">Preset Meals</h3>
-                <p className="mt-1 text-[11px] sm:text-xs leading-tight text-slate-500">
-                  Create reusable dish combo templates to avoid repetitive meal selections.
-                </p>
-              </div>
-            </button>
+
+          <MenuCard
+          label="Preset Meals"
+          subtitle='Create reusable dish combo templates to avoid repetitive meal selections.'
+          path="/preset-meals"
+          icon={PresetsIcon}
+          />
           </div>
         </section>
       </div>
@@ -304,7 +277,7 @@ export function UserActivities() {
       >
         <section className="p-4 py-10 text-msTextPrimary flex flex-col items-center text-center">
           <div className="mb-4 flex h-28 w-28 items-center justify-center">
-            <img src={PizzaIcon} alt="Pizza" className="h-full w-full object-contain" />
+            <img src={MenuIcon} alt="Menu" className="h-full w-full object-contain" />
           </div>
           <h2 className="mb-3 w-full text-left text-base font-bold text-slate-900">Select meals</h2>
           <button
@@ -415,11 +388,6 @@ export function UserActivities() {
         </section>
       </Modal>
 
-      {/* Logout Confirmation Modal */}
-      <LogoutConfirmModal
-        isOpen={isLogoutModalOpen}
-        onClose={() => setIsLogoutModalOpen(false)}
-      />
 
       {/* Bottom Navigation Bar */}
       <BottomNavbar activeTab="home" />

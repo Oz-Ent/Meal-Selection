@@ -33,6 +33,8 @@ import {
 } from '../../../api/useApiQueries';
 import { formatWeekDateRange, getDateFromISOWeek, getISOWeekAndYear } from '../../../utils/dateHelpers';
 import { formatPendingUsersForClipboard } from '../../../utils/pendingUsersHelpers';
+import { Card } from '../../../components/Card/Card';
+import NavigationArrows from '../../../components/NavigationArrows/NavigationArrows';
 
 export function SelectionStatus() {
   const navigate = useNavigate();
@@ -252,124 +254,54 @@ export function SelectionStatus() {
         }
       />
 
+
       <div className="px-4 sm:px-6 pt-4 flex flex-col gap-5">
         {/* Week Selector Bar */}
-        <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between sm:justify-start gap-3">
-            <button
-              type="button"
-              onClick={handlePrevWeek}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              aria-label="Previous Week"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-primary shrink-0" />
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Week {selectedWeek}, {selectedYear}
-                </h2>
-              </div>
-              <span className="text-xs text-slate-500 font-medium">
-                {formatWeekDateRange(selectedWeek, selectedYear)}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleNextWeek}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              aria-label="Next Week"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-            {!isCurrentWeek && (
-              <button
-                type="button"
-                onClick={handleResetToCurrentWeek}
-                className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                Current Week
-              </button>
-            )}
-
-            {currentSchedule ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-light border border-primary/20 text-xs font-semibold text-primary">
-                <Utensils size={13} className="text-primary shrink-0" />
+      <Card>
+        <div className='flex flex-col items-center justify-center p-4 gap-5'>
+            <div className='flex flex-row'>
+            {currentSchedule &&
+            <>
+              <div className="flex items-center gap-1.5 uppercase text-sm font-semibold text-slate-700">
                 <span className="truncate max-w-[160px] sm:max-w-[200px]" title={currentSchedule.menu.title}>
                   {currentSchedule.menu.title}
                 </span>
               </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs font-medium text-amber-800">
-                <AlertCircle size={13} className="shrink-0" />
-                <span>No Menu Scheduled</span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Selection Status & Closure Control Card */}
-        <section className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-6 shadow-2xs">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                  !currentSchedule
-                    ? 'bg-slate-100 text-slate-500'
-                    : isScheduleActive
-                    ? 'bg-primary-light text-primary'
-                    : 'bg-rose-50 text-rose-600'
+            
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  isScheduleActive
+                    ? 'text-primary'
+                    : 'text-rose-800'
                 }`}
               >
-                {!currentSchedule ? (
-                  <AlertCircle size={24} />
-                ) : isScheduleActive ? (
-                  <Unlock size={24} />
-                ) : (
-                  <Lock size={24} />
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                    Weekly Selection Window
-                  </h3>
-                  {currentSchedule && (
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        isScheduleActive
-                          ? 'bg-primary-light text-primary border border-primary/20'
-                          : 'bg-rose-100 text-rose-800 border border-rose-200'
-                      }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          isScheduleActive ? 'bg-primary animate-pulse' : 'bg-rose-600'
-                        }`}
-                      />
-                      {isScheduleActive ? 'OPEN' : 'CLOSED'}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                  {!currentSchedule
-                    ? 'Schedule a menu for this week to enable meal selections.'
-                    : isScheduleActive
-                    ? 'Meal selection is currently open. Hub members can select and change their meals.'
-                    : 'Meal selection is currently closed. Selections are locked for this week.'}
-                </p>
-              </div>
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isScheduleActive ? 'bg-primary animate-pulse' : 'bg-rose-600'
+                  }`}
+                />
+                {isScheduleActive ? 'OPEN' : 'CLOSED'}
+              </span>
+              </>
+            }
             </div>
 
-            {/* Toggle Action */}
-            <div className="flex items-center justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+          <NavigationArrows
+          onNextClick={handleNextWeek}
+          onPrevClick={handlePrevWeek}
+          centerContent={
+            <div className='flex flex-col items-center px-12'>
+            <h2 className="text-3xl sm:text-3xl font-bold text-slate-900">
+                Week {selectedWeek}
+            </h2>
+            <span className="text-xs text-slate-500 font-medium">
+              {formatWeekDateRange(selectedWeek, selectedYear)}
+            </span>
+            </div>
+          }
+          />
+          
+          <div className="flex items-center justify-end">
               {currentSchedule ? (
                 <button
                   type="button"
@@ -404,9 +336,9 @@ export function SelectionStatus() {
                 </button>
               )}
             </div>
-          </div>
-        </section>
-
+            
+        </div>
+      </Card>
         {/* Progress & Summary Metrics */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Card 1: Pending Count */}
