@@ -40,6 +40,7 @@ export function MarkHolidays() {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedWeek, setSelectedWeek] = useState<number>(currentWeekInfo.week);
   const [activeTab, setActiveTab] = useState<'all' | 'company' | 'public' | 'week'>('all');
+  const [filterScope, setFilterScope] = useState<'upcoming' | 'all'>('upcoming');
 
   // Modal states
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
@@ -99,20 +100,82 @@ export function MarkHolidays() {
     setToastState({ isOpen: true, type, message });
   };
 
-  const publicHolidays = holidaysQuery.data?.publicHolidays ?? [];
-  const weeklyEffectiveHolidays = weeklyHolidaysQuery.data ?? [];
+  const rawPublicHolidays = holidaysQuery.data?.publicHolidays ?? [];
+  const rawWeeklyHolidays = weeklyHolidaysQuery.data ?? [];
 
-  // Group company holidays by unique id to avoid multi-day duplicate cards in list view
+  // Helper to normalize holiday title for deduplication
+  const normalizeHolidayTitle = (title: string) =>
+    title
+      .toLowerCase()
+      .replace(/['’`"]/g, '')
+      .replace(/\b(ul|el)\b/g, 'al')
+      .replace(/[^a-z0-9]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  // Deduplicate public holidays: remove holidays with same name on same date, keep ones with different names
+  const publicHolidays = useMemo(() => {
+    const map = new Map<string, HolidayItem>();
+    for (const item of rawPublicHolidays) {
+      const effectiveDate = item.adjustedDate || item.date;
+      const key = `${effectiveDate}|${normalizeHolidayTitle(item.title)}`;
+      if (!map.has(key)) {
+        map.set(key, item);
+      }
+    }
+    return Array.from(map.values());
+  }, [rawPublicHolidays]);
+
+  // Deduplicate weekly holidays: remove holidays with same name on same date
+  const weeklyEffectiveHolidays = useMemo(() => {
+    const map = new Map<string, HolidayItem>();
+    for (const item of rawWeeklyHolidays) {
+      const key = `${item.date}|${normalizeHolidayTitle(item.title)}`;
+      if (!map.has(key)) {
+        map.set(key, item);
+      }
+    }
+    return Array.from(map.values());
+  }, [rawWeeklyHolidays]);
+
+  // Group company holidays by unique id or date + normalized title to avoid multi-day duplicate cards in list view
   const uniqueCompanyHolidays = useMemo(() => {
     const companyHolidays = holidaysQuery.data?.companyHolidays ?? [];
-    const map = new Map<number, HolidayItem>();
+    const map = new Map<string, HolidayItem>();
     for (const item of companyHolidays) {
-      if (item.id && !map.has(item.id)) {
-        map.set(item.id, item);
+      const key = item.id ? `id-${item.id}` : `${item.date}|${normalizeHolidayTitle(item.title)}`;
+      if (!map.has(key)) {
+        map.set(key, item);
       }
     }
     return Array.from(map.values());
   }, [holidaysQuery.data?.companyHolidays]);
+
+  // Today's ISO date string in local time (YYYY-MM-DD)
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  // Filter holidays based on toggle scope (Upcoming vs All Year)
+  const displayedPublicHolidays = useMemo(() => {
+    if (filterScope === 'all') return publicHolidays;
+    return publicHolidays.filter((item) => {
+      const effectiveDate = item.adjustedDate || item.date;
+      return effectiveDate >= todayStr;
+    });
+  }, [publicHolidays, filterScope, todayStr]);
+
+  const displayedCompanyHolidays = useMemo(() => {
+    if (filterScope === 'all') return uniqueCompanyHolidays;
+    return uniqueCompanyHolidays.filter((item) => {
+      const effectiveEndDate = item.endDate || item.date;
+      return effectiveEndDate >= todayStr;
+    });
+  }, [uniqueCompanyHolidays, filterScope, todayStr]);
 
   // Company Holiday Modal Handlers
   const openAddCompanyModal = () => {
@@ -270,25 +333,62 @@ export function MarkHolidays() {
       {/* Header Controls */}
       <section className="px-4 sm:px-6 pt-4">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          {/* Year selector pill */}
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-2xs">
-            <button
-              type="button"
-              aria-label="Previous Year"
-              onClick={() => setSelectedYear((prev) => prev - 1)}
-              className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
+          {/* Left Controls: Year selector & Scope Toggle */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Year selector pill */}
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-2xs">
+              <button
+                type="button"
+                aria-label="Previous Year"
+                onClick={() => setSelectedYear((prev) => prev - 1)}
+                className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-xs font-bold text-slate-800 px-1">{selectedYear}</span>
+              <button
+                type="button"
+                aria-label="Next Year"
+                onClick={() => setSelectedYear((prev) => prev + 1)}
+                className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Upcoming vs All Year Toggle */}
+            <div
+              role="group"
+              aria-label="Filter holidays by date range"
+              className="flex items-center bg-slate-100/90 border border-slate-200/80 p-0.5 rounded-xl shadow-2xs text-xs font-medium text-slate-600"
             >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-xs font-bold text-slate-800 px-1">{selectedYear}</span>
-            <button
-              type="button"
-              aria-label="Next Year"
-              onClick={() => setSelectedYear((prev) => prev + 1)}
-              className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
-            >
-              <ChevronRight size={16} />
-            </button>
+              <button
+                type="button"
+                aria-pressed={filterScope === 'upcoming'}
+                onClick={() => setFilterScope('upcoming')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  filterScope === 'upcoming'
+                    ? 'bg-white font-bold text-primary shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles size={13} className={filterScope === 'upcoming' ? 'text-primary' : 'text-slate-400'} />
+                <span>Upcoming</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={filterScope === 'all'}
+                onClick={() => setFilterScope('all')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  filterScope === 'all'
+                    ? 'bg-white font-bold text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <CalendarDays size={13} className={filterScope === 'all' ? 'text-slate-700' : 'text-slate-400'} />
+                <span>All {selectedYear}</span>
+              </button>
+            </div>
           </div>
 
           {/* Actions */}
@@ -315,7 +415,7 @@ export function MarkHolidays() {
                 : 'hover:text-slate-900'
             }`}
           >
-            All ({uniqueCompanyHolidays.length + publicHolidays.length})
+            All ({displayedCompanyHolidays.length + displayedPublicHolidays.length})
           </button>
           <button
             type="button"
@@ -337,7 +437,7 @@ export function MarkHolidays() {
                 : 'hover:text-slate-900'
             }`}
           >
-            Public ({publicHolidays.length})
+            Public ({displayedPublicHolidays.length})
           </button>
           <button
             type="button"
@@ -348,7 +448,7 @@ export function MarkHolidays() {
                 : 'hover:text-slate-900'
             }`}
           >
-            Company ({uniqueCompanyHolidays.length})
+            Company ({displayedCompanyHolidays.length})
           </button>
         </div>
       </section>
@@ -458,7 +558,7 @@ export function MarkHolidays() {
                     <span>Statutory & Global Public Holidays (Ghana)</span>
                   </h2>
                   <span className="text-[11px] text-slate-400">
-                    {publicHolidays.length} official days
+                    {displayedPublicHolidays.length} {filterScope === 'upcoming' ? 'upcoming' : 'official'} {displayedPublicHolidays.length === 1 ? 'day' : 'days'}
                   </span>
                 </div>
 
@@ -472,97 +572,142 @@ export function MarkHolidays() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {publicHolidays.map((item, idx) => {
-                    const isIgnored = Boolean(item.isIgnored);
-                    const isAdjusted = Boolean(item.adjustedDate && item.adjustedDate !== item.date);
-
-                    return (
-                      <div
-                        key={`${item.date}-${idx}`}
-                        className={`rounded-3xl border p-4 shadow-2xs flex flex-col justify-between gap-3 transition-all ${
-                          isIgnored
-                            ? 'bg-slate-50/80 border-slate-200 text-slate-500'
-                            : 'bg-white border-slate-100 hover:shadow-md hover:border-slate-200'
-                        }`}
+                {displayedPublicHolidays.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center">
+                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-2">
+                      <Sparkles size={20} />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">
+                      {filterScope === 'upcoming'
+                        ? `No Upcoming Public Holidays in ${selectedYear}`
+                        : `No Public Holidays Found for ${selectedYear}`}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      {filterScope === 'upcoming'
+                        ? `All public holidays for ${selectedYear} have passed, or none are scheduled.`
+                        : `No official public holidays recorded for ${selectedYear}.`}
+                    </p>
+                    {filterScope === 'upcoming' && publicHolidays.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFilterScope('all')}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-2xs"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3
-                                className={`text-sm font-bold ${
-                                  isIgnored ? 'line-through text-slate-500' : 'text-slate-900'
-                                }`}
-                              >
-                                {item.title}
-                              </h3>
+                        <CalendarDays size={13} />
+                        <span>View All {selectedYear} Holidays ({publicHolidays.length})</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {displayedPublicHolidays.map((item, idx) => {
+                      const effectiveDate = item.adjustedDate || item.date;
+                      const isPast = effectiveDate < todayStr;
+                      const isToday = effectiveDate === todayStr;
+                      const isIgnored = Boolean(item.isIgnored);
+                      const isAdjusted = Boolean(item.adjustedDate && item.adjustedDate !== item.date);
 
-                              {isIgnored ? (
-                                <span className="rounded-md bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                                  Overridden: Working Day
+                      return (
+                        <div
+                          key={`${item.date}-${idx}`}
+                          className={`rounded-3xl border p-4 shadow-2xs flex flex-col justify-between gap-3 transition-all ${
+                            isIgnored
+                              ? 'bg-slate-50/80 border-slate-200 text-slate-500'
+                              : 'bg-white border-slate-100 hover:shadow-md hover:border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3
+                                  className={`text-sm font-bold ${
+                                    isIgnored ? 'line-through text-slate-500' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {item.title}
+                                </h3>
+
+                                {isIgnored ? (
+                                  <span className="rounded-md bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                    Overridden: Working Day
+                                  </span>
+                                ) : isAdjusted ? (
+                                  <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                                    Adjusted Date
+                                  </span>
+                                ) : (
+                                  <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                                    Public Holiday
+                                  </span>
+                                )}
+
+                                {isToday ? (
+                                  <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                                    Today
+                                  </span>
+                                ) : isPast ? (
+                                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                    Past
+                                  </span>
+                                ) : (
+                                  <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                    Upcoming
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                                <Calendar size={13} className="text-slate-400" />
+                                <span>
+                                  {item.date} ({item.dayName.toLowerCase()})
                                 </span>
-                              ) : isAdjusted ? (
-                                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
-                                  Adjusted Date
-                                </span>
-                              ) : (
-                                <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
-                                  Public Holiday
-                                </span>
-                              )}
+                              </p>
                             </div>
-
-                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                              <Calendar size={13} className="text-slate-400" />
-                              <span>
-                                {item.date} ({item.dayName.toLowerCase()})
-                              </span>
-                            </p>
                           </div>
-                        </div>
 
-                        {/* Actions for Public Holiday */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-2 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleWorkingDay(item)}
-                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
-                              isIgnored
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                            }`}
-                          >
-                            <Ban size={13} />
-                            <span>{isIgnored ? 'Re-enable Holiday' : 'Mark as Working Day'}</span>
-                          </button>
-
-                          <div className="flex items-center gap-1">
+                          {/* Actions for Public Holiday */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-2 flex-wrap">
                             <button
                               type="button"
-                              onClick={() => openAdjustModal(item)}
-                              className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1 cursor-pointer"
+                              onClick={() => handleToggleWorkingDay(item)}
+                              className={`px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                isIgnored
+                                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                              }`}
                             >
-                              <Edit2 size={13} />
-                              <span>Adjust</span>
+                              <Ban size={13} />
+                              <span>{isIgnored ? 'Re-enable Holiday' : 'Mark as Working Day'}</span>
                             </button>
 
-                            {item.isOverridden && (
+                            <div className="flex items-center gap-1">
                               <button
                                 type="button"
-                                aria-label="Reset Override"
-                                onClick={() => handleResetOverride(item)}
-                                className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
-                                title="Reset to statutory default"
+                                onClick={() => openAdjustModal(item)}
+                                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1 cursor-pointer"
                               >
-                                <RotateCcw size={15} />
+                                <Edit2 size={13} />
+                                <span>Adjust</span>
                               </button>
-                            )}
+
+                              {item.isOverridden && (
+                                <button
+                                  type="button"
+                                  aria-label="Reset Override"
+                                  onClick={() => handleResetOverride(item)}
+                                  className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                                  title="Reset to statutory default"
+                                >
+                                  <RotateCcw size={15} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             )}
 
@@ -575,70 +720,112 @@ export function MarkHolidays() {
                     <span>Company-Specific Holidays</span>
                   </h2>
                   <span className="text-[11px] text-slate-400">
-                    {uniqueCompanyHolidays.length} configured
+                    {displayedCompanyHolidays.length} {filterScope === 'upcoming' ? 'upcoming' : 'configured'}
                   </span>
                 </div>
 
-                {uniqueCompanyHolidays.length === 0 ? (
+                {displayedCompanyHolidays.length === 0 ? (
                   <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center">
-                    <p className="text-xs text-slate-500 font-medium">
-                      No custom company holidays configured for {selectedYear}.
+                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
+                      <Palmtree size={20} />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">
+                      {filterScope === 'upcoming'
+                        ? `No Upcoming Company Holidays in ${selectedYear}`
+                        : `No Custom Company Holidays for ${selectedYear}`}
                     </p>
-                    <button
-                      type="button"
-                      onClick={openAddCompanyModal}
-                      className="mt-2 text-xs font-bold text-primary underline cursor-pointer"
-                    >
-                      + Mark a company holiday
-                    </button>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      {filterScope === 'upcoming'
+                        ? `No upcoming company closures scheduled for the remainder of ${selectedYear}.`
+                        : `No custom company holidays configured for ${selectedYear}.`}
+                    </p>
+                    <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+                      {filterScope === 'upcoming' && uniqueCompanyHolidays.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setFilterScope('all')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-2xs"
+                        >
+                          <CalendarDays size={13} />
+                          <span>View All ({uniqueCompanyHolidays.length})</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={openAddCompanyModal}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-xs font-semibold text-white hover:bg-primary-hover transition-all cursor-pointer shadow-2xs"
+                      >
+                        <Plus size={13} />
+                        <span>Mark Company Holiday</span>
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {uniqueCompanyHolidays.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-3xl border border-slate-100 bg-white p-4 shadow-2xs flex items-center justify-between gap-3 hover:shadow-md hover:border-slate-200 transition-all"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
-                            <span className="rounded-md bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
-                              Company
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                            <CalendarDays size={13} className="text-slate-400" />
-                            <span>
-                              {item.date} {item.endDate ? `to ${item.endDate}` : ''}
-                            </span>
-                          </p>
-                          {item.description && (
-                            <p className="text-xs text-slate-400 mt-1 line-clamp-1">
-                              {item.description}
-                            </p>
-                          )}
-                        </div>
+                    {displayedCompanyHolidays.map((item) => {
+                      const effectiveEndDate = item.endDate || item.date;
+                      const isPast = effectiveEndDate < todayStr;
+                      const isToday = item.date <= todayStr && (item.endDate ? item.endDate >= todayStr : item.date >= todayStr);
 
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            aria-label="Edit Holiday"
-                            onClick={() => openEditCompanyModal(item)}
-                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Delete Holiday"
-                            onClick={() => setDeleteConfirmHoliday(item)}
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-3xl border border-slate-100 bg-white p-4 shadow-2xs flex items-center justify-between gap-3 hover:shadow-md hover:border-slate-200 transition-all"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
+                              <span className="rounded-md bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
+                                Company
+                              </span>
+                              {isToday ? (
+                                <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                                  Active Today
+                                </span>
+                              ) : isPast ? (
+                                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                  Past
+                                </span>
+                              ) : (
+                                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                  Upcoming
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                              <CalendarDays size={13} className="text-slate-400" />
+                              <span>
+                                {item.date} {item.endDate ? `to ${item.endDate}` : ''}
+                              </span>
+                            </p>
+                            {item.description && (
+                              <p className="text-xs text-slate-400 mt-1 line-clamp-1">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              aria-label="Edit Holiday"
+                              onClick={() => openEditCompanyModal(item)}
+                              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Delete Holiday"
+                              onClick={() => setDeleteConfirmHoliday(item)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>

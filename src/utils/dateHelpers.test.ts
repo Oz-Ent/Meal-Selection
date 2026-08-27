@@ -4,6 +4,9 @@ import {
   formatWeekDateRange,
   getDateForDayOfWeek,
   formatDayDate,
+  isMenuDayToday,
+  isMenuDayPast,
+  getMenuDayPastStatus,
 } from './dateHelpers';
 
 describe('dateHelpers', () => {
@@ -57,4 +60,34 @@ describe('dateHelpers', () => {
     const friday = getDateForDayOfWeek(35, 2026, 4);
     expect(friday.getUTCDate()).toBe(28);
   });
+
+  it('correctly identifies if a menu day is in the past, today, or upcoming with 10am cutoff', () => {
+    // Reference date: Wednesday Aug 26, 2026 at 09:30 AM (before 10am cutoff)
+    const refWedMorning = new Date(2026, 7, 26, 9, 30, 0);
+
+    expect(isMenuDayToday(35, 2026, 'WEDNESDAY', refWedMorning)).toBe(true);
+    expect(isMenuDayToday(35, 2026, 'THURSDAY', refWedMorning)).toBe(false);
+
+    expect(isMenuDayPast(35, 2026, 'MONDAY', refWedMorning)).toBe(true);
+    expect(isMenuDayPast(35, 2026, 'TUESDAY', refWedMorning)).toBe(true);
+    expect(isMenuDayPast(35, 2026, 'WEDNESDAY', refWedMorning)).toBe(false); // open before 10am
+    expect(isMenuDayPast(35, 2026, 'THURSDAY', refWedMorning)).toBe(false);
+    expect(isMenuDayPast(35, 2026, 'FRIDAY', refWedMorning)).toBe(false);
+
+    const statusWedMorning = getMenuDayPastStatus(35, 2026, 'WEDNESDAY', refWedMorning);
+    expect(statusWedMorning).toEqual({ isPast: false, isToday: true, isUpcoming: false, isClosedToday: false });
+
+    // Reference date: Wednesday Aug 26, 2026 at 10:15 AM (after 10am cutoff)
+    const refWedAfter10 = new Date(2026, 7, 26, 10, 15, 0);
+
+    expect(isMenuDayPast(35, 2026, 'WEDNESDAY', refWedAfter10)).toBe(true); // closed after 10am
+    expect(isMenuDayPast(35, 2026, 'THURSDAY', refWedAfter10)).toBe(false); // upcoming day still open
+    expect(isMenuDayPast(35, 2026, 'FRIDAY', refWedAfter10)).toBe(false);
+
+    const statusWedAfter10 = getMenuDayPastStatus(35, 2026, 'WEDNESDAY', refWedAfter10);
+    expect(statusWedAfter10).toEqual({ isPast: true, isToday: true, isUpcoming: false, isClosedToday: true });
+  });
 });
+
+
+

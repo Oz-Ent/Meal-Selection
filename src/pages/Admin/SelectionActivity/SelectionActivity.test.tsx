@@ -437,12 +437,11 @@ describe('SelectionActivity (Food Assignment)', () => {
     expect(screen.queryByText('Jollof Rice with Chicken')).not.toBeInTheDocument();
     expect(screen.getByText(/1\. Hubert Kingsley Ocran/i)).toBeInTheDocument();
 
-    // When searching for "guest", the guest meal shows with "Guest" as the recipient name (not creator name)
+    // When searching for "guest", the guest meal shows with "Guest (qty)" as the recipient name (not creator name)
     fireEvent.change(searchInput, { target: { value: 'guest' } });
     expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
     expect(screen.queryByText('Fried Rice with Fish')).not.toBeInTheDocument();
-    expect(screen.getByText(/1\. Guest/i)).toBeInTheDocument();
-    expect(screen.getByText('qty: 5')).toBeInTheDocument();
+    expect(screen.getByText(/1\. Guest \(5\)/i)).toBeInTheDocument();
     expect(screen.queryByText(/Hubert Kingsley Ocran \(Guest\)/i)).not.toBeInTheDocument();
   });
 

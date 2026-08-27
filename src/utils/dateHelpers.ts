@@ -83,3 +83,76 @@ export function formatDayDate(week: number, year: number, dayName: string): stri
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
+export function isMenuDayToday(
+  week: number,
+  year: number,
+  dayName: string,
+  refDate: Date = new Date(),
+): boolean {
+  const dayDate = getDateForDayOfWeek(week, year, dayName);
+  dayDate.setUTCHours(0, 0, 0, 0);
+
+  const refDayDate = new Date(
+    Date.UTC(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()),
+  );
+
+  return dayDate.getTime() === refDayDate.getTime();
+}
+
+export function isMenuDayPast(
+  week: number,
+  year: number,
+  dayName: string,
+  refDate: Date = new Date(),
+  cutoffHour: number = 10,
+): boolean {
+  const dayDate = getDateForDayOfWeek(week, year, dayName);
+  dayDate.setUTCHours(0, 0, 0, 0);
+
+  const refDayDate = new Date(
+    Date.UTC(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()),
+  );
+
+  // If calendar date is strictly in the past
+  if (dayDate.getTime() < refDayDate.getTime()) {
+    return true;
+  }
+
+  // If it is current day (today), it closes at / after 10:00 AM
+  if (dayDate.getTime() === refDayDate.getTime()) {
+    return refDate.getHours() >= cutoffHour;
+  }
+
+  return false;
+}
+
+export function getMenuDayPastStatus(
+  week: number,
+  year: number,
+  dayName: string,
+  refDate: Date = new Date(),
+  cutoffHour: number = 10,
+): { isPast: boolean; isToday: boolean; isUpcoming: boolean; isClosedToday: boolean } {
+  const dayDate = getDateForDayOfWeek(week, year, dayName);
+  dayDate.setUTCHours(0, 0, 0, 0);
+
+  const refDayDate = new Date(
+    Date.UTC(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()),
+  );
+
+  const dayTime = dayDate.getTime();
+  const todayTime = refDayDate.getTime();
+  const isPastCalendar = dayTime < todayTime;
+  const isToday = dayTime === todayTime;
+  const isUpcoming = dayTime > todayTime;
+  const isClosedToday = isToday && refDate.getHours() >= cutoffHour;
+
+  return {
+    isPast: isPastCalendar || isClosedToday,
+    isToday,
+    isUpcoming: isUpcoming && !isClosedToday,
+    isClosedToday,
+  };
+}
+
+

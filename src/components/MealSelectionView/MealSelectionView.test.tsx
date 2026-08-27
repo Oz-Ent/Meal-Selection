@@ -232,4 +232,74 @@ describe('MealSelectionView Component', () => {
     const friedRiceRadio = screen.getByRole('radio', { name: /Fried Rice & Chicken/i });
     expect(friedRiceRadio).toBeDisabled();
   });
+
+  it('shows past day locked banner and disables selection on past days', () => {
+    const handleSelectionChange = jest.fn();
+
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{ 1: 'UNAVAILABLE' }}
+        onSelectionChange={handleSelectionChange}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+        pastDayIds={[1]}
+      />,
+    );
+
+    expect(screen.getByText('Past Day')).toBeInTheDocument();
+    expect(screen.getByText('Locked')).toBeInTheDocument();
+    expect(screen.getByText(/This day has passed. Selections for this day cannot be modified./i)).toBeInTheDocument();
+
+    const bankuRadio = screen.getByRole('radio', { name: /Banku & Tilapia/i });
+    expect(bankuRadio).toBeDisabled();
+
+    const unavailableRadio = screen.getByRole('radio', { name: /Unavailable/i });
+    expect(unavailableRadio).toBeDisabled();
+  });
+
+  it('shows Closed for Today banner and 10 AM message when current day is closed', () => {
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{ 1: 'UNAVAILABLE' }}
+        onSelectionChange={jest.fn()}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+        pastDayIds={[1]}
+        todayDayId={1}
+      />,
+    );
+
+    expect(screen.getByText('Closed for Today')).toBeInTheDocument();
+    expect(screen.getByText('Locked')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Meal selection for today closed at 10:00 AM. Selections cannot be modified./i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows closed schedule banner and disables selection when isScheduleClosed is true', () => {
+
+    render(
+      <MealSelectionView
+        menuDays={mockMenuDays}
+        menuDayMeals={mockMenuDayMeals}
+        selections={{}}
+        onSelectionChange={jest.fn()}
+        currentDayIndex={0}
+        onDayIndexChange={jest.fn()}
+        isScheduleClosed={true}
+        closedMessage="Meal selection for this week is closed."
+      />,
+    );
+
+    expect(screen.getByText('Meal Selection Closed')).toBeInTheDocument();
+    expect(screen.getByText('Meal selection for this week is closed.')).toBeInTheDocument();
+
+    const bankuRadio = screen.getByRole('radio', { name: /Banku & Tilapia/i });
+    expect(bankuRadio).toBeDisabled();
+  });
 });
+
