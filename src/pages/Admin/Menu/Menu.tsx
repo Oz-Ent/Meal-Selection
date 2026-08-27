@@ -42,7 +42,11 @@ const MENU_ORDER_STORAGE_KEY = 'admin_menu_order';
 function getStoredMenuOrder(): number[] {
   try {
     const raw = localStorage.getItem(MENU_ORDER_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.every((id) => typeof id === 'number')
+      ? (parsed as number[])
+      : [];
   } catch {
     return [];
   }
