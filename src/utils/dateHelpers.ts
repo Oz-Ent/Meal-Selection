@@ -27,6 +27,31 @@ export function getISOWeekAndYear(date: Date = new Date()): { week: number; year
   return { week, year };
 }
 
+// The Mon–Fri work week is effectively over by Friday, so admin scheduling
+// actions taken Fri/Sat/Sun target the coming week rather than the current one.
+export function getSchedulingWeekAndYear(date: Date = new Date()): {
+  week: number;
+  year: number;
+  isNextWeek: boolean;
+} {
+  const d = new Date(date.valueOf());
+  d.setUTCHours(0, 0, 0, 0);
+
+  const day = d.getUTCDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const isNextWeek = day === 5 || day === 6 || day === 0;
+
+  if (day === 5) {
+    d.setUTCDate(d.getUTCDate() + 3); // Friday -> next Monday
+  } else if (day === 6) {
+    d.setUTCDate(d.getUTCDate() + 2); // Saturday -> next Monday
+  } else if (day === 0) {
+    d.setUTCDate(d.getUTCDate() + 1); // Sunday -> next Monday
+  }
+
+  const { week, year } = getISOWeekAndYear(d);
+  return { week, year, isNextWeek };
+}
+
 export function getDateFromISOWeek(week: number, year: number): Date {
   const simple = new Date(Date.UTC(year, 0, 4));
   const day = simple.getUTCDay() || 7;

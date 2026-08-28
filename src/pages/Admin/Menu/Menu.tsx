@@ -35,7 +35,7 @@ import {
   useUpdateWeekScheduleMutation,
   useWeekSchedulesQuery,
 } from '../../../api/useApiQueries';
-import { getISOWeekAndYear } from '../../../utils/dateHelpers';
+import { getSchedulingWeekAndYear, formatWeekDateRange } from '../../../utils/dateHelpers';
 
 const MENU_ORDER_STORAGE_KEY = 'admin_menu_order';
 
@@ -82,6 +82,9 @@ export function Menu() {
   const [deleteMenu, setDeleteMenu] = useState<MenuRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [confirmActivateMenu, setConfirmActivateMenu] = useState<MenuRecord | null>(null);
+  const [isActivating, setIsActivating] = useState(false);
+
   const [duplicatingMenuId, setDuplicatingMenuId] = useState<number | null>(null);
 
   const [orderedMenuIds, setOrderedMenuIds] = useState<number[]>(() => getStoredMenuOrder());
@@ -111,7 +114,7 @@ export function Menu() {
     message: '',
   });
 
-  const { week, year } = getISOWeekAndYear();
+  const { week, year, isNextWeek } = getSchedulingWeekAndYear();
   const activeMenus = useMemo(() => {
     const rawMenus = Array.isArray(menusQuery.data) ? menusQuery.data : [];
     return rawMenus.filter((m) => m?.isActive);
@@ -352,7 +355,7 @@ export function Menu() {
   };
 
   const handleSetActiveForWeek = async (menuToActivate: MenuRecord) => {
-    setOpenKebabMenuId(null);
+    setIsActivating(true);
     try {
       if (currentSchedule) {
         await updateWeekScheduleMutation.mutateAsync({
@@ -367,9 +370,23 @@ export function Menu() {
         });
       }
       showToast('success', `"${menuToActivate.title}" is now active for Week ${week}.`);
+      setConfirmActivateMenu(null);
     } catch (error) {
       console.error('Failed to set active menu for week:', error);
       showToast('error', 'Failed to set active menu for this week. Please try again.');
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  // Fri/Sat/Sun the work week has ended, so confirm before scheduling the
+  // coming week; earlier weekdays activate immediately.
+  const requestSetActiveForWeek = (menuToActivate: MenuRecord) => {
+    setOpenKebabMenuId(null);
+    if (isNextWeek) {
+      setConfirmActivateMenu(menuToActivate);
+    } else {
+      void handleSetActiveForWeek(menuToActivate);
     }
   };
 
@@ -655,11 +672,11 @@ export function Menu() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => void handleSetActiveForWeek(menu)}
+                            onClick={() => requestSetActiveForWeek(menu)}
                             className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left transition-colors border-b border-slate-100/60"
                           >
                             <CalendarCheck size={15} className="text-primary" />
-                            <span>Set as active for this week</span>
+                            <span>{isNextWeek ? 'Set as active for next week' : 'Set as active for this week'}</span>
                           </button>
                         )}
 
@@ -816,6 +833,51 @@ export function Menu() {
             )}
             <span>Save changes</span>
           </button>
+        </section>
+      </Modal>
+
+      {/* CONFIRM ACTIVATE FOR COMING WEEK MODAL */}
+      <Modal
+        isOpen={Boolean(confirmActivateMenu)}
+        onClose={() => !isActivating && setConfirmActivateMenu(null)}
+        variant="bottom"
+        showCloseButton={!isActivating}
+      >
+        <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light text-primary shrink-0">
+              <CalendarCheck size={20} />
+            </div>
+            <h2 className="text-base font-bold text-slate-900">Set active for the coming week?</h2>
+          </div>
+          <p className="mb-6 text-sm text-slate-600 leading-relaxed">
+            This week has already ended, so{' '}
+            <strong className="text-slate-900">{confirmActivateMenu?.title}</strong> will be set as
+            active for the coming week — Week {week} ({formatWeekDateRange(week, year)}).
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={isActivating}
+              onClick={() => setConfirmActivateMenu(null)}
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isActivating}
+              onClick={() => confirmActivateMenu && void handleSetActiveForWeek(confirmActivateMenu)}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-50"
+            >
+              {isActivating ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Check size={18} />
+              )}
+              <span>Confirm</span>
+            </button>
+          </div>
         </section>
       </Modal>
 
