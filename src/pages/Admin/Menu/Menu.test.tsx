@@ -23,6 +23,21 @@ jest.mock('../../../api/useApiQueries', () => ({
 
 import { useMenusQuery, useWeekSchedulesQuery } from '../../../api/useApiQueries';
 
+jest.mock('../../../utils/dateHelpers', () => {
+  const actual = jest.requireActual('../../../utils/dateHelpers');
+  return {
+    __esModule: true,
+    ...actual,
+    getSchedulingWeekAndYear: jest.fn(() => ({ week: 35, year: 2026, isNextWeek: false })),
+  };
+});
+
+import { getSchedulingWeekAndYear } from '../../../utils/dateHelpers';
+
+const mockGetSchedulingWeekAndYear = getSchedulingWeekAndYear as jest.MockedFunction<
+  typeof getSchedulingWeekAndYear
+>;
+
 const mockUseMenusQuery = useMenusQuery as jest.MockedFunction<typeof useMenusQuery>;
 const mockUseWeekSchedulesQuery = useWeekSchedulesQuery as jest.MockedFunction<
   typeof useWeekSchedulesQuery
@@ -39,6 +54,7 @@ const menu = {
 describe('Menu Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetSchedulingWeekAndYear.mockReturnValue({ week: 35, year: 2026, isNextWeek: false });
     mockUseMenusQuery.mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<
       typeof useMenusQuery
     >);
@@ -160,6 +176,39 @@ describe('Menu Component', () => {
         id: 101,
         data: expect.objectContaining({ menuId: 2, status: 'ACTIVE' }),
       }),
+    );
+  });
+
+  it('confirms before activating for the coming week when the work week has ended', () => {
+    // Fri/Sat/Sun: scheduling rolls to the coming week.
+    mockGetSchedulingWeekAndYear.mockReturnValue({ week: 36, year: 2026, isNextWeek: true });
+
+    mockUseMenusQuery.mockReturnValue({
+      data: [menu],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useMenusQuery>);
+    mockUseWeekSchedulesQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useWeekSchedulesQuery>);
+
+    render(
+      <MemoryRouter>
+        <Menu />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: /More options/i })[0]);
+
+    // Label reflects the coming week and clicking only opens the confirmation.
+    fireEvent.click(screen.getByText('Set as active for next week'));
+    expect(screen.getByText(/Set active for the coming week\?/i)).toBeInTheDocument();
+    expect(mockCreateSchedule).not.toHaveBeenCalled();
+
+    // Explicit confirm schedules the coming week.
+    fireEvent.click(screen.getByRole('button', { name: /^Confirm$/i }));
+    expect(mockCreateSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({ week: 36, year: 2026, menuId: 1 }),
     );
   });
 
