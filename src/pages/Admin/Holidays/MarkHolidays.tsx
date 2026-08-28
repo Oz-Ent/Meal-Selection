@@ -100,8 +100,8 @@ export function MarkHolidays() {
     setToastState({ isOpen: true, type, message });
   };
 
-  const rawPublicHolidays = holidaysQuery.data?.publicHolidays ?? [];
-  const rawWeeklyHolidays = weeklyHolidaysQuery.data ?? [];
+  const rawPublicHolidays = useMemo(() => holidaysQuery.data?.publicHolidays ?? [], [holidaysQuery.data]);
+  const rawWeeklyHolidays = useMemo(() => weeklyHolidaysQuery.data ?? [], [weeklyHolidaysQuery.data]);
 
   // Helper to normalize holiday title for deduplication
   const normalizeHolidayTitle = (title: string) =>

@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertCircle,
   Calendar,
   Check,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Copy,
   ExternalLink,
   Lock,
@@ -101,9 +98,6 @@ export function SelectionStatus() {
   const completionPercentage =
     totalUsersCount > 0 ? Math.round((submittedCount / totalUsersCount) * 100) : 0;
 
-  const isCurrentWeek =
-    selectedWeek === currentWeekInfo.week && selectedYear === currentWeekInfo.year;
-
   // Handlers for week navigation
   const handlePrevWeek = () => {
     if (selectedWeek === 1) {
@@ -123,10 +117,6 @@ export function SelectionStatus() {
     }
   };
 
-  const handleResetToCurrentWeek = () => {
-    setSelectedWeek(currentWeekInfo.week);
-    setSelectedYear(currentWeekInfo.year);
-  };
 
   const handleRefresh = async () => {
     await Promise.all([
@@ -287,6 +277,9 @@ export function SelectionStatus() {
             </div>
 
           <NavigationArrows
+          prevDisabled={false}
+          nextDisabled={false}
+          ariaSectionName="Week Selector"
           onNextClick={handleNextWeek}
           onPrevClick={handlePrevWeek}
           centerContent={
@@ -543,7 +536,6 @@ export function SelectionStatus() {
                           <h4 className="text-sm font-bold text-slate-900 truncate">
                             {user.name}
                           </h4>
-                          <p className="text-xs text-slate-500 truncate">{user.email}</p>
                         </div>
                       </div>
 
@@ -576,7 +568,7 @@ export function SelectionStatus() {
                 {selectedUserIds.length}
               </span>
               <span>
-                {selectedUserIds.length} user{selectedUserIds.length === 1 ? '' : 's'} selected
+                user{selectedUserIds.length === 1 ? '' : 's'} selected
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -593,7 +585,7 @@ export function SelectionStatus() {
                 className="flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer"
               >
                 <Utensils size={14} />
-                <span>Batch Select Meals</span>
+                <span>Select Meals</span>
               </button>
             </div>
           </div>

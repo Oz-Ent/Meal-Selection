@@ -112,9 +112,8 @@ describe('History Page Component', () => {
 
     expect(screen.getByText(/Edziban/i)).toBeInTheDocument();
     expect(screen.getByText('Selection History')).toBeInTheDocument();
-    expect(screen.getByText('Week 34 • 2026')).toBeInTheDocument();
+    expect(screen.getByText('Week 34 • Summer Standard Menu')).toBeInTheDocument();
     expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();
-    expect(screen.getByText('Summer Standard Menu')).toBeInTheDocument();
     expect(screen.getByText('Grilled Chicken Salad')).toBeInTheDocument();
     expect(screen.getByText('Aug 17')).toBeInTheDocument();
   });
