@@ -251,7 +251,7 @@ export function UserActivities() {
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Card 1: Select Meals */}
           <MenuCard
-          label='SelectMeals'
+          label='Select Meals'
           subtitle='Pick dishes for the upcoming week for yourself or on behalf of other users.'
           onClick={() => setIsSelectionOpen(true)}
           icon={SelectMealIcon}

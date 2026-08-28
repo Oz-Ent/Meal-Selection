@@ -27,7 +27,10 @@ export default function MealButton({
 }: MealButtonProps) {
   const [localInputVal, setLocalInputVal] = useState<string | null>(null);
 
-  const longPressHandlers = useLongPress(
+  const {
+    isLongPress,
+    ...longPressEventHandlers
+  } = useLongPress(
     () => onLongPress(meal.meal.foodCode),
     500,
   );
@@ -42,9 +45,9 @@ export default function MealButton({
         role="radio"
         aria-checked={isSelected}
         disabled={isDisabled}
-        {...longPressHandlers}
+        {...longPressEventHandlers}
         onClick={() => {
-          if (isDisabled || longPressHandlers.isLongPress()) return;
+          if (isDisabled || isLongPress()) return;
           onSelect();
         }}
         className={`select-none flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors cursor-pointer ${
@@ -99,9 +102,9 @@ export default function MealButton({
   return (
     <div
       key={meal.id}
-      {...longPressHandlers}
+      {...longPressEventHandlers}
       onClick={() => {
-        if (isDisabled || longPressHandlers.isLongPress()) return;
+        if (isDisabled || isLongPress()) return;
         if (quantity === 0) {
           onQuantityChange?.(1);
         }

@@ -8,7 +8,8 @@ interface CardProps{
     loading?: boolean
     children: React.ReactNode
 }
-export function Card ({header, loading, children}: CardProps){
+
+export function Card ({header, children}: CardProps){
     return (
         <div className="w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs gap-2 p-4 flex flex-col">
             {header && 

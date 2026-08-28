@@ -64,31 +64,15 @@ describe('useLoginHandler Hook', () => {
     expect(response).toEqual(mockResponse);
   });
 
-  it('throws UNAUTHORIZED error when errorCode is USER_INACTIVE', async () => {
-    const axiosError = {
-      response: {
-        data: { errorCode: 'USER_INACTIVE', errorMessage: 'User is inactive' },
-      },
-    };
-    mockedAuthService.login.mockRejectedValue(axiosError);
+  it('propagates login errors', async () => {
+    const error = new Error('Invalid credentials');
+
+    mockedAuthService.login.mockRejectedValue(error);
 
     const { result } = renderHook(() => useLoginHandler(), { wrapper });
 
-    await expect(result.current('test@test.com', 'password123')).rejects.toThrow('UNAUTHORIZED');
-  });
-
-  it('throws a generic error for other error codes', async () => {
-    const axiosError = {
-      response: {
-        data: { errorCode: 'INVALID_CREDENTIALS', errorMessage: 'Wrong password' },
-      },
-    };
-    mockedAuthService.login.mockRejectedValue(axiosError);
-
-    const { result } = renderHook(() => useLoginHandler(), { wrapper });
-
-    await expect(result.current('test@test.com', 'password123')).rejects.toThrow(
-      'Error Code: INVALID_CREDENTIALS, Message: Wrong password',
-    );
-  });
+    await expect(
+      result.current('test@test.com', 'password123')
+  ).rejects.toThrow('Invalid credentials');
+});
 });

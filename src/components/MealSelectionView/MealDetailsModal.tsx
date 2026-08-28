@@ -1,6 +1,7 @@
 import Modal from '../Modal/Modal';
 import { useMealDetailsQuery } from '../../api/useApiQueries';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 
 interface MealDetailsModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function MealDetailsModal({
       <div className="p-5 font-sans text-slate-800">
         {mealDetailsQuery.isPending && (
           <div className="py-8 text-center text-sm text-slate-500">
+            <LoadingSpinner/>
             Loading meal details...
           </div>
         )}
