@@ -477,15 +477,12 @@ export function History() {
                     <span className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-white shadow-2xs">
                       <Layers size={13} />
                       <span>
-                        Week {weekItem.week} • {weekItem.year}
+                        Week {weekItem.week} • {weekItem.menu.title}
                       </span>
                     </span>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-slate-100/90 px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-2xs">
                       <Calendar size={12} className="text-emerald-700" />
                       <span>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
-                    </span>
-                    <span className="text-sm font-bold text-slate-800">
-                      {weekItem.menu.title}
                     </span>
                   </div>
 
