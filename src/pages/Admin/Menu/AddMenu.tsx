@@ -11,10 +11,7 @@ import AllMealsModalSheet from '../../../components/AllMealsModalSheet/AllMealsM
 
 import { type Meal } from '../../../api/Services/MealServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
-import {
-  useCreateMenuWithAssignmentsMutation,
-  useMealsQuery,
-} from '../../../api/useApiQueries';
+import { useCreateMenuWithAssignmentsMutation, useMealsQuery } from '../../../api/useApiQueries';
 
 interface MenuDaySelection {
   id: string;
@@ -24,15 +21,12 @@ interface MenuDaySelection {
 
 const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
 
-const formatDay = (day: string) =>
-  day.charAt(0) + day.slice(1).toLowerCase();
+const formatDay = (day: string) => day.charAt(0) + day.slice(1).toLowerCase();
 
 export function AddMenu() {
   const navigate = useNavigate();
   const { menuName } = useParams<{ menuName: string }>();
-  const decodedMenuName = menuName
-    ? decodeURIComponent(menuName)
-    : 'New Menu';
+  const decodedMenuName = menuName ? decodeURIComponent(menuName) : 'New Menu';
 
   const mealsQuery = useMealsQuery();
   const createMenuMutation = useCreateMenuWithAssignmentsMutation();
@@ -45,8 +39,9 @@ export function AddMenu() {
     })),
   );
 
-  const [activeDayIdForMealSelection, setActiveDayIdForMealSelection] =
-    useState<string | null>(null);
+  const [activeDayIdForMealSelection, setActiveDayIdForMealSelection] = useState<string | null>(
+    null,
+  );
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -60,26 +55,20 @@ export function AddMenu() {
     message: '',
   });
 
-  const meals = (mealsQuery.data?.meals ?? []).filter(
-    (meal) => meal.isActive,
-  );
+  const meals = (mealsQuery.data?.meals ?? []).filter((meal) => meal.isActive);
 
   const isLoading = mealsQuery.isLoading;
 
   const updateDayMeals = (dayId: string, mealIds: number[]) => {
     setMenuDays((currentDays) =>
-      currentDays.map((day) =>
-        day.id === dayId ? { ...day, mealIds } : day,
-      ),
+      currentDays.map((day) => (day.id === dayId ? { ...day, mealIds } : day)),
     );
   };
 
   const handleRemoveMealFromDay = (dayId: string, mealId: number) => {
     setMenuDays((currentDays) =>
       currentDays.map((day) =>
-        day.id === dayId
-          ? { ...day, mealIds: day.mealIds.filter((id) => id !== mealId) }
-          : day,
+        day.id === dayId ? { ...day, mealIds: day.mealIds.filter((id) => id !== mealId) } : day,
       ),
     );
   };
@@ -97,9 +86,7 @@ export function AddMenu() {
     try {
       await createMenuMutation.mutateAsync({
         menu: { title },
-        mealIdsByDay: Object.fromEntries(
-          menuDays.map((day) => [day.id, day.mealIds]),
-        ),
+        mealIdsByDay: Object.fromEntries(menuDays.map((day) => [day.id, day.mealIds])),
       });
       setIsPreviewOpen(false);
       setToastState({
@@ -107,6 +94,7 @@ export function AddMenu() {
         type: 'success',
         message: 'New menu added successfully',
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
@@ -143,18 +131,14 @@ export function AddMenu() {
               <LoadingSpinner />
             </div>
 
-            <p className="text-sm text-slate-500">
-              Loading meals...
-            </p>
+            <p className="text-sm text-slate-500">Loading meals...</p>
           </div>
         )}
 
         {!isLoading && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {menuDays.map((day) => {
-              const selectedMealsForDay = meals.filter((meal) =>
-                day.mealIds.includes(meal.id),
-              );
+              const selectedMealsForDay = meals.filter((meal) => day.mealIds.includes(meal.id));
 
               return (
                 <MenuDayCard
@@ -177,9 +161,7 @@ export function AddMenu() {
         <AllMealsModalSheet
           meals={meals}
           selectedMealIds={
-            menuDays.find(
-              (day) => day.id === activeDayIdForMealSelection,
-            )?.mealIds ?? []
+            menuDays.find((day) => day.id === activeDayIdForMealSelection)?.mealIds ?? []
           }
           onClose={() => setActiveDayIdForMealSelection(null)}
           onSave={(ids) => {
@@ -233,9 +215,7 @@ function PreviewModalSheet({
   onClose: () => void;
   onSubmit: () => void;
 }) {
-  const [openDayId, setOpenDayId] = useState<string | null>(
-    menuDays[0]?.id ?? 'MONDAY',
-  );
+  const [openDayId, setOpenDayId] = useState<string | null>(menuDays[0]?.id ?? 'MONDAY');
 
   return (
     <Modal
@@ -254,33 +234,21 @@ function PreviewModalSheet({
           {menuDays.map((day) => {
             const isOpen = openDayId === day.id;
 
-            const dayMeals = allMeals.filter((meal) =>
-              day.mealIds.includes(meal.id),
-            );
+            const dayMeals = allMeals.filter((meal) => day.mealIds.includes(meal.id));
 
             return (
               <div key={day.id} className="py-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setOpenDayId(isOpen ? null : day.id)
-                  }
+                  onClick={() => setOpenDayId(isOpen ? null : day.id)}
                   className="flex w-full items-center justify-between py-2 text-left"
                 >
-                  <span className="text-sm font-semibold text-slate-900">
-                    {day.title}
-                  </span>
+                  <span className="text-sm font-semibold text-slate-900">{day.title}</span>
 
                   {isOpen ? (
-                    <ChevronUp
-                      size={18}
-                      className="text-slate-500"
-                    />
+                    <ChevronUp size={18} className="text-slate-500" />
                   ) : (
-                    <ChevronDown
-                      size={18}
-                      className="text-slate-500"
-                    />
+                    <ChevronDown size={18} className="text-slate-500" />
                   )}
                 </button>
 
@@ -292,15 +260,9 @@ function PreviewModalSheet({
                       </p>
                     ) : (
                       dayMeals.map((meal) => (
-                        <div
-                          key={meal.id}
-                          className="flex items-center gap-3"
-                        >
+                        <div key={meal.id} className="flex items-center gap-3">
                           <img
-                            src={
-                              meal.imagePath ||
-                              FALLBACK_MEAL_IMAGE_URL
-                            }
+                            src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                             alt={meal.name}
                             className="h-10 w-10 shrink-0 rounded-xl bg-slate-100 object-cover"
                           />
