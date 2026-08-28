@@ -132,8 +132,11 @@ export function UserActivities() {
 
       const imageUrl =
         selection?.mealImagePath ||
+        (selection as unknown as { imageUrl?: string })?.imageUrl ||
         selection?.dayMeal?.meal?.imagePath ||
+        (selection?.dayMeal?.meal as unknown as { imageUrl?: string })?.imageUrl ||
         selection?.meal?.imagePath ||
+        (selection?.meal as unknown as { imageUrl?: string })?.imageUrl ||
         '';
 
       const hasSelection = Boolean(

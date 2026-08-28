@@ -1,7 +1,20 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SelectMealPage from './SelectMeal';
 import { type CreateSelectionRequest, type WeeklyUserSelections } from '../../api/Services/MealSelectionServices';
+import { presetService } from '../../api/Services/PresetServices';
+
+function render(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return rtlRender(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+}
 
 const mockSubmitSelections = jest.fn();
 const mockAdminOverrideSelections = jest.fn();
@@ -28,9 +41,11 @@ jest.mock('../../components/TitleBar/TitleBar', () => ({
   TitleBar: () => <div>Hi Test User,</div>,
 }));
 
+let mockIsMenuDayPast = (_week: number, _year: number, _day: string) => false;
+
 jest.mock('../../utils/dateHelpers', () => ({
   ...jest.requireActual('../../utils/dateHelpers'),
-  isMenuDayPast: () => false,
+  isMenuDayPast: (w: number, y: number, d: string) => mockIsMenuDayPast(w, y, d),
   getISOWeekAndYear: () => ({ week: 35, year: 2026 }),
 }));
 
@@ -155,6 +170,7 @@ describe('SelectMealPage', () => {
     mockCurrentUserRole = 'user';
     mockWeeklySelectionsData = null;
     mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
+    mockIsMenuDayPast = () => false;
     mockPresetsData = [
       { id: 101, name: 'Rice Maniac', menuId: 1, userId: 132 },
       { id: 102, name: 'Swallow Wahala', menuId: 1, userId: 132 },
@@ -725,7 +741,131 @@ describe('SelectMealPage', () => {
       expect(screen.getByText('The recipient has already made meal selections for this week.')).toBeInTheDocument();
     });
   });
+
+  it('automatically sets unchosen days to UNAVAILABLE when applying a preset with partial days', async () => {
+    (presetService.getWithDetails as jest.Mock).mockResolvedValue({
+      id: 101,
+      name: 'Rice Maniac',
+      menuId: 1,
+      presetItems: [
+        { menuDayId: 1, dayMealId: 11 }, // Monday has meal
+        { menuDayId: 2, dayMealId: 12 }, // Tuesday has meal
+        // Wednesday (3), Thursday (4), Friday (5) not chosen in preset
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Open Presets modal
+    const presetPillBtn = screen.getByRole('button', { name: 'Presets' });
+    fireEvent.click(presetPillBtn);
+
+    expect(screen.getByText('Select preset menu')).toBeInTheDocument();
+    const presetItem = screen.getByText('Rice Maniac');
+    fireEvent.click(presetItem);
+
+    const confirmPresetBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmPresetBtn);
+
+    // After applying preset, all 5 days should be complete (Monday, Tuesday = meals; Wed, Thu, Fri = UNAVAILABLE)
+    await waitFor(() => {
+      expect(screen.getByText('Rice Maniac combo applied successfully!')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Save \(5\/5\)/i })).toBeEnabled();
+    });
+
+    // Save and submit
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const submitConfirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(submitConfirmBtn);
+
+    await waitFor(() => {
+      expect(mockSubmitSelections).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ menuDayId: 1, dayMealId: 11, selectionType: 'MEAL' }),
+          expect.objectContaining({ menuDayId: 2, dayMealId: 12, selectionType: 'MEAL' }),
+          expect.objectContaining({ menuDayId: 3, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 4, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 5, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+        ]),
+      );
+    });
+  });
+
+  it('does not overwrite existing selections on past days when applying a preset', async () => {
+    (presetService.getWithDetails as jest.Mock).mockResolvedValue({
+      id: 101,
+      name: 'Rice Maniac',
+      menuId: 1,
+      presetItems: [
+        { menuDayId: 1, dayMealId: 999 }, // Preset tries to set meal 999 on Monday
+        { menuDayId: 2, dayMealId: 12 },  // Tuesday has meal 12
+      ],
+    });
+
+    // Mark Monday as past day
+    mockIsMenuDayPast = (_w, _y, day) => day?.toUpperCase() === 'MONDAY';
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Go to Tuesday and select meal 12
+    const nextBtn = screen.getByRole('button', { name: 'Next' });
+    fireEvent.click(nextBtn);
+
+    // Open Presets modal and apply
+    const presetPillBtn = screen.getByRole('button', { name: 'Presets' });
+    fireEvent.click(presetPillBtn);
+
+    const presetItem = screen.getByText('Rice Maniac');
+    fireEvent.click(presetItem);
+
+    const confirmPresetBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmPresetBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Rice Maniac combo applied successfully!')).toBeInTheDocument();
+    });
+
+    // Save and check payload: Monday must still be UNAVAILABLE as default past day (not overwritten to 999)
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const submitConfirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(submitConfirmBtn);
+
+    await waitFor(() => {
+      expect(mockSubmitSelections).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ menuDayId: 1, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 2, dayMealId: 12, selectionType: 'MEAL' }),
+        ]),
+      );
+    });
+  });
+
+  it('does not display Presets bookmark button when schedule is closed', () => {
+    mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'CLOSED' };
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Meal Selection Closed')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Presets' })).not.toBeInTheDocument();
+  });
 });
+
 
 
 

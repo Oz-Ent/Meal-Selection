@@ -14,6 +14,17 @@ const meals = [
     createdAt: '',
     updatedAt: '',
   },
+  {
+    id: 2,
+    name: 'Burger',
+    imagePath: 'burger.png',
+    foodCode: 'SG-BS-PR-BG',
+    calories: 600,
+    description: null,
+    isActive: true,
+    createdAt: '',
+    updatedAt: '',
+  },
 ];
 
 jest.mock('../../../api/useApiQueries', () => ({
@@ -64,5 +75,37 @@ describe('AddMenu Component', () => {
     // Modal closes and Pizza is displayed under Monday
     expect(screen.queryByText('All meals')).not.toBeInTheDocument();
     expect(screen.getAllByText('Pizza').length).toBeGreaterThan(0);
+  });
+
+  it('allows removing an individual meal and clearing all meals for a day', () => {
+    renderWithRouter();
+    const addMealBtns = screen.getAllByRole('button', { name: /Add Meals/i });
+    fireEvent.click(addMealBtns[0]); // Monday
+
+    // Select Pizza and Burger
+    const pizzaBtn = screen.getByText('Pizza').closest('button');
+    const burgerBtn = screen.getByText('Burger').closest('button');
+    if (pizzaBtn) fireEvent.click(pizzaBtn);
+    if (burgerBtn) fireEvent.click(burgerBtn);
+
+    const addBtn = screen.getByRole('button', { name: 'Add' });
+    fireEvent.click(addBtn);
+
+    expect(screen.getByText('Pizza')).toBeInTheDocument();
+    expect(screen.getByText('Burger')).toBeInTheDocument();
+
+    // Remove Pizza using the remove button
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove meal' });
+    fireEvent.click(removeButtons[0]);
+
+    expect(screen.queryByText('Pizza')).not.toBeInTheDocument();
+    expect(screen.getByText('Burger')).toBeInTheDocument();
+
+    // Clear remaining meals
+    const clearBtn = screen.getByText('Clear meal(s)');
+    fireEvent.click(clearBtn);
+
+    expect(screen.queryByText('Burger')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Add meals to weekday').length).toBeGreaterThan(0);
   });
 });

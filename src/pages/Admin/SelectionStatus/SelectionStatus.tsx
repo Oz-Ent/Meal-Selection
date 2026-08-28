@@ -117,7 +117,6 @@ export function SelectionStatus() {
     }
   };
 
-
   const handleRefresh = async () => {
     await Promise.all([
       weekScheduleQuery.refetch(),
@@ -277,21 +276,21 @@ export function SelectionStatus() {
             </div>
 
           <NavigationArrows
-          prevDisabled={false}
-          nextDisabled={false}
-          ariaSectionName="Week Selector"
-          onNextClick={handleNextWeek}
-          onPrevClick={handlePrevWeek}
-          centerContent={
-            <div className='flex flex-col items-center px-12'>
-            <h2 className="text-3xl sm:text-3xl font-bold text-slate-900">
-                Week {selectedWeek}
-            </h2>
-            <span className="text-xs text-slate-500 font-medium">
-              {formatWeekDateRange(selectedWeek, selectedYear)}
-            </span>
-            </div>
-          }
+            ariaSectionName="week"
+            prevDisabled={false}
+            nextDisabled={false}
+            onNextClick={handleNextWeek}
+            onPrevClick={handlePrevWeek}
+            centerContent={
+              <div className='flex flex-col items-center px-12'>
+              <h2 className="text-3xl sm:text-3xl font-bold text-slate-900">
+                  Week {selectedWeek}
+              </h2>
+              <span className="text-xs text-slate-500 font-medium">
+                {formatWeekDateRange(selectedWeek, selectedYear)}
+              </span>
+              </div>
+            }
           />
           
           <div className="flex items-center justify-end">

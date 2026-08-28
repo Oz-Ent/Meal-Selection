@@ -43,6 +43,11 @@ export default function MealDetailsModal({
               <img
                 src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                 alt={meal.name}
+                onError={(e) => {
+                  if (e.currentTarget.src !== FALLBACK_MEAL_IMAGE_URL) {
+                    e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
+                  }
+                }}
                 className="w-full h-full object-cover"
               />
             </div>

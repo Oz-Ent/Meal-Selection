@@ -1,27 +1,25 @@
 describe('Admin Portal Integration Tests', () => {
   const mockAdminUser = {
-    id: 99,
-    name: 'Admin Boss',
-    email: 'admin@company.com',
-    referenceEmail: 'admin@company.com',
-    referenceId: 999,
-    roleId: 1,
-    roleName: 'admin',
-    status: 'ACTIVE',
+    user: {
+      id: 99,
+      name: 'Admin Boss',
+      email: 'admin@company.com',
+      roleId: 1,
+      roleName: 'admin',
+    },
+    availability: {
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+    },
   };
 
   beforeEach(() => {
-    cy.seedAuth({
-      id: mockAdminUser.id,
-      name: mockAdminUser.name,
-      email: mockAdminUser.email,
-      roleId: mockAdminUser.roleId,
-      roleName: mockAdminUser.roleName,
-      token: 'mock-admin-token',
-    });
+    window.localStorage.setItem('token', 'mock-admin-token');
+    window.localStorage.setItem('refreshToken', 'mock-admin-refresh');
+    window.localStorage.setItem('user', JSON.stringify(mockAdminUser));
 
     // Mock admin menu list
-    cy.intercept('GET', '**/menus**', {
+    cy.intercept('GET', '**/menus', {
       statusCode: 200,
       body: [
         { id: 1, title: 'Weekly Special Menu', isActive: true },
@@ -29,28 +27,26 @@ describe('Admin Portal Integration Tests', () => {
       ],
     }).as('getAdminMenus');
 
-    // Mock week schedules so the Menu page's loading state resolves; otherwise
-    // this unmocked call hits the real API and can hang the list past the
-    // command timeout in CI.
+    // Mock week schedules
     cy.intercept('GET', '**/week-menu-schedules**', {
       statusCode: 200,
       body: [],
     }).as('getWeekSchedules');
 
-    // Mock holidays. Match the exact API pathname so this does NOT also
-    // intercept the SPA document navigation to '/admin/holidays'.
-    cy.intercept(
-      { method: 'GET', pathname: '/holidays' },
-      {
+    // Mock holidays API without intercepting /admin/holidays navigation
+    cy.intercept('GET', '**/holidays**', (req) => {
+      if (req.url.includes('localhost:5173')) {
+        req.continue();
+        return;
+      }
+      req.reply({
         statusCode: 200,
         body: {
           publicHolidays: [
             {
               id: 1,
               title: "Independence Day",
-              // Far-future date so it always shows under the default "Upcoming"
-              // filter regardless of when the suite runs.
-              date: '2099-03-06',
+              date: '2026-12-25',
               dayName: 'Friday',
               source: 'PUBLIC',
               isIgnored: false,
@@ -58,8 +54,20 @@ describe('Admin Portal Integration Tests', () => {
           ],
           companyHolidays: [],
         },
-      },
-    ).as('getHolidays');
+      });
+    }).as('getHolidays');
+
+    // Mock weekly holidays
+    cy.intercept('GET', '**/holidays/week/**', {
+      statusCode: 200,
+      body: [],
+    }).as('getWeeklyHolidays');
+
+    // Mock food library
+    cy.intercept('GET', '**/food-library**', {
+      statusCode: 200,
+      body: [],
+    }).as('getFoodLibrary');
 
     // Mock meals
     cy.intercept('GET', '**/meals**', {

@@ -89,7 +89,7 @@ function Login() {
           </section>
 
           <section className="flex flex-col gap-4">
-            <InputField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <InputField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
 
             <PasswordField
               label="Password"
