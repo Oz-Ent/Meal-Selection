@@ -243,22 +243,22 @@ describe('SelectionStatus Admin Page', () => {
   it('allows selecting individual users, toggling select all, and navigating to batch select meals', () => {
     renderComponent();
 
-    // Check individual user
-    const aliceCheckbox = screen.getByRole('button', { name: /select alice smith/i });
-    fireEvent.click(aliceCheckbox);
+    // Select a single user
+    fireEvent.click(screen.getByRole('button', { name: /select alice smith/i }));
 
-    expect(screen.getByText(/1 user selected/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /batch select meals/i })).toBeInTheDocument();
+    // The batch bar renders the count badge and label as separate elements,
+    // so assert against the bar's combined text content.
+    const batchBtn = screen.getByRole('button', { name: /select meals/i });
+    const batchBar = batchBtn.closest('div.sticky');
+    expect(batchBar).toHaveTextContent(/1\s*user selected/i);
 
     // Click "Select All"
-    const selectAllBtn = screen.getByRole('button', { name: /select all/i });
-    fireEvent.click(selectAllBtn);
+    fireEvent.click(screen.getByRole('button', { name: /select all/i }));
 
-    expect(screen.getByText(/3 users selected/i)).toBeInTheDocument();
+    expect(batchBar).toHaveTextContent(/3\s*users selected/i);
     expect(screen.getByRole('button', { name: /deselect all/i })).toBeInTheDocument();
 
-    // Click Batch Select Meals
-    const batchBtn = screen.getByRole('button', { name: /batch select meals/i });
+    // Navigate to batch meal selection
     fireEvent.click(batchBtn);
 
     expect(screen.getByTestId('select-meal-route')).toBeInTheDocument();

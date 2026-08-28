@@ -29,6 +29,14 @@ describe('Admin Portal Integration Tests', () => {
       ],
     }).as('getAdminMenus');
 
+    // Mock week schedules so the Menu page's loading state resolves; otherwise
+    // this unmocked call hits the real API and can hang the list past the
+    // command timeout in CI.
+    cy.intercept('GET', '**/week-menu-schedules**', {
+      statusCode: 200,
+      body: [],
+    }).as('getWeekSchedules');
+
     // Mock holidays. Match the exact API pathname so this does NOT also
     // intercept the SPA document navigation to '/admin/holidays'.
     cy.intercept(
