@@ -179,6 +179,7 @@ export function PresetBuilder() {
           showPresetButton={false}
           showOtherOptions={false}
           mode="select"
+          dimDisabledMeals={false}
           onToast={(type, message) => setToast({ isOpen: true, type, message })}
         />
       )}

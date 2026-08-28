@@ -158,6 +158,11 @@ export function Meal() {
                   <img
                     src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                     alt={meal.name}
+                    onError={(e) => {
+                      if (e.currentTarget.src !== FALLBACK_MEAL_IMAGE_URL) {
+                        e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
+                      }
+                    }}
                     className="h-12 w-12 shrink-0 rounded-2xl object-cover bg-slate-100 shadow-2xs"
                   />
                   <div className="min-w-0 flex-1">

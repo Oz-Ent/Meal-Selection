@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowRight,
   ArrowUp,
@@ -12,7 +13,6 @@ import {
   MoreVertical,
   Pencil,
   Plus,
-  RotateCcw,
   Trash2,
 } from 'lucide-react';
 
@@ -24,6 +24,8 @@ import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import EmptyMenuSvg from '../../../assets/admin/EmptyMenuPage.svg';
 import BurgerSvg from '../../../assets/admin/BurgeronAdminCard.svg';
 
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../../api/queryKeys';
 import { type Menu as MenuRecord, menuService } from '../../../api/Services/MenuServices';
 import { type WeekMenuSchedule } from '../../../api/Services/WeekMenuScheduleServices';
 import {
@@ -62,6 +64,7 @@ function saveMenuOrder(ids: number[]) {
 
 export function Menu() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const menusQuery = useMenusQuery();
   const weekSchedulesQuery = useWeekSchedulesQuery();
   const updateMenuMutation = useUpdateMenuMutation();
@@ -88,6 +91,13 @@ export function Menu() {
   const [duplicatingMenuId, setDuplicatingMenuId] = useState<number | null>(null);
 
   const [orderedMenuIds, setOrderedMenuIds] = useState<number[]>(() => getStoredMenuOrder());
+  const [hasUnsavedOrderChanges, setHasUnsavedOrderChanges] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [isConfirmSaveModalOpen, setIsConfirmSaveModalOpen] = useState(false);
+
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
+  const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false);
+
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const isDraggingRef = useRef(false);
@@ -113,6 +123,18 @@ export function Menu() {
     type: 'success',
     message: '',
   });
+
+  // Warn on page reload or external navigation if order is unsaved
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedOrderChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedOrderChanges]);
 
   const { week, year, isNextWeek } = getSchedulingWeekAndYear();
   const activeMenus = useMemo(() => {
@@ -145,16 +167,9 @@ export function Menu() {
   const currentSchedule: WeekMenuSchedule | null =
     rawSchedules.find((schedule) => schedule.week === week && schedule.year === year) ?? null;
 
-  // Auto-scheduled menu index according to loop formula (week % activeMenus.length)
-  const autoMenuIndex = menus.length > 0 ? week % menus.length : 0;
-  const autoMenu = menus[autoMenuIndex];
-
-  // If a schedule exists in DB and is active, use that. Otherwise, default to auto-loop menu for this week.
-  const activeScheduledMenuId =
+  // Active menu verified strictly from the backend week schedule (no modulo calculation)
+  const activeMenuId =
     currentSchedule?.status === 'ACTIVE' ? currentSchedule.menu.id : null;
-  const activeMenuId = activeScheduledMenuId ?? autoMenu?.id;
-  const isManuallyOverridden =
-    Boolean(currentSchedule) && currentSchedule?.menu.id !== autoMenu?.id;
 
   const isDuplicating = duplicatingMenuId !== null || createMenuWithAssignmentsMutation.isPending;
   const isLoading = menusQuery.isLoading || weekSchedulesQuery.isLoading || isDuplicating;
@@ -163,7 +178,17 @@ export function Menu() {
     setToastState({ isOpen: true, type, message });
   };
 
-  const reorderMenus = async (fromIndex: number, toIndex: number) => {
+  const navigateWithCheck = (path: string) => {
+    if (hasUnsavedOrderChanges) {
+      setPendingNavigationPath(path);
+      setIsUnsavedChangesModalOpen(true);
+    } else {
+      navigate(path);
+    }
+  };
+
+  // Reorder local state only (does NOT save until user explicitly confirms save)
+  const reorderMenus = (fromIndex: number, toIndex: number) => {
     if (
       fromIndex === toIndex ||
       fromIndex < 0 ||
@@ -180,23 +205,36 @@ export function Menu() {
 
     const newOrderIds = reordered.map((m) => m.id);
     setOrderedMenuIds(newOrderIds);
-    saveMenuOrder(newOrderIds);
+    setHasUnsavedOrderChanges(true);
+  };
 
-    showToast('success', 'Menu order updated successfully.');
-
-    // Sync order attribute to backend to update cron job loop order
+  const handleConfirmSaveOrder = async () => {
+    setIsSavingOrder(true);
     try {
+      saveMenuOrder(orderedMenuIds);
       await Promise.all(
-        reordered.map((m, idx) =>
+        menus.map((m, idx) =>
           updateMenuMutation.mutateAsync({
             id: m.id,
             data: { title: m.title, order: idx + 1 },
           }),
         ),
       );
+      setHasUnsavedOrderChanges(false);
+      setIsConfirmSaveModalOpen(false);
+      showToast('success', 'Menu order saved successfully.');
     } catch (err) {
       console.error('Failed to sync menu order to backend:', err);
+      showToast('error', 'Failed to save menu order. Please try again.');
+    } finally {
+      setIsSavingOrder(false);
     }
+  };
+
+  const handleDiscardOrderChanges = () => {
+    setOrderedMenuIds(getStoredMenuOrder());
+    setHasUnsavedOrderChanges(false);
+    showToast('success', 'Order changes discarded.');
   };
 
   // Pointer / Touch Drag & Drop handlers
@@ -283,7 +321,7 @@ export function Menu() {
     setDragOverIndex(null);
 
     if (startIndex !== null && currentIndex !== null && startIndex !== currentIndex) {
-      void reorderMenus(startIndex, currentIndex);
+      reorderMenus(startIndex, currentIndex);
     }
 
     setTimeout(() => {
@@ -329,7 +367,7 @@ export function Menu() {
     }
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -342,7 +380,7 @@ export function Menu() {
     }, 100);
 
     if (fromIndex !== null && fromIndex !== dropIndex) {
-      await reorderMenus(fromIndex, dropIndex);
+      reorderMenus(fromIndex, dropIndex);
     }
   };
 
@@ -390,29 +428,19 @@ export function Menu() {
     }
   };
 
-  const handleRevertToLoop = async () => {
-    setOpenKebabMenuId(null);
-    if (!autoMenu) return;
-    try {
-      if (currentSchedule) {
-        await updateWeekScheduleMutation.mutateAsync({
-          id: currentSchedule.id,
-          data: { menuId: autoMenu.id, status: 'ACTIVE' },
-        });
-      }
-      showToast('success', `Reverted to scheduled loop ("${autoMenu.title}" for Week ${week}).`);
-    } catch (error) {
-      console.error('Failed to revert menu schedule:', error);
-      showToast('error', 'Failed to revert to scheduled loop. Please try again.');
-    }
-  };
-
   const handleDuplicateMenu = async (menuToDuplicate: MenuRecord) => {
+    if (duplicatingMenuId !== null || createMenuWithAssignmentsMutation.isPending) return;
     setOpenKebabMenuId(null);
     setDuplicatingMenuId(menuToDuplicate.id);
     try {
-      const days = await menuService.getDays(menuToDuplicate.id);
-      const meals = await menuService.getMeals(menuToDuplicate.id);
+      const days = await queryClient.fetchQuery({
+        queryKey: queryKeys.menuDays(menuToDuplicate.id),
+        queryFn: () => menuService.getDays(menuToDuplicate.id),
+      });
+      const meals = await queryClient.fetchQuery({
+        queryKey: queryKeys.menuMeals(menuToDuplicate.id),
+        queryFn: () => menuService.getMeals(menuToDuplicate.id),
+      });
 
       const mealIdsByDay: Record<string, number[]> = {};
       days.forEach((d) => {
@@ -420,18 +448,24 @@ export function Menu() {
         mealIdsByDay[d.day] = dayMeals.map((m) => m.meal.id);
       });
 
-      const copyTitle = `Copy_${menuToDuplicate.title}`;
+      const baseCopyTitle = `Copy_${menuToDuplicate.title}`;
+      let copyTitle = baseCopyTitle;
+      let counter = 2;
+      const existingTitles = new Set(menus.map((m) => m.title.toLowerCase().trim()));
+      while (existingTitles.has(copyTitle.toLowerCase().trim())) {
+        copyTitle = `${baseCopyTitle} (${counter})`;
+        counter++;
+      }
+
       await createMenuWithAssignmentsMutation.mutateAsync({
         menu: { title: copyTitle },
         mealIdsByDay,
       });
 
-      showToast('success', `${menuToDuplicate.title} duplicated successfully.`);
-    } catch {
-      showToast(
-        'error',
-        `Something went wrong while duplicating ${menuToDuplicate.title.toLowerCase()}. Please try again.`,
-      );
+      showToast('success', `"${copyTitle}" created successfully.`);
+    } catch (error) {
+      console.error('Failed to duplicate menu:', error);
+      showToast('error', 'Failed to duplicate menu. Please try again.');
     } finally {
       setDuplicatingMenuId(null);
     }
@@ -439,18 +473,17 @@ export function Menu() {
 
   const handleConfirmRename = async () => {
     if (!renameMenu || !renameValue.trim() || isRenaming) return;
-    const targetMenu = renameMenu;
     setIsRenaming(true);
     try {
       await updateMenuMutation.mutateAsync({
-        id: targetMenu.id,
+        id: renameMenu.id,
         data: { title: renameValue.trim() },
       });
-      setRenameMenu(null);
       showToast('success', 'Menu renamed successfully.');
-    } catch {
       setRenameMenu(null);
-      showToast('error', 'Something went wrong while renaming menu. Please try again.');
+    } catch (error) {
+      console.error('Failed to rename menu:', error);
+      showToast('error', 'Failed to rename menu. Please try again.');
     } finally {
       setIsRenaming(false);
     }
@@ -458,43 +491,76 @@ export function Menu() {
 
   const handleConfirmDelete = async () => {
     if (!deleteMenu || isDeleting) return;
-    const targetMenu = deleteMenu;
     setIsDeleting(true);
     try {
-      await deleteMenuMutation.mutateAsync(targetMenu.id);
+      await deleteMenuMutation.mutateAsync(deleteMenu.id);
+      showToast('success', 'Menu deleted successfully.');
       setDeleteMenu(null);
-      showToast('success', `${targetMenu.title} deleted successfully.`);
-    } catch {
-      setDeleteMenu(null);
-      showToast(
-        'error',
-        `Something went wrong while deleting ${targetMenu.title.toLowerCase()}. Please try again.`,
-      );
+    } catch (error) {
+      console.error('Failed to delete menu:', error);
+      showToast('error', 'Failed to delete menu. Please try again.');
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
-      <NavBar title="All Menus" backUrl="/admin/activities" />
+    <div className="min-h-screen bg-slate-50/50 pb-28 font-sans">
+      <NavBar title="Menu" />
 
-      {isLoading && (
-        <div className="flex min-h-64 flex-col items-center justify-center gap-3">
-          <div className="h-8 w-8">
-            <LoadingSpinner />
+      {/* UNSAVED CHANGES FLOATING BANNER */}
+      {hasUnsavedOrderChanges && (
+        <div className="sticky top-16 z-20 mx-auto max-w-5xl px-4 sm:px-6 pt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 text-white p-3 sm:p-3.5 rounded-2xl shadow-xl border border-slate-800">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <p className="text-xs sm:text-sm font-medium text-slate-200">
+                You have unsaved changes to the menu order.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={handleDiscardOrderChanges}
+                disabled={isSavingOrder}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsConfirmSaveModalOpen(true)}
+                disabled={isSavingOrder}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-xs font-semibold text-white shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+              >
+                <Check size={14} />
+                <span>Save order</span>
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-slate-500">
-            {isDuplicating ? 'Duplicating menu...' : 'Loading menus...'}
-          </p>
+        </div>
+      )}
+
+      {/* LOADING STATE */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <LoadingSpinner />
+          <p className="mt-4 text-sm font-medium text-slate-500">Loading menus...</p>
         </div>
       )}
 
       {/* EMPTY STATE */}
       {!isLoading && menus.length === 0 && (
-        <div className="flex flex-col items-center justify-center px-8 pt-20 text-center">
-          <img src={EmptyMenuSvg} alt="No menus" className="h-44 w-44 object-contain mb-6" />
-          <p className="text-sm font-medium text-slate-600 leading-relaxed max-w-64">
+        <div className="mx-auto flex max-w-sm flex-col items-center justify-center px-4 py-16 text-center">
+          <div className="mb-4 flex h-36 w-36 items-center justify-center">
+            <img
+              src={EmptyMenuSvg}
+              alt="No menus available"
+              className="h-full w-full object-contain"
+            />
+          </div>
+          <h2 className="mb-1 text-base font-bold text-slate-900">No menus available</h2>
+          <p className="text-xs text-slate-500 font-normal leading-relaxed">
             There are no menus, click on <span className="font-bold text-slate-900">“add”</span> to
             create a new menu.
           </p>
@@ -504,9 +570,11 @@ export function Menu() {
       {/* MENUS LIST VIEW */}
       {!isLoading && menus.length > 0 && (
         <div className="px-4 sm:px-6 pt-5">
-          <p className="mb-4 text-xs sm:text-sm text-slate-500 font-normal">
-            Drag and reorder your menus to schedule how they repeat each week.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs sm:text-sm text-slate-500 font-normal">
+              Drag and reorder your menus to schedule how they repeat each week. Click <span className="font-semibold text-slate-700">Save order</span> when finished.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {menus.map((menu, index) => {
@@ -521,11 +589,11 @@ export function Menu() {
                   draggable
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={(e) => void handleDrop(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
                   onClick={() => {
                     if (!isDraggingRef.current) {
-                      navigate(`/admin/menu/edit/${menu.id}`);
+                      navigateWithCheck(`/admin/menu/edit/${menu.id}`);
                     }
                   }}
                   className={`group relative flex items-center justify-between rounded-3xl border p-4 sm:p-5 shadow-2xs cursor-grab active:cursor-grabbing transition-all select-none ${
@@ -560,15 +628,9 @@ export function Menu() {
                             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                             Active
                           </span>
-                          {isManuallyOverridden && currentSchedule?.menu.id === menu.id ? (
-                            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.2 rounded font-medium">
-                              Manual
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded font-medium">
-                              Auto loop
-                            </span>
-                          )}
+                          <span className="text-[10px] text-primary/90 bg-primary-light/60 px-1.5 py-0.2 rounded font-medium">
+                            Week {week}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -614,7 +676,7 @@ export function Menu() {
                           type="button"
                           onClick={() => {
                             setOpenKebabMenuId(null);
-                            navigate(`/admin/menu/edit/${menu.id}`);
+                            navigateWithCheck(`/admin/menu/edit/${menu.id}`);
                           }}
                           className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left transition-colors"
                         >
@@ -630,7 +692,7 @@ export function Menu() {
                               disabled={index === 0}
                               onClick={() => {
                                 setOpenKebabMenuId(null);
-                                void reorderMenus(index, index - 1);
+                                reorderMenus(index, index - 1);
                               }}
                               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed text-left transition-colors"
                             >
@@ -642,7 +704,7 @@ export function Menu() {
                               disabled={index === menus.length - 1}
                               onClick={() => {
                                 setOpenKebabMenuId(null);
-                                void reorderMenus(index, index + 1);
+                                reorderMenus(index, index + 1);
                               }}
                               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed text-left transition-colors"
                             >
@@ -652,23 +714,12 @@ export function Menu() {
                           </div>
                         )}
 
-                        {/* Set as Active for Current Week / Revert to Loop */}
+                        {/* Set as Active for Current Week */}
                         {isActive ? (
-                          isManuallyOverridden ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleRevertToLoop()}
-                              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 text-left transition-colors border-b border-slate-100/60"
-                            >
-                              <RotateCcw size={15} className="text-amber-600" />
-                              <span>Revert to scheduled loop</span>
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-primary bg-primary-light/40 rounded-lg border-b border-slate-100/60">
-                              <CheckCircle2 size={15} className="text-primary shrink-0" />
-                              <span>Active (Auto scheduled)</span>
-                            </div>
-                          )
+                          <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-primary bg-primary-light/40 rounded-lg border-b border-slate-100/60">
+                            <CheckCircle2 size={15} className="text-primary shrink-0" />
+                            <span>Active for Week {week}</span>
+                          </div>
                         ) : (
                           <button
                             type="button"
@@ -755,16 +806,29 @@ export function Menu() {
             value={newMenuName}
             onChange={(e) => setNewMenuName(e.target.value)}
             placeholder="Enter menu name"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400 mb-6 bg-slate-50/50"
+            className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400 mb-4 bg-slate-50/50"
           />
+          {newMenuName.trim() &&
+            menus.some(
+              (m) => m.title.toLowerCase().trim() === newMenuName.toLowerCase().trim(),
+            ) && (
+              <p className="text-xs text-red-500 mb-4 -mt-2">
+                A menu with this name already exists.
+              </p>
+            )}
           <button
             type="button"
-            disabled={!newMenuName.trim()}
+            disabled={
+              !newMenuName.trim() ||
+              menus.some(
+                (m) => m.title.toLowerCase().trim() === newMenuName.toLowerCase().trim(),
+              )
+            }
             onClick={() => {
               const name = newMenuName.trim();
               if (name) {
                 setIsNewMenuModalOpen(false);
-                navigate(`/admin/menu/add-menu/${encodeURIComponent(name)}`);
+                navigateWithCheck(`/admin/menu/add-menu/${encodeURIComponent(name)}`);
               }
             }}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-40"
@@ -772,6 +836,97 @@ export function Menu() {
             <ArrowRight size={18} />
             <span>Continue</span>
           </button>
+        </section>
+      </Modal>
+
+      {/* CONFIRM SAVE ORDER MODAL */}
+      <Modal
+        isOpen={isConfirmSaveModalOpen}
+        onClose={() => !isSavingOrder && setIsConfirmSaveModalOpen(false)}
+        variant="bottom"
+        showCloseButton={!isSavingOrder}
+      >
+        <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light text-primary shrink-0">
+              <Check size={20} />
+            </div>
+            <h2 className="text-base font-bold text-slate-900">Save menu order?</h2>
+          </div>
+          <p className="mb-6 text-sm text-slate-600 leading-relaxed">
+            This will update the weekly repeating menu sequence in the database.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={isSavingOrder}
+              onClick={() => setIsConfirmSaveModalOpen(false)}
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isSavingOrder}
+              onClick={() => void handleConfirmSaveOrder()}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-50"
+            >
+              {isSavingOrder ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Check size={18} />
+              )}
+              <span>Save changes</span>
+            </button>
+          </div>
+        </section>
+      </Modal>
+
+      {/* UNSAVED CHANGES LEAVING MODAL */}
+      <Modal
+        isOpen={isUnsavedChangesModalOpen}
+        onClose={() => setIsUnsavedChangesModalOpen(false)}
+        variant="bottom"
+        showCloseButton
+      >
+        <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <h2 className="text-base font-bold text-slate-900">Unsaved changes</h2>
+          </div>
+          <p className="mb-6 text-sm text-slate-600 leading-relaxed">
+            You have reordered menus without saving. If you leave now, your new menu sequence will be discarded.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsUnsavedChangesModalOpen(false);
+                setPendingNavigationPath(null);
+              }}
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Stay on page
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsUnsavedChangesModalOpen(false);
+                setHasUnsavedOrderChanges(false);
+                setOrderedMenuIds(getStoredMenuOrder());
+                const target = pendingNavigationPath;
+                setPendingNavigationPath(null);
+                if (target) {
+                  navigate(target);
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 py-3 text-sm font-semibold text-white shadow-xs transition-opacity"
+            >
+              <span>Discard & Leave</span>
+            </button>
+          </div>
         </section>
       </Modal>
 

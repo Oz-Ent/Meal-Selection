@@ -166,6 +166,48 @@ describe('WeeklyMealCarousel Component', () => {
     expect(screen.getByText("Fetching this week's meal plan...")).toBeInTheDocument();
     expect(screen.queryByTestId('swiper-carousel')).not.toBeInTheDocument();
   });
+
+  it('renders full-bleed background images for items with valid imageUrl', () => {
+    render(
+      <MemoryRouter>
+        <WeeklyMealCarousel items={sampleItems} defaultIndex={0} />
+      </MemoryRouter>
+    );
+
+    const indomieImg = screen.getByAltText('Indomie Noodles Fried Egg And Sausages- Chopped Kpakpo Shito');
+    expect(indomieImg).toBeInTheDocument();
+    expect(indomieImg).toHaveAttribute('src', '/images/indomie.jpg');
+    expect(indomieImg).toHaveClass('object-cover');
+  });
+
+  it('falls back to default stylized card if image fails to load (onError)', () => {
+    render(
+      <MemoryRouter>
+        <WeeklyMealCarousel items={sampleItems} defaultIndex={0} />
+      </MemoryRouter>
+    );
+
+    const indomieImg = screen.getByAltText('Indomie Noodles Fried Egg And Sausages- Chopped Kpakpo Shito');
+    fireEvent.error(indomieImg);
+
+    // After error, fallback bowl should be shown with drop shadow
+    const fallbackImgs = screen.getAllByAltText('Indomie Noodles Fried Egg And Sausages- Chopped Kpakpo Shito');
+    expect(fallbackImgs.length).toBeGreaterThan(0);
+    expect(fallbackImgs[0]).toHaveClass('drop-shadow-[0_14px_24px_rgba(0,0,0,0.75)]');
+  });
+
+  it('navigates when meal title area is clicked', () => {
+    render(
+      <MemoryRouter>
+        <WeeklyMealCarousel items={sampleItems} defaultIndex={0} />
+      </MemoryRouter>
+    );
+
+    const mealTitle = screen.getByText('Indomie Noodles Fried Egg And Sausages- Chopped Kpakpo Shito');
+    fireEvent.click(mealTitle.closest('div')!);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/select-meal');
+  });
 });
 
 

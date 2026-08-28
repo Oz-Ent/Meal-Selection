@@ -243,6 +243,7 @@ export function PresetDetail() {
           showPresetButton={false}
           showOtherOptions={false}
           mode={isEditing ? 'select' : 'view'}
+          dimDisabledMeals={false}
           onToast={(type, message) => setToast({ isOpen: true, type, message })}
         />
       )}

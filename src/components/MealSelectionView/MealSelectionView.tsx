@@ -47,6 +47,7 @@ export interface MealSelectionViewProps {
   isScheduleClosed?: boolean;
   closedMessage?: string;
   todayDayId?: number;
+  dimDisabledMeals?: boolean;
 }
 
 export function MealSelectionView({
@@ -72,6 +73,7 @@ export function MealSelectionView({
   todayDayId,
   isScheduleClosed = false,
   closedMessage,
+  dimDisabledMeals = true,
 }: MealSelectionViewProps) {
   const [randomDrawerOpen, setRandomDrawerOpen] = useState(false);
   const [randomMenuDayId, setRandomMenuDayId] = useState<number | null>(null);
@@ -115,6 +117,7 @@ export function MealSelectionView({
   const isPastDay = Boolean(currentDay && pastDayIds.includes(currentDay.id));
   const isTodayClosed = Boolean(currentDay && isPastDay && currentDay.id === todayDayId);
   const isDayDisabled = mode === 'view' || isHolidayDay || isPastDay || isScheduleClosed;
+  const shouldDim = dimDisabledMeals && isDayDisabled;
 
   const totalGuestMealsToday = useMemo(() => {
     if (!isGuestMode || !currentDayGuest?.mealQuantities) return 0;
@@ -232,6 +235,7 @@ export function MealSelectionView({
                 meal={meal}
                 isSelected={isSelected}
                 isDisabled={isDisabled}
+                isDimmed={shouldDim}
                 isGuestMode={isGuestMode}
                 quantity={quantity}
                 onQuantityChange={(newQty) => {
@@ -297,15 +301,19 @@ export function MealSelectionView({
                     }
                   }
                 }}
-                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors cursor-pointer ${
+                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors ${
                   isDayDisabled
-                    ? isUnavailableSelected
-                      ? 'bg-primary-light/60 opacity-80 cursor-not-allowed'
-                      : 'opacity-40 cursor-not-allowed'
+                    ? shouldDim
+                      ? isUnavailableSelected
+                        ? 'bg-primary-light/60 opacity-80 cursor-not-allowed'
+                        : 'opacity-40 cursor-not-allowed'
+                      : isUnavailableSelected
+                      ? 'bg-primary-light cursor-default'
+                      : 'cursor-default'
                     : isUnavailableSelected
                     ? 'bg-primary-light'
                     : mode === 'select'
-                    ? 'hover:bg-slate-50'
+                    ? 'hover:bg-slate-50 cursor-pointer'
                     : ''
                 }`}
               >
@@ -368,13 +376,15 @@ export function MealSelectionView({
                     }
                   }
                 }}
-                className={`flex w-full items-center justify-between p-3 rounded-2xl text-left transition-colors cursor-pointer ${
+                className={`flex w-full items-center justify-between p-3 rounded-2xl text-left transition-colors ${
                   isHolidaySelected || isHolidayDay
                     ? 'bg-amber-50/80 border border-amber-200/70'
                     : isDayDisabled
-                    ? 'opacity-40 cursor-not-allowed'
+                    ? shouldDim
+                      ? 'opacity-40 cursor-not-allowed'
+                      : 'cursor-default'
                     : mode === 'select'
-                    ? 'hover:bg-slate-50'
+                    ? 'hover:bg-slate-50 cursor-pointer'
                     : ''
                 }`}
               >
@@ -493,7 +503,7 @@ export function MealSelectionView({
         )}
 
         {/* Pill 4: Presets / Bookmark */}
-        {showPresetButton && !isScheduleClosed && (
+        {showPresetButton && mode === 'select' && !isScheduleClosed && (
           <button
             type="button"
             aria-label="Presets"

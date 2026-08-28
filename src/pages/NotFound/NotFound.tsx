@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import AppIcon from '../../assets/App Icon.svg';
 
 export default function NotFoundPage() {
