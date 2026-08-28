@@ -1,70 +1,65 @@
 describe('Weekly Meal Selection Integration Tests', () => {
   beforeEach(() => {
-    // Seed localStorage with authenticated user session
+    // Seed authenticated user session (nested IAuthUser shape)
     const mockUser = {
       id: 1,
       name: 'Kofi Test',
       email: 'kofi@example.com',
-      referenceEmail: 'kofi@example.com',
-      referenceId: 101,
       roleId: 2,
       roleName: 'user',
-      status: 'ACTIVE',
     };
-    window.localStorage.setItem('token', 'mock-token-xyz');
-    window.localStorage.setItem('user', JSON.stringify(mockUser));
+    cy.seedAuth(mockUser);
+
+    // Freeze the clock to a Monday morning (before the 10:00 cut-off) so the
+    // week/day logic is deterministic: Monday is "today" and selectable.
+    // Restrict the fake clock to Date so timers/network keep working.
+    cy.clock(new Date(2026, 7, 31, 8, 0, 0).getTime(), ['Date']);
 
     // Mock weekly schedule API
-    cy.intercept('GET', '**/menu-schedule/week/**', {
+    cy.intercept('GET', '**/week-menu-schedules/by-week-year**', {
       statusCode: 200,
       body: {
         id: 1,
-        menuId: 10,
         week: 34,
         year: 2026,
-        menu: { id: 10, title: 'Weekly Special Menu', isActive: true },
+        status: 'ACTIVE',
+        menu: { id: 10, title: 'Weekly Special Menu' },
       },
     }).as('getSchedule');
 
     // Mock menu days
-    cy.intercept('GET', '**/menu-days/menu/10**', {
+    cy.intercept('GET', '**/menus/days/10**', {
       statusCode: 200,
       body: [
-        { id: 100, day: 'MONDAY', menuId: 10 },
-        { id: 200, day: 'TUESDAY', menuId: 10 },
-        { id: 300, day: 'WEDNESDAY', menuId: 10 },
-        { id: 400, day: 'THURSDAY', menuId: 10 },
-        { id: 500, day: 'FRIDAY', menuId: 10 },
+        { id: 100, day: 'MONDAY' },
+        { id: 200, day: 'TUESDAY' },
+        { id: 300, day: 'WEDNESDAY' },
+        { id: 400, day: 'THURSDAY' },
+        { id: 500, day: 'FRIDAY' },
       ],
     }).as('getMenuDays');
 
-    // Mock menu meals
-    cy.intercept('GET', '**/menu-meals/menu/10**', {
+    // Mock menu meals (options for every day so the active day always has some)
+    cy.intercept('GET', '**/menus/10/meals**', {
       statusCode: 200,
-      body: [
+      body: [100, 200, 300, 400, 500].flatMap((menuDayId) => [
         {
-          id: 1001,
-          menuDayId: 100,
+          id: menuDayId + 1,
           isActive: true,
+          menuDayId,
           meal: { id: 1, name: 'Waakye Deluxe', imagePath: '' },
         },
         {
-          id: 1002,
-          menuDayId: 100,
+          id: menuDayId + 2,
           isActive: true,
+          menuDayId,
           meal: { id: 2, name: 'Jollof & Chicken', imagePath: '' },
         },
-        {
-          id: 2001,
-          menuDayId: 200,
-          isActive: true,
-          meal: { id: 3, name: 'Banku & Tilapia', imagePath: '' },
-        },
-      ],
+      ]),
     }).as('getMenuMeals');
 
     // Mock weekly holidays
-    cy.intercept('GET', '**/holidays/week/**', {
+    cy.intercept('GET', '**/holidays/week**', {
       statusCode: 200,
       body: [],
     }).as('getHolidays');
@@ -76,7 +71,7 @@ describe('Weekly Meal Selection Integration Tests', () => {
     }).as('getSelections');
 
     // Mock user presets
-    cy.intercept('GET', '**/presets/user/**', {
+    cy.intercept('GET', '**/presets/by-user/**', {
       statusCode: 200,
       body: [],
     }).as('getPresets');

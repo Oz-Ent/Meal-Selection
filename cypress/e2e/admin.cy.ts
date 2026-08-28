@@ -11,8 +11,14 @@ describe('Admin Portal Integration Tests', () => {
   };
 
   beforeEach(() => {
-    window.localStorage.setItem('token', 'mock-admin-token');
-    window.localStorage.setItem('user', JSON.stringify(mockAdminUser));
+    cy.seedAuth({
+      id: mockAdminUser.id,
+      name: mockAdminUser.name,
+      email: mockAdminUser.email,
+      roleId: mockAdminUser.roleId,
+      roleName: mockAdminUser.roleName,
+      token: 'mock-admin-token',
+    });
 
     // Mock admin menu list
     cy.intercept('GET', '**/menus**', {
@@ -23,23 +29,29 @@ describe('Admin Portal Integration Tests', () => {
       ],
     }).as('getAdminMenus');
 
-    // Mock holidays
-    cy.intercept('GET', '**/holidays**', {
-      statusCode: 200,
-      body: {
-        publicHolidays: [
-          {
-            id: 1,
-            title: "Independence Day",
-            date: '2026-03-06',
-            dayName: 'Friday',
-            source: 'PUBLIC',
-            isIgnored: false,
-          },
-        ],
-        companyHolidays: [],
+    // Mock holidays. Match the exact API pathname so this does NOT also
+    // intercept the SPA document navigation to '/admin/holidays'.
+    cy.intercept(
+      { method: 'GET', pathname: '/holidays' },
+      {
+        statusCode: 200,
+        body: {
+          publicHolidays: [
+            {
+              id: 1,
+              title: "Independence Day",
+              // Far-future date so it always shows under the default "Upcoming"
+              // filter regardless of when the suite runs.
+              date: '2099-03-06',
+              dayName: 'Friday',
+              source: 'PUBLIC',
+              isIgnored: false,
+            },
+          ],
+          companyHolidays: [],
+        },
       },
-    }).as('getHolidays');
+    ).as('getHolidays');
 
     // Mock meals
     cy.intercept('GET', '**/meals**', {

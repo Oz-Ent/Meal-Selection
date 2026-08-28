@@ -11,8 +11,13 @@ describe('User Account & Profile Integration Tests', () => {
   };
 
   beforeEach(() => {
-    window.localStorage.setItem('token', 'mock-token-xyz');
-    window.localStorage.setItem('user', JSON.stringify(mockUser));
+    cy.seedAuth({
+      id: mockUser.id,
+      name: mockUser.name,
+      email: mockUser.email,
+      roleId: mockUser.roleId,
+      roleName: mockUser.roleName,
+    });
 
     // Mock profile
     cy.intercept('GET', '**/users/profile/**', {
@@ -56,9 +61,9 @@ describe('User Account & Profile Integration Tests', () => {
   it('renders account page with user profile, dietary preferences, and security settings', () => {
     cy.visit('/account');
 
-    cy.contains('Account & Profile').should('exist');
+    cy.contains('Account & Settings').should('exist');
     cy.contains('Kofi Mensah').should('exist');
-    cy.contains('Meal & Dietary Preferences').should('exist');
+    cy.contains('Dietary Preferences').should('exist');
     cy.contains('Leave Days & Availability').should('exist');
     cy.contains('Security & Password').should('exist');
   });
@@ -74,7 +79,7 @@ describe('User Account & Profile Integration Tests', () => {
   it('opens sign out confirmation modal when logout button is clicked', () => {
     cy.visit('/account');
 
-    cy.contains(/Sign Out|Log Out/i).click();
+    cy.contains('button', /Sign Out|Log Out/i).click();
     cy.contains('Sign Out of Account?').should('exist');
     cy.contains('Cancel').should('exist');
   });
