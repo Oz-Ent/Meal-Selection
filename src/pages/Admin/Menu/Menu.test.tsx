@@ -56,11 +56,7 @@ function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      {ui}
-    </QueryClientProvider>
-  );
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
 describe('Menu Component', () => {
@@ -196,8 +192,17 @@ describe('Menu Component', () => {
     // Fri/Sat/Sun: scheduling rolls to the coming week.
     mockGetSchedulingWeekAndYear.mockReturnValue({ week: 36, year: 2026, isNextWeek: true });
 
+    const menu2 = {
+      id: 2,
+      title: 'Second Menu',
+      description: 'Second lunch plan',
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+    };
+
     mockUseMenusQuery.mockReturnValue({
-      data: [menu],
+      data: [menu, menu2],
       isLoading: false,
     } as unknown as ReturnType<typeof useMenusQuery>);
     mockUseWeekSchedulesQuery.mockReturnValue({
@@ -211,7 +216,7 @@ describe('Menu Component', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: /More options/i })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /More options/i })[1]);
 
     // Label reflects the coming week and clicking only opens the confirmation.
     fireEvent.click(screen.getByText('Set as active for next week'));
@@ -221,7 +226,7 @@ describe('Menu Component', () => {
     // Explicit confirm schedules the coming week.
     fireEvent.click(screen.getByRole('button', { name: /^Confirm$/i }));
     expect(mockCreateSchedule).toHaveBeenCalledWith(
-      expect.objectContaining({ week: 36, year: 2026, menuId: 1 }),
+      expect.objectContaining({ week: 36, year: 2026, menuId: 2 }),
     );
   });
 
@@ -250,7 +255,9 @@ describe('Menu Component', () => {
     expect(cards[1]).toHaveTextContent('Second Menu');
 
     // Simulate drag and drop
-    const cardElements = screen.getAllByRole('button', { name: /More options/i }).map((btn) => btn.closest('[draggable="true"]')!);
+    const cardElements = screen
+      .getAllByRole('button', { name: /More options/i })
+      .map((btn) => btn.closest('[draggable="true"]')!);
     fireEvent.dragStart(cardElements[0], {
       dataTransfer: { setData: jest.fn(), effectAllowed: 'move' },
     });
@@ -338,7 +345,9 @@ describe('Menu Component', () => {
     window.HTMLElement.prototype.setPointerCapture = jest.fn();
     window.HTMLElement.prototype.releasePointerCapture = jest.fn();
 
-    const cards = screen.getAllByRole('button', { name: /More options/i }).map((btn) => btn.closest('[data-menu-index]')!);
+    const cards = screen
+      .getAllByRole('button', { name: /More options/i })
+      .map((btn) => btn.closest('[data-menu-index]')!);
     document.elementFromPoint = jest.fn().mockReturnValue(cards[1]);
 
     fireEvent.pointerDown(gripButtons[0], { pointerId: 1, button: 0, pointerType: 'touch' });
@@ -367,7 +376,10 @@ describe('Menu Component', () => {
       <MemoryRouter initialEntries={['/admin/menu']}>
         <Routes>
           <Route path="/admin/menu" element={<Menu />} />
-          <Route path="/admin/menu/edit/:menuId" element={<div data-testid="edit-menu-page">Edit Menu Page</div>} />
+          <Route
+            path="/admin/menu/edit/:menuId"
+            element={<div data-testid="edit-menu-page">Edit Menu Page</div>}
+          />
         </Routes>
       </MemoryRouter>,
     );
@@ -380,7 +392,9 @@ describe('Menu Component', () => {
     expect(screen.getByText(/You have unsaved changes to the menu order/i)).toBeInTheDocument();
 
     // Attempt to navigate by clicking a menu card
-    const cardElements = screen.getAllByRole('button', { name: /More options/i }).map((btn) => btn.closest('[data-menu-index]')!);
+    const cardElements = screen
+      .getAllByRole('button', { name: /More options/i })
+      .map((btn) => btn.closest('[data-menu-index]')!);
     fireEvent.click(cardElements[0]!);
 
     // Unsaved changes modal should appear
