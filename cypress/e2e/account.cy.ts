@@ -19,8 +19,10 @@ describe('User Account & Profile Integration Tests', () => {
       roleName: mockUser.roleName,
     });
 
-    // Mock profile
-    cy.intercept('GET', '**/users/profile/**', {
+    // Mock profile. The endpoint is exactly '/users/profile' (no trailing
+    // segment), so the glob must not require one — otherwise the real API is
+    // hit, returns 401, and the app redirects to /login.
+    cy.intercept('GET', '**/users/profile**', {
       statusCode: 200,
       body: mockUser,
     }).as('getProfile');
@@ -60,6 +62,7 @@ describe('User Account & Profile Integration Tests', () => {
 
   it('renders account page with user profile, dietary preferences, and security settings', () => {
     cy.visit('/account');
+    cy.wait('@getProfile');
 
     cy.contains('Account & Settings').should('exist');
     cy.contains('Kofi Mensah').should('exist');
@@ -70,6 +73,7 @@ describe('User Account & Profile Integration Tests', () => {
 
   it('opens dietary preferences modal when Configure is clicked', () => {
     cy.visit('/account');
+    cy.wait('@getProfile');
 
     cy.contains(/Configure|Add Dietary/i).click();
     cy.contains('Manage Meal Preferences').should('exist');
@@ -78,6 +82,7 @@ describe('User Account & Profile Integration Tests', () => {
 
   it('opens sign out confirmation modal when logout button is clicked', () => {
     cy.visit('/account');
+    cy.wait('@getProfile');
 
     cy.contains('button', /Sign Out|Log Out/i).click();
     cy.contains('Sign Out of Account?').should('exist');

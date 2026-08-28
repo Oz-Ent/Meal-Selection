@@ -16,6 +16,7 @@ interface SeedAuthOptions {
   roleId?: number;
   roleName?: string;
   token?: string;
+  refreshToken?: string;
 }
 
 // Seed an authenticated session in localStorage using the same nested shape
@@ -38,6 +39,23 @@ Cypress.Commands.add('seedAuth', (options: SeedAuthOptions = {}) => {
 
   window.localStorage.setItem('token', options.token ?? 'mock-token-xyz');
   window.localStorage.setItem('user', JSON.stringify(authUser));
+  // A refresh token is required so a stray 401 doesn't take the interceptor's
+  // "no refresh token" branch, which clears storage and redirects to /login —
+  // a race that makes protected-page specs flaky under slower CI latency.
+  window.localStorage.setItem(
+    'refreshToken',
+    options.refreshToken ?? 'mock-refresh-token',
+  );
+
+  // Keep any unmocked 401 from redirecting: the interceptor refreshes, retries
+  // once (marked _retry), then rejects without navigating away.
+  cy.intercept('POST', '**/auth/refresh**', {
+    statusCode: 200,
+    body: {
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+    },
+  });
 });
 
 declare global {
