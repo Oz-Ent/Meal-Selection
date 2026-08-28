@@ -9,8 +9,7 @@ describe('Preset Meals Integration Tests', () => {
   };
 
   beforeEach(() => {
-    window.localStorage.setItem('token', 'mock-token-xyz');
-    window.localStorage.setItem('user', JSON.stringify(mockUser));
+    cy.seedAuth(mockUser);
 
     // Mock menus
     cy.intercept('GET', '**/menus**', {
@@ -22,7 +21,7 @@ describe('Preset Meals Integration Tests', () => {
     }).as('getMenus');
 
     // Mock presets
-    cy.intercept('GET', '**/presets/user/**', {
+    cy.intercept('GET', '**/presets/by-user/**', {
       statusCode: 200,
       body: [
         {
@@ -42,12 +41,12 @@ describe('Preset Meals Integration Tests', () => {
     }).as('getSingleMenu');
 
     // Mock menu days & meals
-    cy.intercept('GET', '**/menu-days/menu/10**', {
+    cy.intercept('GET', '**/menus/days/10**', {
       statusCode: 200,
-      body: [{ id: 1, day: 'MONDAY', menuId: 10 }],
+      body: [{ id: 1, day: 'MONDAY' }],
     }).as('getDays');
 
-    cy.intercept('GET', '**/menu-meals/menu/10**', {
+    cy.intercept('GET', '**/menus/10/meals**', {
       statusCode: 200,
       body: [
         {
@@ -81,7 +80,12 @@ describe('Preset Meals Integration Tests', () => {
     cy.visit('/preset-meals');
 
     cy.get('button[aria-label="Add new preset menu"]').click();
-    cy.contains('Menu Standard').click();
+    // Scope to the modal: the preset card also shows the menu name, but it sits
+    // behind the modal overlay once the dialog is open.
+    cy.contains('h2', 'Select menu')
+      .parent()
+      .contains('button', 'Menu Standard')
+      .click();
 
     cy.url().should('include', '/preset-meals/create/10');
     cy.contains(/Menu Standard|New Preset/i).should('exist');
