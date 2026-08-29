@@ -2,11 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { OtpInput } from './OtpInput';
 
 describe('OtpInput Component', () => {
-    it('renders the correct number of inputs by default (5)', () => {
+    it('renders the correct number of inputs by default (6)', () => {
         const onChange = jest.fn();
         render(<OtpInput value="" onChange={onChange} />);
         const inputs = screen.getAllByRole('textbox');
-        expect(inputs).toHaveLength(5);
+        expect(inputs).toHaveLength(6);
     });
 
     it('renders a custom number of inputs', () => {
@@ -25,6 +25,7 @@ describe('OtpInput Component', () => {
         expect(inputs[2]).toHaveValue('3');
         expect(inputs[3]).toHaveValue('');
         expect(inputs[4]).toHaveValue('');
+        expect(inputs[5]).toHaveValue('');
     });
 
     it('calls onChange when a digit is entered', () => {

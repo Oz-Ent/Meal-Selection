@@ -12,7 +12,7 @@ interface IOtpInputProps {
   requestCooldown?: number;
 }
 
-export function OtpInput({ length = 5, value, onChange, hasError = false, errorMessage, handleRequestOTP, isPending, requestCooldown = 0, requestLabel}: IOtpInputProps) {
+export function OtpInput({ length = 6, value, onChange, hasError = false, errorMessage, handleRequestOTP, isPending, requestCooldown = 0, requestLabel}: IOtpInputProps) {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   const focusInput = (index: number) => {

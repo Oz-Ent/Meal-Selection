@@ -13,7 +13,7 @@ interface IOtpLocationState {
   email?: string;
 }
 
-const OTP_LENGTH = 8;
+const OTP_LENGTH = 6;
 
 export function OtpVerification() {
   const navigate = useNavigate();
