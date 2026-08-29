@@ -76,12 +76,6 @@ export default function MealDetailsModal({
               </span>
             </div>
 
-            {/* Description */}
-            {meal.description && (
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {meal.description}
-              </p>
-            )}
 
             {/* Ingredients list */}
             {meal.ingredients && meal.ingredients.length > 0 && (

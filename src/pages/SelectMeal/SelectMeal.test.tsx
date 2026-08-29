@@ -177,6 +177,11 @@ jest.mock('./SuccessModal', () => ({
 describe('SelectMealPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSubmitSelections.mockReset();
+    mockAdminOverrideSelections.mockReset();
+    mockSubmitSelections.mockResolvedValue({});
+    mockAdminOverrideSelections.mockResolvedValue({});
+    (presetService.getWithDetails as jest.Mock).mockReset();
     mockCurrentUserRole = 'user';
     mockWeeklySelectionsData = null;
     mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
@@ -801,7 +806,7 @@ describe('SelectMealPage', () => {
   });
 
   it('displays server error message in toast when submit fails', async () => {
-    mockSubmitSelections.mockRejectedValue({
+    mockSubmitSelections.mockRejectedValueOnce({
       response: {
         data: {
           message: 'The recipient has already made meal selections for this week.',

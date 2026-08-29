@@ -91,11 +91,23 @@ export default function SelectMealPage() {
   const createMealSelectionsMutation = useCreateMealSelectionsMutation();
   const adminOverrideSelectionsMutation = useAdminOverrideSelectionsMutation();
 
-  const users = Array.isArray(usersQuery.data) ? usersQuery.data : [];
+  const users = useMemo(
+    () => (Array.isArray(usersQuery.data) ? usersQuery.data : []),
+    [usersQuery.data],
+  );
   const weekMenuSchedule = weekMenuScheduleQuery.data;
-  const menuDays: MenuDay[] = Array.isArray(menuDaysQuery.data) ? menuDaysQuery.data : [];
-  const menuDayMeals = Array.isArray(menuDayMealsQuery.data) ? menuDayMealsQuery.data : [];
-  const weeklyHolidays = Array.isArray(weeklyHolidaysQuery.data) ? weeklyHolidaysQuery.data : [];
+  const menuDays: MenuDay[] = useMemo(
+    () => (Array.isArray(menuDaysQuery.data) ? menuDaysQuery.data : []),
+    [menuDaysQuery.data],
+  );
+  const menuDayMeals = useMemo(
+    () => (Array.isArray(menuDayMealsQuery.data) ? menuDayMealsQuery.data : []),
+    [menuDayMealsQuery.data],
+  );
+  const weeklyHolidays = useMemo(
+    () => (Array.isArray(weeklyHolidaysQuery.data) ? weeklyHolidaysQuery.data : []),
+    [weeklyHolidaysQuery.data],
+  );
 
   const menuDaysById = useMemo(
     () => new Map(menuDays.map((day) => [day.id, day])),
