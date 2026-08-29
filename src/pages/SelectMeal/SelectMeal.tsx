@@ -10,6 +10,7 @@ import { BottomToast, type ToastType } from '../../components/BottomToast/Bottom
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { MealSelectionView, type DaySelectionValue, type GuestDaySelection } from '../../components/MealSelectionView/MealSelectionView';
 
+import { useQueryClient } from '@tanstack/react-query';
 // API Services
 import { type User } from '../../api/Services/UserServices';
 import { type MenuDay } from '../../api/Services/MenuServices';
@@ -25,6 +26,7 @@ import {
   useWeeklySelectionsQuery,
   useWeekScheduleQuery,
 } from '../../api/useApiQueries';
+import { queryKeys } from '../../api/queryKeys';
 
 // Helpers
 import { getISOWeekAndYear, isMenuDayPast, isMenuDayToday } from '../../utils/dateHelpers';
@@ -34,6 +36,7 @@ import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
 
 export default function SelectMealPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const isForSomeone = searchParams.get('forSomeone') === 'true';
   const isGuest = searchParams.get('isGuest') === 'true';
@@ -88,11 +91,23 @@ export default function SelectMealPage() {
   const createMealSelectionsMutation = useCreateMealSelectionsMutation();
   const adminOverrideSelectionsMutation = useAdminOverrideSelectionsMutation();
 
-  const users = useMemo(()=> usersQuery.data ?? [], [usersQuery.data]);
-  const weekMenuSchedule = useMemo(()=> weekMenuScheduleQuery.data, [weekMenuScheduleQuery.data]);
-  const menuDays: MenuDay[] = useMemo(()=> menuDaysQuery.data ?? [], [menuDaysQuery.data]);
-  const menuDayMeals = useMemo(()=> menuDayMealsQuery.data ?? [], [menuDayMealsQuery.data]);
-  const weeklyHolidays = useMemo(()=> weeklyHolidaysQuery.data ?? [], [weeklyHolidaysQuery.data]);
+  const users = useMemo(
+    () => (Array.isArray(usersQuery.data) ? usersQuery.data : []),
+    [usersQuery.data],
+  );
+  const weekMenuSchedule = weekMenuScheduleQuery.data;
+  const menuDays: MenuDay[] = useMemo(
+    () => (Array.isArray(menuDaysQuery.data) ? menuDaysQuery.data : []),
+    [menuDaysQuery.data],
+  );
+  const menuDayMeals = useMemo(
+    () => (Array.isArray(menuDayMealsQuery.data) ? menuDayMealsQuery.data : []),
+    [menuDayMealsQuery.data],
+  );
+  const weeklyHolidays = useMemo(
+    () => (Array.isArray(weeklyHolidaysQuery.data) ? weeklyHolidaysQuery.data : []),
+    [weeklyHolidaysQuery.data],
+  );
 
   const menuDaysById = useMemo(
     () => new Map(menuDays.map((day) => [day.id, day])),
@@ -461,24 +476,95 @@ export default function SelectMealPage() {
   }, [isGuest, menuDays, isGuestDayComplete, selections]);
 
   const handleApplyPreset = async (preset: Preset) => {
+    if (isScheduleClosed && !isAdminOrHr) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: 'Meal selection for this week is closed.',
+      });
+      setIsPresetModalOpen(false);
+      return;
+    }
+
+    if (isTargetUserAlreadySelected) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: `${selectedUsers[0]?.name || 'The selected user'} has already made meal selections for this week.`,
+      });
+      setIsPresetModalOpen(false);
+      return;
+    }
+
     try {
-      const detailedPreset = await presetService.getWithDetails(preset.id);
-      const newSelections: Record<number, DaySelectionValue> = getInitialDefaultSelections();
+      const detailedPreset = await queryClient.fetchQuery({
+        queryKey: queryKeys.preset(preset.id),
+        queryFn: () => presetService.getWithDetails(preset.id),
+      });
+      const newSelections: Record<number, DaySelectionValue> = {
+        ...getInitialDefaultSelections(),
+        ...selections,
+      };
+
+      const presetDayMealIdsByDayId = new Map<number, number>();
 
       if (Array.isArray(detailedPreset.presetItems) && detailedPreset.presetItems.length > 0) {
         for (const item of detailedPreset.presetItems) {
           if (item.menuDayId && item.dayMealId) {
-            if (newSelections[item.menuDayId] !== 'HOLIDAY' && !pastDayIdSet.has(item.menuDayId)) {
-              newSelections[item.menuDayId] = item.dayMealId;
-            }
+            presetDayMealIdsByDayId.set(item.menuDayId, item.dayMealId);
           } else if (item.menuDay?.day && item.dayMealId) {
             const matchedDay = menuDays.find(
               (d) => d.day?.toUpperCase() === item.menuDay?.day?.toUpperCase(),
             );
-            if (matchedDay && newSelections[matchedDay.id] !== 'HOLIDAY' && !pastDayIdSet.has(matchedDay.id)) {
-              newSelections[matchedDay.id] = item.dayMealId;
+            if (matchedDay) {
+              presetDayMealIdsByDayId.set(matchedDay.id, item.dayMealId);
             }
           }
+        }
+      }
+
+      // Fallback: check items object (keyed by day name)
+      const presetRecord = detailedPreset as { items?: Record<string, { dayMealId?: number }> } | undefined;
+      if (
+        presetDayMealIdsByDayId.size === 0 &&
+        presetRecord?.items &&
+        typeof presetRecord.items === 'object' &&
+        menuDays.length > 0
+      ) {
+        for (const [dayName, item] of Object.entries(presetRecord.items)) {
+          const itemObj = item as { dayMealId?: number };
+          if (itemObj?.dayMealId) {
+            const matchedDay = menuDays.find(
+              (d) => d.day?.toUpperCase() === dayName.toUpperCase(),
+            );
+            if (matchedDay) {
+              presetDayMealIdsByDayId.set(matchedDay.id, itemObj.dayMealId);
+            }
+          }
+        }
+      }
+
+      for (const day of menuDays) {
+        const isHoliday = Boolean(day.day && holidayDayNames.has(day.day.toUpperCase())) || newSelections[day.id] === 'HOLIDAY';
+        if (isHoliday) {
+          newSelections[day.id] = 'HOLIDAY';
+          continue;
+        }
+
+        // Past days cannot be changed by applying a preset
+        if (pastDayIdSet.has(day.id)) {
+          if (newSelections[day.id] === undefined) {
+            newSelections[day.id] = 'UNAVAILABLE';
+          }
+          continue;
+        }
+
+        const presetMealId = presetDayMealIdsByDayId.get(day.id);
+        if (presetMealId !== undefined) {
+          newSelections[day.id] = presetMealId;
+        } else {
+          // Preset has no meal choice for this day -> automatically mark as UNAVAILABLE
+          newSelections[day.id] = 'UNAVAILABLE';
         }
       }
 

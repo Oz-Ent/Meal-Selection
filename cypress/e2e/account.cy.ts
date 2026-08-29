@@ -1,5 +1,19 @@
 describe('User Account & Profile Integration Tests', () => {
   const mockUser = {
+    user: {
+      id: 1,
+      name: 'Kofi Mensah',
+      email: 'kofi@example.com',
+      roleId: 2,
+      roleName: 'user',
+    },
+    availability: {
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+    },
+  };
+
+  const mockProfileResponse = {
     id: 1,
     name: 'Kofi Mensah',
     email: 'kofi@example.com',
@@ -8,16 +22,26 @@ describe('User Account & Profile Integration Tests', () => {
     roleId: 2,
     roleName: 'user',
     status: 'ACTIVE',
+    leaves: [],
+    upcomingOrActiveLeaves: [],
+    totalLeaveDays: 0,
+    preferences: {
+      dislikes: {
+        foodItems: ['PK'],
+        meals: [],
+      },
+    },
   };
 
   beforeEach(() => {
     window.localStorage.setItem('token', 'mock-token-xyz');
+    window.localStorage.setItem('refreshToken', 'mock-refresh-xyz');
     window.localStorage.setItem('user', JSON.stringify(mockUser));
 
     // Mock profile
     cy.intercept('GET', '**/users/profile/**', {
       statusCode: 200,
-      body: mockUser,
+      body: mockProfileResponse,
     }).as('getProfile');
 
     // Mock preferences
@@ -56,9 +80,9 @@ describe('User Account & Profile Integration Tests', () => {
   it('renders account page with user profile, dietary preferences, and security settings', () => {
     cy.visit('/account');
 
-    cy.contains('Account & Profile').should('exist');
+    cy.contains('Account & Settings').should('exist');
     cy.contains('Kofi Mensah').should('exist');
-    cy.contains('Meal & Dietary Preferences').should('exist');
+    cy.contains('Dietary Preferences').should('exist');
     cy.contains('Leave Days & Availability').should('exist');
     cy.contains('Security & Password').should('exist');
   });
@@ -74,7 +98,7 @@ describe('User Account & Profile Integration Tests', () => {
   it('opens sign out confirmation modal when logout button is clicked', () => {
     cy.visit('/account');
 
-    cy.contains(/Sign Out|Log Out/i).click();
+    cy.contains('button', /Sign Out|Log Out/i).click();
     cy.contains('Sign Out of Account?').should('exist');
     cy.contains('Cancel').should('exist');
   });

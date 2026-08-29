@@ -8,6 +8,7 @@ interface MealButtonProps {
   meal: MenuDayMeal;
   isSelected: boolean;
   isDisabled: boolean;
+  isDimmed?: boolean;
   onSelect: () => void;
   onLongPress: (foodCode: string) => void;
   isGuestMode?: boolean;
@@ -19,6 +20,7 @@ export default function MealButton({
   meal,
   isSelected,
   isDisabled,
+  isDimmed = true,
   onSelect,
   onLongPress,
   isGuestMode = false,
@@ -50,18 +52,29 @@ export default function MealButton({
           if (isDisabled || isLongPress()) return;
           onSelect();
         }}
-        className={`select-none flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors cursor-pointer ${
+        className={`select-none flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors ${
           isDisabled
-            ? 'opacity-40 cursor-not-allowed bg-slate-50/50'
+            ? isDimmed
+              ? isSelected
+                ? 'bg-primary-light cursor-not-allowed'
+                : 'opacity-40 cursor-not-allowed bg-slate-50/50'
+              : isSelected
+              ? 'bg-primary-light cursor-default'
+              : 'cursor-default'
             : isSelected
-            ? 'bg-primary-light'
-            : 'hover:bg-slate-50'
+            ? 'bg-primary-light cursor-pointer'
+            : 'hover:bg-slate-50 cursor-pointer'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
           <img
             src={meal.meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
             alt={meal.meal.name}
+            onError={(e) => {
+              if (e.currentTarget.src !== FALLBACK_MEAL_IMAGE_URL) {
+                e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
+              }
+            }}
             className="w-11 h-11 rounded-xl object-cover bg-slate-100 shrink-0"
           />
 
@@ -111,16 +124,27 @@ export default function MealButton({
       }}
       className={`select-none flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors cursor-pointer ${
         isDisabled
-          ? 'opacity-40 cursor-not-allowed bg-slate-50/50'
+          ? isDimmed
+            ? hasQuantity
+              ? 'bg-primary-light cursor-not-allowed'
+              : 'opacity-40 cursor-not-allowed bg-slate-50/50'
+            : hasQuantity
+            ? 'bg-primary-light cursor-default'
+            : 'cursor-default'
           : hasQuantity
-          ? 'bg-primary-light'
-          : 'hover:bg-slate-50'
+          ? 'bg-primary-light cursor-pointer'
+          : 'hover:bg-slate-50 cursor-pointer'
       }`}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
         <img
           src={meal.meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
           alt={meal.meal.name}
+          onError={(e) => {
+            if (e.currentTarget.src !== FALLBACK_MEAL_IMAGE_URL) {
+              e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
+            }
+          }}
           className="w-11 h-11 rounded-xl object-cover bg-slate-100 shrink-0"
         />
 

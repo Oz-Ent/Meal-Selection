@@ -1,3 +1,6 @@
+import type React from "react";
+import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+
 interface CardHeader{
     title: string
     subtitle: string
@@ -8,8 +11,7 @@ interface CardProps{
     loading?: boolean
     children: React.ReactNode
 }
-
-export function Card ({header, children}: CardProps){
+export function Card ({header, loading = false, children}: CardProps){
     return (
         <div className="w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs gap-2 p-4 flex flex-col">
             {header && 
@@ -32,7 +34,13 @@ export function Card ({header, children}: CardProps){
                     </div>
                 </div>
             }
-            {children}
+            {loading ? (
+                <div className="flex justify-center items-center p-6">
+                    <LoadingSpinner />
+                </div>
+            ) : (
+                children
+            )}
     </div>
     )
 }

@@ -66,7 +66,7 @@ describe('EditMenu Admin Page', () => {
     expect(screen.getByText('Monday')).toBeInTheDocument();
     expect(screen.getByText('Tuesday')).toBeInTheDocument();
     expect(screen.getByText('Waakye Deluxe')).toBeInTheDocument();
-    expect(screen.getByText('No meals added')).toBeInTheDocument();
+    expect(screen.getByText('Add meals to weekday')).toBeInTheDocument();
   });
 
   it('switches to editing mode and allows removing meals locally', () => {
@@ -82,6 +82,19 @@ describe('EditMenu Admin Page', () => {
     fireEvent.click(removeBtn);
 
     expect(screen.queryByText('Waakye Deluxe')).not.toBeInTheDocument();
+  });
+
+  it('allows clearing meals for a day in editing mode', () => {
+    renderEditMenu();
+
+    const editBtn = screen.getByRole('button', { name: 'Edit' });
+    fireEvent.click(editBtn);
+
+    const clearBtn = screen.getByText('Clear meal(s)');
+    fireEvent.click(clearBtn);
+
+    expect(screen.queryByText('Waakye Deluxe')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Add meals to weekday')).toHaveLength(2);
   });
 
   it('opens modal to add meals and saves menu changes', async () => {

@@ -284,6 +284,7 @@ function Signup() {
             {/* Email */}
             <InputField
               label="Email"
+              type="email"
               error={!!visibleErrors.email}
               errorMessage={visibleErrors.email}
               value={email}

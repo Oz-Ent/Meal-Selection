@@ -1,7 +1,7 @@
 import Button from '../../components/Button/Button';
 import HeroImage from '../../components/HeroImage/HeroImage';
 import AuthLink from '../../components/AuthLink/AuthLink';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import AppIcon from '../../assets/App Icon.svg';
 
 function Welcome() {

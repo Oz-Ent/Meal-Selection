@@ -18,6 +18,7 @@ import { LoadingOverlay } from '../../components/LoadingOverlay/LoadingOverlay';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import PresetIllustration from '../../assets/Preset Illustration.svg';
 import MenuIllustration from '../../assets/Menu Illustration.svg';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreatePresetMutation,
   useDeletePresetMutation,
@@ -26,11 +27,15 @@ import {
   useSetDefaultPresetMutation,
   useUpdatePresetMutation,
 } from '../../api/useApiQueries';
+import { queryKeys } from '../../api/queryKeys';
 import { presetService, type Preset } from '../../api/Services/PresetServices';
+import { menuService } from '../../api/Services/MenuServices';
+import { DefaultPresetWarningModal } from './components/DefaultPresetWarningModal';
 import { useAuth } from '../Auth/useAuth/useAuth';
 
 export function PresetMeals() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { profile } = useAuth();
   const userId = profile?.user?.id;
 
@@ -40,6 +45,18 @@ export function PresetMeals() {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameInput, setRenameInput] = useState('');
   const [presetToRename, setPresetToRename] = useState<Preset | null>(null);
+
+  const [warningPresetModal, setWarningPresetModal] = useState<{
+    isOpen: boolean;
+    preset: Preset | null;
+    emptyDays: string[];
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    preset: null,
+    emptyDays: [],
+    isLoading: false,
+  });
 
   const [loadingOverlay, setLoadingOverlay] = useState<{
     isLoading: boolean;
@@ -115,11 +132,9 @@ export function PresetMeals() {
     }
   };
 
-  const handleSetDefault = async (preset: Preset) => {
-    setActiveMenuPresetId(null);
-    setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
+  const executeSetDefault = async (presetId: number) => {
     try {
-      await setDefaultPresetMutation.mutateAsync(preset.id);
+      await setDefaultPresetMutation.mutateAsync(presetId);
       setToast({
         isOpen: true,
         type: 'success',
@@ -132,16 +147,108 @@ export function PresetMeals() {
         type: 'error',
         message: 'Something went wrong while setting preset meal as default. Please try again.',
       });
-    } finally {
+    }
+  };
+
+  const handleSetDefault = async (preset: Preset) => {
+    setActiveMenuPresetId(null);
+    setLoadingOverlay({ isLoading: true, message: 'Checking preset details...' });
+    try {
+      const [details, menuDays] = await Promise.all([
+        queryClient.fetchQuery({
+          queryKey: queryKeys.preset(preset.id),
+          queryFn: () => presetService.getWithDetails(preset.id),
+        }),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.menuDays(preset.menuId),
+          queryFn: () => menuService.getDays(preset.menuId),
+        }),
+      ]);
+
+      const selectedDayIds = new Set<number>();
+      if (Array.isArray(details.presetItems) && details.presetItems.length > 0) {
+        for (const item of details.presetItems) {
+          if (item.menuDayId) {
+            selectedDayIds.add(item.menuDayId);
+          } else if (item.menuDay?.day) {
+            const matchedDay = menuDays.find(
+              (d) => d.day?.toUpperCase() === item.menuDay.day.toUpperCase(),
+            );
+            if (matchedDay) {
+              selectedDayIds.add(matchedDay.id);
+            }
+          }
+        }
+      }
+
+      // Check items object fallback (keyed by day name, e.g. { "MONDAY": { dayMealId: 95 } })
+      const presetRecord = details as { items?: Record<string, { dayMealId?: number }> } | undefined;
+      if (
+        selectedDayIds.size === 0 &&
+        presetRecord?.items &&
+        typeof presetRecord.items === 'object' &&
+        menuDays.length > 0
+      ) {
+        for (const [dayName, item] of Object.entries(presetRecord.items)) {
+          const itemObj = item as { dayMealId?: number };
+          if (itemObj?.dayMealId) {
+            const matchedDay = menuDays.find(
+              (d) => d.day?.toUpperCase() === dayName.toUpperCase(),
+            );
+            if (matchedDay) {
+              selectedDayIds.add(matchedDay.id);
+            }
+          }
+        }
+      }
+
+      const emptyDays = menuDays
+        .filter((day) => !selectedDayIds.has(day.id))
+        .map((day) => day.day);
+
+      setLoadingOverlay({ isLoading: false, message: '' });
+
+      if (emptyDays.length > 0) {
+        setWarningPresetModal({
+          isOpen: true,
+          preset,
+          emptyDays,
+          isLoading: false,
+        });
+      } else {
+        setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
+        await executeSetDefault(preset.id);
+        setLoadingOverlay({ isLoading: false, message: '' });
+      }
+    } catch (error) {
+      setLoadingOverlay({ isLoading: false, message: '' });
+      console.error('Failed to check preset details:', error);
+      setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
+      await executeSetDefault(preset.id);
       setLoadingOverlay({ isLoading: false, message: '' });
     }
+  };
+
+  const handleConfirmDefaultWarning = async () => {
+    if (!warningPresetModal.preset) return;
+    setWarningPresetModal((prev) => ({ ...prev, isLoading: true }));
+    await executeSetDefault(warningPresetModal.preset.id);
+    setWarningPresetModal({
+      isOpen: false,
+      preset: null,
+      emptyDays: [],
+      isLoading: false,
+    });
   };
 
   const handleDuplicate = async (preset: Preset) => {
     setActiveMenuPresetId(null);
     setLoadingOverlay({ isLoading: true, message: 'Duplicating preset meal...' });
     try {
-      const details = await presetService.getWithDetails(preset.id);
+      const details = await queryClient.fetchQuery({
+        queryKey: queryKeys.preset(preset.id),
+        queryFn: () => presetService.getWithDetails(preset.id),
+      });
       const itemsToDuplicate =
         details.presetItems?.map((item) => ({
           menuDayId: item.menuDayId,
@@ -402,6 +509,23 @@ export function PresetMeals() {
           </button>
         </div>
       </Modal>
+
+      {/* Modal: Warning for Incomplete Default Preset */}
+      <DefaultPresetWarningModal
+        isOpen={warningPresetModal.isOpen}
+        onClose={() =>
+          setWarningPresetModal({
+            isOpen: false,
+            preset: null,
+            emptyDays: [],
+            isLoading: false,
+          })
+        }
+        onConfirm={handleConfirmDefaultWarning}
+        presetName={warningPresetModal.preset?.name || 'Preset'}
+        emptyDays={warningPresetModal.emptyDays}
+        isLoading={warningPresetModal.isLoading}
+      />
 
       {/* Global Loading Overlay for Full Screen Actions */}
       <LoadingOverlay isLoading={loadingOverlay.isLoading} message={loadingOverlay.message} />

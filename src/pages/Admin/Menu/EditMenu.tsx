@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Check, Pencil, Plus, X } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
+import MenuDayCard from '../../../components/MenuDayCard/MenuDayCard';
+import AllMealsModalSheet from '../../../components/AllMealsModalSheet/AllMealsModalSheet';
 
 import { type Meal } from '../../../api/Services/MealServices';
-import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 import {
   useAssignMealsMutation,
   useMenuDaysQuery,
@@ -261,70 +261,15 @@ export function EditMenu() {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayDays.map((day) => (
-              <div
+              <MenuDayCard
                 key={day.id}
-                className="rounded-3xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[180px]"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900">{day.title}</h3>
-                    {isEditingMode && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveDayIdForAdd(day.id)}
-                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-slate-100 px-2 py-1 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Plus size={14} />
-                        <span>Add Meals</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {day.meals.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-slate-400 italic">No meals added</p>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {day.meals.map((meal) => (
-                        <div key={meal.id} className="flex items-center justify-between gap-3 py-1">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <img
-                              src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
-                              alt={meal.name}
-                              className="h-10 w-10 shrink-0 rounded-xl object-cover bg-slate-100"
-                            />
-                            <span className="text-xs font-semibold text-slate-800 leading-snug line-clamp-2">
-                              {meal.name}
-                            </span>
-                          </div>
-
-                          {isEditingMode && (
-                            <button
-                              type="button"
-                              aria-label="Remove meal"
-                              onClick={() => handleRemoveMealLocal(day.id, meal.id)}
-                              className="p-1 text-red-500 hover:text-red-700 shrink-0 cursor-pointer"
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-
-                      {isEditingMode && day.meals.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-slate-50 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleClearDayMealsLocal(day.id)}
-                            className="text-xs font-semibold text-primary hover:underline cursor-pointer"
-                          >
-                            Clear meal(s)
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+                dayTitle={day.title}
+                meals={day.meals}
+                isEditable={isEditingMode}
+                onAddMeals={() => setActiveDayIdForAdd(day.id)}
+                onRemoveMeal={(mealId) => handleRemoveMealLocal(day.id, mealId)}
+                onClearMeals={() => handleClearDayMealsLocal(day.id)}
+              />
             ))}
           </div>
         )}
@@ -332,7 +277,7 @@ export function EditMenu() {
 
       {/* ALL MEALS SELECTION MODAL */}
       {activeDayIdForAdd !== null && (
-        <EditMealSelectionModalSheet
+        <AllMealsModalSheet
           meals={meals}
           selectedMealIds={(localDayMeals[activeDayIdForAdd] ?? []).map((m) => m.id)}
           onClose={() => setActiveDayIdForAdd(null)}
@@ -348,77 +293,5 @@ export function EditMenu() {
         onClose={() => setToastState({ ...toastState, isOpen: false })}
       />
     </div>
-  );
-}
-
-function EditMealSelectionModalSheet({
-  meals,
-  selectedMealIds,
-  onClose,
-  onSave,
-}: {
-  meals: Meal[];
-  selectedMealIds: number[];
-  onClose: () => void;
-  onSave: (selectedIds: number[]) => void;
-}) {
-  const [tempIds, setTempIds] = useState<number[]>(selectedMealIds);
-
-  const toggleMeal = (mealId: number) => {
-    setTempIds((prev) =>
-      prev.includes(mealId) ? prev.filter((id) => id !== mealId) : [...prev, mealId],
-    );
-  };
-
-  return (
-    <Modal isOpen variant="bottom" onClose={onClose} showCloseButton>
-      <section className="flex flex-col font-sans w-full max-h-[85vh]">
-        <div className="px-4 pt-4 pb-2 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">All meals</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Select all meals to add to this weekday.</p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-2 divide-y divide-slate-100">
-          {meals.map((meal) => {
-            const isSelected = tempIds.includes(meal.id);
-
-            return (
-              <button
-                key={meal.id}
-                type="button"
-                onClick={() => toggleMeal(meal.id)}
-                className={`flex w-full items-center justify-between p-3 rounded-xl text-left transition-colors my-1 ${
-                  isSelected ? 'bg-primary-light' : 'hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <img
-                    src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
-                    alt={meal.name}
-                    className="h-11 w-11 shrink-0 rounded-xl object-cover bg-slate-100"
-                  />
-                  <span className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
-                    {meal.name}
-                  </span>
-                </div>
-
-                {isSelected && <Check size={18} className="text-primary shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="p-4 border-t border-slate-100 bg-white">
-          <button
-            type="button"
-            onClick={() => onSave(tempIds)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity"
-          >
-            <Check size={18} />
-            <span>Add</span>
-          </button>
-        </div>
-      </section>
-    </Modal>
   );
 }

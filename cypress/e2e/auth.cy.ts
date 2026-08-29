@@ -28,12 +28,12 @@ describe('Authentication & Onboarding Integration Tests', () => {
     cy.get('input[type="email"]').should('exist').type('user@example.com');
 
     // Intercept generate token API
-    cy.intercept('POST', '**/auth/generate-token**', {
+    cy.intercept('POST', '**/auth/generate*token**', {
       statusCode: 200,
       body: { message: 'Token sent' },
     }).as('generateToken');
 
-    cy.contains(/Send OTP|Continue|Submit|Next/i).click();
+    cy.contains('button', /Send OTP|Continue|Submit|Next/i).click();
 
     // Verify on OTP page
     cy.url().should('include', '/forgot-password/otp');

@@ -1,21 +1,25 @@
 describe('Admin Portal Integration Tests', () => {
   const mockAdminUser = {
-    id: 99,
-    name: 'Admin Boss',
-    email: 'admin@company.com',
-    referenceEmail: 'admin@company.com',
-    referenceId: 999,
-    roleId: 1,
-    roleName: 'admin',
-    status: 'ACTIVE',
+    user: {
+      id: 99,
+      name: 'Admin Boss',
+      email: 'admin@company.com',
+      roleId: 1,
+      roleName: 'admin',
+    },
+    availability: {
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+    },
   };
 
   beforeEach(() => {
     window.localStorage.setItem('token', 'mock-admin-token');
+    window.localStorage.setItem('refreshToken', 'mock-admin-refresh');
     window.localStorage.setItem('user', JSON.stringify(mockAdminUser));
 
     // Mock admin menu list
-    cy.intercept('GET', '**/menus**', {
+    cy.intercept('GET', '**/menus', {
       statusCode: 200,
       body: [
         { id: 1, title: 'Weekly Special Menu', isActive: true },
@@ -23,23 +27,47 @@ describe('Admin Portal Integration Tests', () => {
       ],
     }).as('getAdminMenus');
 
-    // Mock holidays
-    cy.intercept('GET', '**/holidays**', {
+    // Mock week schedules
+    cy.intercept('GET', '**/week-menu-schedules**', {
       statusCode: 200,
-      body: {
-        publicHolidays: [
-          {
-            id: 1,
-            title: "Independence Day",
-            date: '2026-03-06',
-            dayName: 'Friday',
-            source: 'PUBLIC',
-            isIgnored: false,
-          },
-        ],
-        companyHolidays: [],
-      },
+      body: [],
+    }).as('getWeekSchedules');
+
+    // Mock holidays API without intercepting /admin/holidays navigation
+    cy.intercept('GET', '**/holidays**', (req) => {
+      if (req.url.includes('localhost:5173')) {
+        req.continue();
+        return;
+      }
+      req.reply({
+        statusCode: 200,
+        body: {
+          publicHolidays: [
+            {
+              id: 1,
+              title: "Independence Day",
+              date: '2026-12-25',
+              dayName: 'Friday',
+              source: 'PUBLIC',
+              isIgnored: false,
+            },
+          ],
+          companyHolidays: [],
+        },
+      });
     }).as('getHolidays');
+
+    // Mock weekly holidays
+    cy.intercept('GET', '**/holidays/week/**', {
+      statusCode: 200,
+      body: [],
+    }).as('getWeeklyHolidays');
+
+    // Mock food library
+    cy.intercept('GET', '**/food-library**', {
+      statusCode: 200,
+      body: [],
+    }).as('getFoodLibrary');
 
     // Mock meals
     cy.intercept('GET', '**/meals**', {

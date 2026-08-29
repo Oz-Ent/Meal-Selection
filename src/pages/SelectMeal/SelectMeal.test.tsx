@@ -1,7 +1,19 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SelectMealPage from './SelectMeal';
-import { type CreateSelectionRequest, type WeeklyUserSelections } from '../../api/Services/MealSelectionServices';
+import {
+  type CreateSelectionRequest,
+  type WeeklyUserSelections,
+} from '../../api/Services/MealSelectionServices';
+import { presetService } from '../../api/Services/PresetServices';
+
+function render(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return rtlRender(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const mockSubmitSelections = jest.fn();
 const mockAdminOverrideSelections = jest.fn();
@@ -18,7 +30,13 @@ let mockWeeklySelectionsData: WeeklyUserSelections | null = null;
 jest.mock('../Auth/useAuth/useAuth', () => ({
   useAuth: () => ({
     profile: {
-      user: { id: 132, email: null, name: 'Bismark Owiredu Owusu', roleId: 1, roleName: mockCurrentUserRole },
+      user: {
+        id: 132,
+        email: null,
+        name: 'Bismark Owiredu Owusu',
+        roleId: 1,
+        roleName: mockCurrentUserRole,
+      },
       availability: { startDate: '', endDate: '' },
     },
   }),
@@ -28,9 +46,12 @@ jest.mock('../../components/TitleBar/TitleBar', () => ({
   TitleBar: () => <div>Hi Test User,</div>,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let mockIsMenuDayPast = (_week: number, _year: number, _day: string) => false;
+
 jest.mock('../../utils/dateHelpers', () => ({
   ...jest.requireActual('../../utils/dateHelpers'),
-  isMenuDayPast: () => false,
+  isMenuDayPast: (w: number, y: number, d: string) => mockIsMenuDayPast(w, y, d),
   getISOWeekAndYear: () => ({ week: 35, year: 2026 }),
 }));
 
@@ -45,7 +66,11 @@ const mockUsersData = [
   { id: 201, name: 'Bob Jones', email: null, referenceEmail: 'bob.jones@company.com' },
 ];
 
-let mockWeekScheduleData: { id: number; menu: { id: number }; status: string } = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
+let mockWeekScheduleData: { id: number; menu: { id: number }; status: string } = {
+  id: 1,
+  menu: { id: 1 },
+  status: 'ACTIVE',
+};
 
 jest.mock('../../api/useApiQueries', () => ({
   useUsersQuery: () => ({
@@ -152,9 +177,15 @@ jest.mock('./SuccessModal', () => ({
 describe('SelectMealPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSubmitSelections.mockReset();
+    mockAdminOverrideSelections.mockReset();
+    mockSubmitSelections.mockResolvedValue({});
+    mockAdminOverrideSelections.mockResolvedValue({});
+    (presetService.getWithDetails as jest.Mock).mockReset();
     mockCurrentUserRole = 'user';
     mockWeeklySelectionsData = null;
     mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
+    mockIsMenuDayPast = () => false;
     mockPresetsData = [
       { id: 101, name: 'Rice Maniac', menuId: 1, userId: 132 },
       { id: 102, name: 'Swallow Wahala', menuId: 1, userId: 132 },
@@ -214,7 +245,9 @@ describe('SelectMealPage', () => {
     // Confirm modal should be open with self-selection description
     expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
     expect(
-      screen.getByText(/Please confirm that you are satisfied with your food choices for this week./i),
+      screen.getByText(
+        /Please confirm that you are satisfied with your food choices for this week./i,
+      ),
     ).toBeInTheDocument();
 
     // Click Confirm
@@ -253,9 +286,7 @@ describe('SelectMealPage', () => {
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
     fireEvent.click(confirmBtn);
 
-    expect(
-      await screen.findByText('Network error'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Network error')).toBeInTheDocument();
   });
 
   it('submits using admin override mutation when admin selects for guests and shows guest confirmation description', async () => {
@@ -285,9 +316,7 @@ describe('SelectMealPage', () => {
 
     // Confirm modal should show guest description
     expect(screen.getByText('Confirm Meals')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Please confirm the food choices for/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Please confirm the food choices for/i)).toBeInTheDocument();
     expect(screen.getByText('guests')).toBeInTheDocument();
 
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
@@ -295,8 +324,46 @@ describe('SelectMealPage', () => {
 
     expect(await screen.findByTestId('success-modal')).toBeInTheDocument();
     expect(mockAdminOverrideSelections).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ createdFor: null, guestCount: 1 })]),
+    );
+  });
+
+  it('allows selecting different quantities for multiple dishes on the same day in guest mode', async () => {
+    mockCurrentUserRole = 'admin';
+    render(
+      <MemoryRouter initialEntries={['/select-meal?isGuest=true']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // On Monday, select Pizza and increment to quantity 3
+    const pizzaRow = screen.getByText('Pizza');
+    fireEvent.click(pizzaRow);
+
+    const increaseBtn = screen.getByRole('button', { name: /Increase quantity of Pizza/i });
+    fireEvent.click(increaseBtn); // qty = 2
+    fireEvent.click(increaseBtn); // qty = 3
+
+    expect(screen.getByText(/3 meals selected/i)).toBeInTheDocument();
+
+    // Fill the remaining 4 days
+    for (let i = 1; i < 5; i++) {
+      const nextBtn = screen.getByRole('button', { name: 'Next' });
+      fireEvent.click(nextBtn);
+      const row = screen.getByText('Pizza');
+      fireEvent.click(row);
+    }
+
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmBtn);
+
+    expect(await screen.findByTestId('success-modal')).toBeInTheDocument();
+    expect(mockAdminOverrideSelections).toHaveBeenCalledWith(
       expect.arrayContaining([
-        expect.objectContaining({ createdFor: null, guestCount: 1 }),
+        expect.objectContaining({ menuDayId: 1, createdFor: null, guestCount: 3 }),
       ]),
     );
   });
@@ -386,11 +453,51 @@ describe('SelectMealPage', () => {
       createdFor: 'Bismark Owiredu Owusu',
       selectionStatus: 'SUBMITTED',
       mealSelections: {
-        MONDAY: { id: 501, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
-        TUESDAY: { id: 502, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
-        WEDNESDAY: { id: 503, mealID: null, mealName: 'Unavailable', mealImagePath: null, foodCode: '', calories: null, selectionType: 'UNAVAILABLE' },
-        THURSDAY: { id: 504, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
-        FRIDAY: { id: 505, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        MONDAY: {
+          id: 501,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
+        TUESDAY: {
+          id: 502,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
+        WEDNESDAY: {
+          id: 503,
+          mealID: null,
+          mealName: 'Unavailable',
+          mealImagePath: null,
+          foodCode: '',
+          calories: null,
+          selectionType: 'UNAVAILABLE',
+        },
+        THURSDAY: {
+          id: 504,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
+        FRIDAY: {
+          id: 505,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
       },
     };
 
@@ -452,11 +559,51 @@ describe('SelectMealPage', () => {
       createdFor: 'Bismark Owiredu Owusu',
       selectionStatus: 'SUBMITTED',
       mealSelections: {
-        MONDAY: { id: 501, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
-        TUESDAY: { id: 502, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
-        WEDNESDAY: { id: 503, mealID: null, mealName: 'Unavailable', mealImagePath: null, foodCode: '', calories: null, selectionType: 'UNAVAILABLE' },
-        THURSDAY: { id: 504, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
-        FRIDAY: { id: 505, mealID: 1, mealName: 'Pizza', mealImagePath: 'pizza.png', foodCode: 'PIZZA', calories: 400, selectionType: 'MEAL' },
+        MONDAY: {
+          id: 501,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
+        TUESDAY: {
+          id: 502,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
+        WEDNESDAY: {
+          id: 503,
+          mealID: null,
+          mealName: 'Unavailable',
+          mealImagePath: null,
+          foodCode: '',
+          calories: null,
+          selectionType: 'UNAVAILABLE',
+        },
+        THURSDAY: {
+          id: 504,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
+        FRIDAY: {
+          id: 505,
+          mealID: 1,
+          mealName: 'Pizza',
+          mealImagePath: 'pizza.png',
+          foodCode: 'PIZZA',
+          calories: 400,
+          selectionType: 'MEAL',
+        },
       },
     };
 
@@ -621,8 +768,12 @@ describe('SelectMealPage', () => {
       const payload = mockAdminOverrideSelections.mock.calls[0][0];
       // 5 days * 2 users = 10 items
       expect(payload).toHaveLength(10);
-      expect(payload.filter((item: CreateSelectionRequest) => item.createdFor === 200)).toHaveLength(5);
-      expect(payload.filter((item: CreateSelectionRequest) => item.createdFor === 201)).toHaveLength(5);
+      expect(
+        payload.filter((item: CreateSelectionRequest) => item.createdFor === 200),
+      ).toHaveLength(5);
+      expect(
+        payload.filter((item: CreateSelectionRequest) => item.createdFor === 201),
+      ).toHaveLength(5);
     });
   });
 
@@ -656,7 +807,9 @@ describe('SelectMealPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/Meal selection for this week is currently closed/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Meal selection for this week is currently closed/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
   });
 
@@ -686,12 +839,14 @@ describe('SelectMealPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/Alice Smith has already made meal selections for this week/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Alice Smith has already made meal selections for this week/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
   });
 
   it('displays server error message in toast when submit fails', async () => {
-    mockSubmitSelections.mockRejectedValue({
+    mockSubmitSelections.mockRejectedValueOnce({
       response: {
         data: {
           message: 'The recipient has already made meal selections for this week.',
@@ -722,10 +877,132 @@ describe('SelectMealPage', () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('The recipient has already made meal selections for this week.')).toBeInTheDocument();
+      expect(
+        screen.getByText('The recipient has already made meal selections for this week.'),
+      ).toBeInTheDocument();
     });
   });
+
+  it('automatically sets unchosen days to UNAVAILABLE when applying a preset with partial days', async () => {
+    (presetService.getWithDetails as jest.Mock).mockResolvedValue({
+      id: 101,
+      name: 'Rice Maniac',
+      menuId: 1,
+      presetItems: [
+        { menuDayId: 1, dayMealId: 11 }, // Monday has meal
+        { menuDayId: 2, dayMealId: 12 }, // Tuesday has meal
+        // Wednesday (3), Thursday (4), Friday (5) not chosen in preset
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Open Presets modal
+    const presetPillBtn = screen.getByRole('button', { name: 'Presets' });
+    fireEvent.click(presetPillBtn);
+
+    expect(screen.getByText('Select preset menu')).toBeInTheDocument();
+    const presetItem = screen.getByText('Rice Maniac');
+    fireEvent.click(presetItem);
+
+    const confirmPresetBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmPresetBtn);
+
+    // After applying preset, all 5 days should be complete (Monday, Tuesday = meals; Wed, Thu, Fri = UNAVAILABLE)
+    await waitFor(() => {
+      expect(screen.getByText('Rice Maniac combo applied successfully!')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Save \(5\/5\)/i })).toBeEnabled();
+    });
+
+    // Save and submit
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const submitConfirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(submitConfirmBtn);
+
+    await waitFor(() => {
+      expect(mockSubmitSelections).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ menuDayId: 1, dayMealId: 11, selectionType: 'MEAL' }),
+          expect.objectContaining({ menuDayId: 2, dayMealId: 12, selectionType: 'MEAL' }),
+          expect.objectContaining({ menuDayId: 3, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 4, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 5, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+        ]),
+      );
+    });
+  });
+
+  it('does not overwrite existing selections on past days when applying a preset', async () => {
+    (presetService.getWithDetails as jest.Mock).mockResolvedValue({
+      id: 101,
+      name: 'Rice Maniac',
+      menuId: 1,
+      presetItems: [
+        { menuDayId: 1, dayMealId: 999 }, // Preset tries to set meal 999 on Monday
+        { menuDayId: 2, dayMealId: 12 }, // Tuesday has meal 12
+      ],
+    });
+
+    // Mark Monday as past day
+    mockIsMenuDayPast = (_w, _y, day) => day?.toUpperCase() === 'MONDAY';
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Go to Tuesday and select meal 12
+    const nextBtn = screen.getByRole('button', { name: 'Next' });
+    fireEvent.click(nextBtn);
+
+    // Open Presets modal and apply
+    const presetPillBtn = screen.getByRole('button', { name: 'Presets' });
+    fireEvent.click(presetPillBtn);
+
+    const presetItem = screen.getByText('Rice Maniac');
+    fireEvent.click(presetItem);
+
+    const confirmPresetBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmPresetBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Rice Maniac combo applied successfully!')).toBeInTheDocument();
+    });
+
+    // Save and check payload: Monday must still be UNAVAILABLE as default past day (not overwritten to 999)
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    const submitConfirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(submitConfirmBtn);
+
+    await waitFor(() => {
+      expect(mockSubmitSelections).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ menuDayId: 1, dayMealId: null, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 2, dayMealId: 12, selectionType: 'MEAL' }),
+        ]),
+      );
+    });
+  });
+
+  it('does not display Presets bookmark button when schedule is closed', () => {
+    mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'CLOSED' };
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Meal Selection Closed')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Presets' })).not.toBeInTheDocument();
+  });
 });
-
-
-

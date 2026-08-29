@@ -1,4 +1,4 @@
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
