@@ -265,4 +265,66 @@ describe('UserActivities Banner and Page Component', () => {
 
     expect(screen.getByText(/Sign Out of Account\?/i)).toBeInTheDocument();
   });
+
+  it('shows day name for Monday instead of "Today" when current date is a weekend', () => {
+    // 2026-08-29 is Saturday
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-08-29T12:00:00Z'));
+
+    mockWeeklySelectionsData = {
+      mealSelections: {
+        MONDAY: {
+          id: 101,
+          mealName: 'Jollof Rice with Chicken',
+          selectionType: 'MEAL',
+        },
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <UserActivities />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Monday')).toBeInTheDocument();
+    expect(screen.queryByText('Today')).not.toBeInTheDocument();
+
+    jest.useRealTimers();
+  });
+
+  it('shows "Today" only for the matching weekday when current date is a weekday', () => {
+    // 2026-08-26 is Wednesday
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-08-26T12:00:00Z'));
+
+    mockWeeklySelectionsData = {
+      mealSelections: {
+        MONDAY: {
+          id: 101,
+          mealName: 'Monday Jollof',
+          selectionType: 'MEAL',
+        },
+        WEDNESDAY: {
+          id: 103,
+          mealName: 'Wednesday Rice',
+          selectionType: 'MEAL',
+        },
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <UserActivities />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Monday')).toBeInTheDocument();
+    expect(screen.getByText('Today')).toBeInTheDocument();
+    expect(screen.getByText('Tuesday')).toBeInTheDocument();
+    expect(screen.getByText('Thursday')).toBeInTheDocument();
+    expect(screen.getByText('Friday')).toBeInTheDocument();
+
+    jest.useRealTimers();
+  });
 });

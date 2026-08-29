@@ -418,7 +418,7 @@ export function History() {
         {/* Empty State */}
         {!isQueryLoading && !isQueryError && totalWeeks === 0 && (
           <div className="flex flex-col items-center justify-center py-12">
-            <EmptyPage item="meal selection history records" />
+            <EmptyPage removeAdd = {true}item="meal selection history records" />
             {hasActiveFilters && (
               <button
                 type="button"

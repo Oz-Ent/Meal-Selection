@@ -72,6 +72,8 @@ let mockWeekScheduleData: { id: number; menu: { id: number }; status: string } =
   status: 'ACTIVE',
 };
 
+let mockUserLeavesData: Array<{ id: number; startDate: string; endDate: string; daysCount: number }> = [];
+
 jest.mock('../../api/useApiQueries', () => ({
   useUsersQuery: () => ({
     data: mockUsersData,
@@ -80,6 +82,12 @@ jest.mock('../../api/useApiQueries', () => ({
   useWeeklyHolidaysQuery: () => ({ data: [] }),
   useWeeklySelectionsQuery: () => ({
     data: mockWeeklySelectionsData,
+  }),
+  useUserProfileQuery: () => ({
+    data: { leaves: mockUserLeavesData },
+  }),
+  useUserLeavesQuery: () => ({
+    data: mockUserLeavesData,
   }),
 
   usePresetsByUserQuery: () => ({
@@ -184,6 +192,7 @@ describe('SelectMealPage', () => {
     (presetService.getWithDetails as jest.Mock).mockReset();
     mockCurrentUserRole = 'user';
     mockWeeklySelectionsData = null;
+    mockUserLeavesData = [];
     mockWeekScheduleData = { id: 1, menu: { id: 1 }, status: 'ACTIVE' };
     mockIsMenuDayPast = () => false;
     mockPresetsData = [
@@ -840,9 +849,42 @@ describe('SelectMealPage', () => {
     );
 
     expect(
-      screen.getByText(/Alice Smith has already made meal selections for this week/i),
+      screen.getByText(/Alice Smith has selected their meals for themselves and cannot be edited/i),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+  });
+
+  it('allows admin to edit selections if someone else selected on behalf of the user', () => {
+    mockCurrentUserRole = 'admin';
+    mockWeeklySelectionsData = {
+      createdById: 100, // selected by someone else (not Alice Smith id 200)
+      createdBy: 'Bob',
+      createdForId: 200,
+      createdFor: 'Alice Smith',
+      selectionStatus: 'SUBMITTED',
+      mealSelections: {
+        MONDAY: {
+          id: 501,
+          mealName: 'Pizza',
+          mealID: 1,
+          mealImagePath: 'pizza.png',
+          foodCode: '',
+          calories: null,
+          selectionType: 'MEAL',
+        },
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/select-meal?forSomeone=true&userId=200']}>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Banner saying "selected for themselves and cannot be edited" should NOT be present
+    expect(
+      screen.queryByText(/has selected their meals for themselves and cannot be edited/i),
+    ).not.toBeInTheDocument();
   });
 
   it('displays server error message in toast when submit fails', async () => {
@@ -1004,5 +1046,95 @@ describe('SelectMealPage', () => {
 
     expect(screen.getByText('Meal Selection Closed')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Presets' })).not.toBeInTheDocument();
+  });
+
+  it('pre-populates UNAVAILABLE for 2 leave days and allows selecting remaining days', async () => {
+    // User is on leave on Monday (Aug 24) and Tuesday (Aug 25) of Week 35, 2026
+    mockUserLeavesData = [
+      {
+        id: 1,
+        startDate: '2026-08-24T00:00:00.000Z',
+        endDate: '2026-08-25T23:59:59.000Z',
+        daysCount: 2,
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Monday should display On Approved Leave banner
+    expect(screen.getByText('On Approved Leave')).toBeInTheDocument();
+
+    // Navigate to Wednesday (index 2)
+    const nextBtn = screen.getByRole('button', { name: 'Next' });
+    fireEvent.click(nextBtn); // To Tuesday
+    expect(screen.getByText('On Approved Leave')).toBeInTheDocument();
+
+    fireEvent.click(nextBtn); // To Wednesday
+    expect(screen.getByText('Wednesday')).toBeInTheDocument();
+    expect(screen.queryByText('On Approved Leave')).not.toBeInTheDocument();
+
+    // Select meals for Wed, Thu, Fri
+    const pizzaRadioWed = screen.getAllByRole('radio')[0];
+    fireEvent.click(pizzaRadioWed);
+
+    fireEvent.click(nextBtn); // To Thursday
+    const pizzaRadioThu = screen.getAllByRole('radio')[0];
+    fireEvent.click(pizzaRadioThu);
+
+    fireEvent.click(nextBtn); // To Friday
+    const pizzaRadioFri = screen.getAllByRole('radio')[0];
+    fireEvent.click(pizzaRadioFri);
+
+    // Save and submit: all 5 days selected (2 leave days as UNAVAILABLE + 3 meals)
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    expect(saveBtn).not.toBeDisabled();
+    fireEvent.click(saveBtn);
+
+    const confirmSubmitBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmSubmitBtn);
+
+    await waitFor(() => {
+      expect(mockSubmitSelections).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ menuDayId: 1, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 2, selectionType: 'UNAVAILABLE' }),
+          expect.objectContaining({ menuDayId: 3, selectionType: 'MEAL' }),
+          expect.objectContaining({ menuDayId: 4, selectionType: 'MEAL' }),
+          expect.objectContaining({ menuDayId: 5, selectionType: 'MEAL' }),
+        ]),
+      );
+    });
+  });
+
+  it('shows full week leave modal and blocks selection when user is on leave for all 5 days', () => {
+    // User is on leave for all 5 days of Week 35, 2026 (Aug 24 - Aug 28)
+    mockUserLeavesData = [
+      {
+        id: 1,
+        startDate: '2026-08-24T00:00:00.000Z',
+        endDate: '2026-08-28T23:59:59.000Z',
+        daysCount: 5,
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    // Full week leave modal and notice should be open with appropriate message
+    expect(screen.getAllByText('User On Leave').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/You are on approved leave for all 5 days of Week 35. Meal selection is unavailable./i).length,
+    ).toBeGreaterThan(0);
+
+    // Save action button should be disabled
+    const saveBtn = screen.getByRole('button', { name: /Save/i });
+    expect(saveBtn).toBeDisabled();
   });
 });

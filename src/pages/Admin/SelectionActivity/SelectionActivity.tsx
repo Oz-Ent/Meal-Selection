@@ -166,12 +166,22 @@ export function SelectionActivity() {
       ? matchingUnavailableUsers
       : unavailableUsers;
 
-  // Filter meals for the current day by meal name OR assigned user names (created for / recipient only)
+  // Filter meals for the current day to only those with selections (> 0), and then apply search filter (by meal name OR assigned user names)
   const filteredCurrentDayMeals = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return currentDayMeals;
+    // Only show meals that have at least 1 selection under them
+    const mealsWithSelections = currentDayMeals.filter((menuMeal) => {
+      const mealReportItem = currentDayReport?.response.find(
+        (item) =>
+          item.id === menuMeal.meal.id ||
+          item.name.toLowerCase() === menuMeal.meal.name.toLowerCase(),
+      );
+      return mealReportItem ? mealReportItem.count > 0 : false;
+    });
 
-    return currentDayMeals.filter((menuMeal) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return mealsWithSelections;
+
+    return mealsWithSelections.filter((menuMeal) => {
       // 1. Meal name match
       if (menuMeal.meal.name.toLowerCase().includes(q)) return true;
 

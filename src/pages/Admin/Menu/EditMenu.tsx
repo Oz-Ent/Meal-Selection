@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Check, Pencil } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { AlertTriangle, Check, Pencil } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import MenuDayCard from '../../../components/MenuDayCard/MenuDayCard';
 import AllMealsModalSheet from '../../../components/AllMealsModalSheet/AllMealsModalSheet';
+import { navigateBack } from '../../../utils/navigation';
 
 import { type Meal } from '../../../api/Services/MealServices';
 import {
@@ -30,6 +32,7 @@ interface DayAssignmentsLocal {
 const formatDay = (day: string) => day.charAt(0) + day.slice(1).toLowerCase();
 
 export function EditMenu() {
+  const navigate = useNavigate();
   const { menuId } = useParams<{ menuId: string }>();
   const numericMenuId = Number(menuId);
   const queryClient = useQueryClient();
@@ -46,6 +49,7 @@ export function EditMenu() {
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeDayIdForAdd, setActiveDayIdForAdd] = useState<number | null>(null);
+  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
 
   // Local state for meal assignments per day (key: menuDayId -> Meal[])
   const [localDayMeals, setLocalDayMeals] = useState<Record<number, Meal[]>>({});
@@ -60,6 +64,18 @@ export function EditMenu() {
     type: 'success',
     message: '',
   });
+
+  // Warn on page reload or tab close when in editing mode
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEditingMode) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditingMode]);
 
   const menuTitle = menuQuery.data?.title ?? 'Menu';
   const meals = (mealsQuery.data?.meals ?? []).filter((m) => m.isActive);
@@ -127,7 +143,7 @@ export function EditMenu() {
   };
 
   // Commit changes to API on Save
-  const handleSaveMenu = async () => {
+  const handleSaveMenu = async (andNavigateBack: boolean = false) => {
     if (isSaving) return;
     setIsSaving(true);
 
@@ -207,11 +223,15 @@ export function EditMenu() {
 
       setIsInitialized(false); // Force re-sync with updated server state
       setIsEditingMode(false);
+      setIsUnsavedModalOpen(false);
       setToastState({
         isOpen: true,
         type: 'success',
         message: `${menuTitle} changes saved successfully.`,
       });
+      if (andNavigateBack) {
+        navigateBack(navigate, '/admin/menu');
+      }
     } catch {
       setToastState({
         isOpen: true,
@@ -223,12 +243,20 @@ export function EditMenu() {
     }
   };
 
+  const handleBackNavigation = () => {
+    if (isEditingMode) {
+      setIsUnsavedModalOpen(true);
+    } else {
+      navigateBack(navigate, '/admin/menu');
+    }
+  };
+
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
       {/* Top Bar Header */}
       <NavBar
         title={isEditingMode ? `Editing ${menuTitle}` : menuTitle}
-        backUrl="/admin/menu"
+        onBackClick={handleBackNavigation}
         actionButton={
           isEditingMode
             ? {
@@ -284,6 +312,54 @@ export function EditMenu() {
           onSave={(ids) => handleAddMealsToDayLocal(activeDayIdForAdd, ids)}
         />
       )}
+
+      {/* UNSAVED CHANGES MODAL */}
+      <Modal
+        isOpen={isUnsavedModalOpen}
+        onClose={() => !isSaving && setIsUnsavedModalOpen(false)}
+        variant="bottom"
+        showCloseButton={!isSaving}
+      >
+        <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <h2 className="text-base font-bold text-slate-900">Unsaved changes</h2>
+          </div>
+          <p className="mb-6 text-sm text-slate-600 leading-relaxed">
+            You have unsaved changes while editing <strong className="text-slate-900">{menuTitle}</strong>. Would you like to save or discard your changes before leaving?
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={() => {
+                setIsUnsavedModalOpen(false);
+                setIsEditingMode(false);
+                setIsInitialized(false);
+                navigateBack(navigate, '/admin/menu');
+              }}
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={() => void handleSaveMenu(true)}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-50"
+            >
+              {isSaving ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Check size={18} />
+              )}
+              <span>Save & Exit</span>
+            </button>
+          </div>
+        </section>
+      </Modal>
 
       {/* BOTTOM TOAST */}
       <BottomToast

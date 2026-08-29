@@ -47,7 +47,7 @@ describe('ForgotPassword Page', () => {
                 <ForgotPassword />
             </MemoryRouter>
         );
-        const backLink = screen.getByRole('link', { name: 'Back' });
-        expect(backLink).toHaveAttribute('href', '/login');
+        const backBtn = screen.getByRole('button', { name: 'Back' });
+        expect(backBtn).toBeInTheDocument();
     });
 });

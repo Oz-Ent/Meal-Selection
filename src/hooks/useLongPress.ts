@@ -30,8 +30,13 @@ export function useLongPress(
 
   const handleStart = useCallback(
     (event: React.PointerEvent | React.TouchEvent | React.MouseEvent) => {
-      // Only handle primary click for mouse events (button 0)
-      if ('button' in event && typeof event.button === 'number' && event.button !== 0) {
+      // Only handle primary click for mouse/pointer events (button 0)
+      const nativeButton =
+        'nativeEvent' in event && event.nativeEvent && 'button' in (event.nativeEvent as MouseEvent)
+          ? (event.nativeEvent as MouseEvent).button
+          : undefined;
+      const button = typeof (event as React.MouseEvent).button === 'number' ? (event as React.MouseEvent).button : nativeButton;
+      if (typeof button === 'number' && button !== 0) {
         return;
       }
 
@@ -112,7 +117,5 @@ export function useLongPress(
     onMouseLeave: handleEnd,
     onContextMenu: handleContextMenu,
     isLongPress,
-    start: handleStart,
-    clear: handleEnd,
   };
 }

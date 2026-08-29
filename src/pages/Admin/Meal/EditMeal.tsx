@@ -1,4 +1,4 @@
-import { NavLink, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ListCard from '../../../components/ListCard/ListCard';
 import { ArrowLeft, SquarePen } from 'lucide-react';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ import Modal from '../../../components/Modal/Modal';
 import StatusModal from '../../../components/StatusModal/StatusModal';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
+import { navigateBack } from '../../../utils/navigation';
 import {
   useDeleteMealsMutation,
   useFoodLibraryQuery,
@@ -18,6 +19,7 @@ import {
 } from '../../../api/useApiQueries';
 
 export function EditMeal() {
+  const navigate = useNavigate();
   const { cardId } = useParams<{ cardId: string }>();
   const [selectedIds, setSelectedIds] = useState<string[]>(cardId ? [cardId] : []);
   const mealsQuery = useMealsQuery();
@@ -111,12 +113,14 @@ export function EditMeal() {
       <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 border-b border-slate-100 flex flex-col justify-between shadow-2xs">
         <section className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <NavLink
-              to="/admin/meal"
-              className="p-1.5 rounded-full text-secondary hover:bg-slate-100 transition-colors"
+            <button
+              type="button"
+              onClick={() => navigateBack(navigate, '/admin/meal')}
+              aria-label="Back"
+              className="p-1.5 rounded-full text-secondary hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <ArrowLeft size={20} />
-            </NavLink>
+            </button>
             <span className="text-base sm:text-lg font-bold text-msDeepBlue leading-snug">
               {selectedIds.length !== 0 ? `${selectedIds.length} Selected` : 'Select Meals'}
             </span>
@@ -124,6 +128,7 @@ export function EditMeal() {
           <div className="flex items-center gap-1">
             <Button
               variant="none"
+              aria-label="Edit Meal"
               disabled={selectedIds.length === 0 || selectedIds.length > 1}
               className="cursor-pointer p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               onClick={() => {
@@ -149,6 +154,7 @@ export function EditMeal() {
             </Button>
             <Button
               variant="none"
+              aria-label="Delete Meal"
               disabled={selectedIds.length === 0}
               className="cursor-pointer p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               onClick={() => setIsDeleteModalOpen(true)}

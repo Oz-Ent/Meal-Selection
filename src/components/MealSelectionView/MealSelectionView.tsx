@@ -44,6 +44,7 @@ export interface MealSelectionViewProps {
   onGuestMealQuantityChange?: (menuDayId: number, dayMealId: number, quantity: number) => void;
   onGuestNonMealChange?: (menuDayId: number, nonMeal: 'UNAVAILABLE' | 'HOLIDAY' | undefined) => void;
   pastDayIds?: number[];
+  leaveDayIds?: number[];
   isScheduleClosed?: boolean;
   closedMessage?: string;
   todayDayId?: number;
@@ -70,6 +71,7 @@ export function MealSelectionView({
   onGuestMealQuantityChange,
   onGuestNonMealChange,
   pastDayIds = [],
+  leaveDayIds = [],
   todayDayId,
   isScheduleClosed = false,
   closedMessage,
@@ -115,8 +117,9 @@ export function MealSelectionView({
 
   const isHolidayDay = Boolean(activeHoliday);
   const isPastDay = Boolean(currentDay && pastDayIds.includes(currentDay.id));
+  const isLeaveDay = Boolean(currentDay && leaveDayIds.includes(currentDay.id));
   const isTodayClosed = Boolean(currentDay && isPastDay && currentDay.id === todayDayId);
-  const isDayDisabled = mode === 'view' || isHolidayDay || isPastDay || isScheduleClosed;
+  const isDayDisabled = mode === 'view' || isHolidayDay || isPastDay || isLeaveDay || isScheduleClosed;
   const shouldDim = dimDisabledMeals && isDayDisabled;
 
   const totalGuestMealsToday = useMemo(() => {
@@ -130,7 +133,7 @@ export function MealSelectionView({
       onClearAllSelections();
     } else {
       for (const day of menuDays) {
-        if (pastDayIds.includes(day.id)) continue;
+        if (pastDayIds.includes(day.id) || leaveDayIds.includes(day.id)) continue;
         if (onClearDaySelection) {
           onClearDaySelection(day.id);
         } else {
@@ -177,8 +180,26 @@ export function MealSelectionView({
           </div>
         )}
 
+        {/* On Leave Information Banner */}
+        {isLeaveDay && !isHolidayDay && !isScheduleClosed && (
+          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200/90 p-3.5 text-xs text-amber-900 shadow-2xs">
+            <Ban size={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-900">On Approved Leave</span>
+                <span className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wide">
+                  Unavailable
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-slate-600 leading-relaxed">
+                This day is within an approved leave period. Automatically set to Unavailable.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Past Day / Closed Today Information Banner */}
-        {isPastDay && !isHolidayDay && !isScheduleClosed && (
+        {isPastDay && !isHolidayDay && !isLeaveDay && !isScheduleClosed && (
           <div className="mb-3 flex items-start gap-3 rounded-2xl bg-slate-100/90 border border-slate-200 p-3.5 text-xs text-slate-700 shadow-2xs">
             <Ban size={18} className="text-slate-500 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">

@@ -130,4 +130,51 @@ describe('EditMenu Admin Page', () => {
       });
     });
   });
+
+  it('prompts unsaved changes modal when clicking back in edit mode and allows discarding', () => {
+    renderEditMenu();
+
+    // Enter edit mode
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByText('Editing Weekly Special Menu')).toBeInTheDocument();
+
+    // Click back button
+    const backBtn = screen.getByRole('button', { name: /Back/i });
+    fireEvent.click(backBtn);
+
+    // Modal should be open
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByText(/Would you like to save or discard your changes before leaving/i)).toBeInTheDocument();
+
+    // Click Discard
+    const discardBtn = screen.getByRole('button', { name: 'Discard' });
+    fireEvent.click(discardBtn);
+
+    // Modal closes
+    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+  });
+
+  it('allows saving and exiting from the unsaved changes modal', async () => {
+    mockUpdateMenu.mockResolvedValue({});
+
+    renderEditMenu();
+
+    // Enter edit mode
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    // Click back button
+    const backBtn = screen.getByRole('button', { name: /Back/i });
+    fireEvent.click(backBtn);
+
+    // Modal open, click Save & Exit
+    const saveExitBtn = screen.getByRole('button', { name: 'Save & Exit' });
+    fireEvent.click(saveExitBtn);
+
+    await waitFor(() => {
+      expect(mockUpdateMenu).toHaveBeenCalledWith({
+        id: 1,
+        data: { title: 'Weekly Special Menu' },
+      });
+    });
+  });
 });

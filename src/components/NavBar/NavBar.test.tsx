@@ -12,14 +12,35 @@ describe('NavBar Component', () => {
         expect(screen.getByText('Dashboard')).toBeInTheDocument();
     });
 
-    it('renders back link correctly', () => {
+    it('renders back button and navigates to fallback URL when no history exists', () => {
+        Object.defineProperty(window, 'history', {
+            value: { state: { idx: 0 }, length: 1 },
+            writable: true,
+        });
+
         render(
             <MemoryRouter>
                 <NavBar title="Dashboard" backUrl="/home" />
             </MemoryRouter>
         );
-        const link = screen.getByRole('link');
-        expect(link).toHaveAttribute('href', '/home');
+        const backBtn = screen.getByRole('button', { name: /back/i });
+        expect(backBtn).toBeInTheDocument();
+        fireEvent.click(backBtn);
+    });
+
+    it('navigates dynamically back when history exists', () => {
+        Object.defineProperty(window, 'history', {
+            value: { state: { idx: 2 }, length: 3 },
+            writable: true,
+        });
+
+        render(
+            <MemoryRouter>
+                <NavBar title="Dashboard" backUrl="/home" />
+            </MemoryRouter>
+        );
+        const backBtn = screen.getByRole('button', { name: /back/i });
+        fireEvent.click(backBtn);
     });
 
     it('handles onBackClick when provided', () => {

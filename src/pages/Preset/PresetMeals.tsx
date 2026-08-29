@@ -79,7 +79,9 @@ export function PresetMeals() {
 
   const menusQuery = useMenusQuery();
   const menus = menusQuery.data ?? [];
-  const activeMenus = menus.filter((menu) => menu.isActive);
+  const activeMenus = menus
+    .filter((menu) => menu.isActive)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id - b.id);
 
   const presetsQuery = usePresetsByUserQuery(userId);
   const presets = presetsQuery.data ?? [];

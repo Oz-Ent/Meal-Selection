@@ -18,7 +18,6 @@ import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import { SearchBar } from '../../../components/SearchBar/SearchBar';
 
 import PresetIllustration from '../../../assets/Preset Illustration.svg';
-import BurgerSvg from '../../../assets/admin/BurgeronAdminCard.svg';
 
 import { type Meal as MealRecord } from '../../../api/Services/MealServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
@@ -321,9 +320,9 @@ export function Meal() {
       >
         <section className="p-4 pt-6 text-text-primary flex flex-col items-center text-center font-sans w-full">
           <div className="mb-3 flex h-24 w-24 items-center justify-center">
-            <img src={BurgerSvg} alt="Delete meal" className="h-full w-full object-contain" />
+            <img src={PresetIllustration} alt="Delete meal" className="h-full w-full object-contain" />
           </div>
-          <h2 className="mb-6 w-full text-left text-base font-bold text-slate-900">Delete menu</h2>
+          <h2 className="mb-6 w-full text-left text-base font-bold text-slate-900">Delete meal</h2>
           <button
             type="button"
             disabled={deleteMealsMutation.isPending}

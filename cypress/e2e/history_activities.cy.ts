@@ -9,7 +9,13 @@ describe('History & Activities Integration Tests', () => {
   };
 
   beforeEach(() => {
+    cy.on('window:before:load', (win) => {
+      win.localStorage.setItem('token', 'mock-token-xyz');
+      win.localStorage.setItem('refreshToken', 'mock-refresh-xyz');
+      win.localStorage.setItem('user', JSON.stringify(mockUser));
+    });
     window.localStorage.setItem('token', 'mock-token-xyz');
+    window.localStorage.setItem('refreshToken', 'mock-refresh-xyz');
     window.localStorage.setItem('user', JSON.stringify(mockUser));
 
     // Mock weekly selections history

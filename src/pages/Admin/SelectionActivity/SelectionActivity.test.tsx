@@ -540,4 +540,38 @@ describe('SelectionActivity (Food Assignment)', () => {
     expect(screen.getByText('Official Ghana Public Holiday')).toBeInTheDocument();
     expect(screen.getAllByText('Holiday').length).toBeGreaterThan(0);
   });
+
+  it('does not display meals that have 0 selections under them', () => {
+    const mealsWithUnselectedOption = [
+      ...sampleMenuMeals,
+      {
+        id: 104,
+        menuDayId: 1,
+        isActive: true,
+        meal: {
+          id: 4,
+          name: 'Chicken Salad',
+          foodCode: 'CS-01',
+          calories: 350,
+          imagePath: null,
+          isActive: true,
+        },
+      },
+    ];
+
+    mockedUseMenuMealsQuery.mockReturnValue({
+      data: mealsWithUnselectedOption,
+      isLoading: false,
+      isError: false,
+    });
+
+    renderComponent();
+
+    // Jollof Rice with Chicken (count: 4) and Fried Rice with Fish (count: 1) should show
+    expect(screen.getByText('Jollof Rice with Chicken')).toBeInTheDocument();
+    expect(screen.getByText('Fried Rice with Fish')).toBeInTheDocument();
+
+    // Chicken Salad (count: 0 / not in report response) should NOT show
+    expect(screen.queryByText('Chicken Salad')).not.toBeInTheDocument();
+  });
 });

@@ -9,6 +9,7 @@ import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { MealSelectionView, type DaySelectionValue, type GuestDaySelection } from '../../components/MealSelectionView/MealSelectionView';
+import { navigateBack } from '../../utils/navigation';
 
 import { useQueryClient } from '@tanstack/react-query';
 // API Services
@@ -21,6 +22,8 @@ import {
   useCreateMealSelectionsMutation,
   useMenuDaysQuery,
   useMenuMealsQuery,
+  useUserLeavesQuery,
+  useUserProfileQuery,
   useUsersQuery,
   useWeeklyHolidaysQuery,
   useWeeklySelectionsQuery,
@@ -29,7 +32,13 @@ import {
 import { queryKeys } from '../../api/queryKeys';
 
 // Helpers
-import { getISOWeekAndYear, isMenuDayPast, isMenuDayToday } from '../../utils/dateHelpers';
+import {
+  getDateForDayOfWeek,
+  getDateFromISOWeek,
+  getISOWeekAndYear,
+  isMenuDayPast,
+  isMenuDayToday,
+} from '../../utils/dateHelpers';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { type OverviewMeal } from './MealOverview';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
@@ -71,7 +80,25 @@ export default function SelectMealPage() {
     isForSomeone && !userIdParam && !userIdsParam,
   );
 
-  const { week, year } = getISOWeekAndYear();
+  const defaultWeekInfo = useMemo(() => getISOWeekAndYear(), []);
+  const weekParam = searchParams.get('week');
+  const yearParam = searchParams.get('year');
+  const week = useMemo(() => {
+    if (weekParam) {
+      const parsed = parseInt(weekParam, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 53) return parsed;
+    }
+    return defaultWeekInfo.week;
+  }, [weekParam, defaultWeekInfo.week]);
+
+  const year = useMemo(() => {
+    if (yearParam) {
+      const parsed = parseInt(yearParam, 10);
+      if (!isNaN(parsed) && parsed >= 2000 && parsed <= 2100) return parsed;
+    }
+    return defaultWeekInfo.year;
+  }, [yearParam, defaultWeekInfo.year]);
+
   const usersQuery = useUsersQuery();
   const weekMenuScheduleQuery = useWeekScheduleQuery(week, year);
   const weeklyHolidaysQuery = useWeeklyHolidaysQuery(week, year);
@@ -83,6 +110,17 @@ export default function SelectMealPage() {
       ? selectedUsers[0].id
       : currentUserId;
   const isBatchMode = !isGuest && selectedUsers.length > 1;
+
+  const userProfileQuery = useUserProfileQuery();
+  const userLeavesQuery = useUserLeavesQuery(targetUserId);
+
+  const userLeaves = useMemo(() => {
+    if (isGuest) return [];
+    if (targetUserId && targetUserId !== currentUserId) {
+      return userLeavesQuery.data ?? [];
+    }
+    return userLeavesQuery.data ?? userProfileQuery.data?.leaves ?? [];
+  }, [isGuest, targetUserId, currentUserId, userLeavesQuery.data, userProfileQuery.data?.leaves]);
 
   const menuId = weekMenuScheduleQuery.data?.menu?.id ?? 0;
   const menuDaysQuery = useMenuDaysQuery(menuId);
@@ -129,7 +167,6 @@ export default function SelectMealPage() {
     [weeklyHolidays],
   );
 
-
   const isScheduleClosed = Boolean(weekMenuSchedule && weekMenuSchedule.status !== 'ACTIVE');
 
   // Determine which menu days are in the past for this scheduled week
@@ -147,14 +184,60 @@ export default function SelectMealPage() {
 
   const pastDayIdSet = useMemo(() => new Set(pastDayIds), [pastDayIds]);
 
-  const today = new Date().toISOString().split('T')[0];
-  const weeklySelectionsQuery = useWeeklySelectionsQuery(targetUserId, today);
+  // Determine which menu days are on approved leave for target user
+  const leaveDayIds = useMemo(() => {
+    if (!menuDays.length || !userLeaves.length || isGuest) return [];
+    return menuDays
+      .filter((day) => {
+        if (!day.day) return false;
+        const dayDate = getDateForDayOfWeek(week, year, day.day);
+        dayDate.setUTCHours(0, 0, 0, 0);
+        const dayTime = dayDate.getTime();
+        return userLeaves.some((leave) => {
+          const leaveStart = new Date(leave.startDate);
+          leaveStart.setUTCHours(0, 0, 0, 0);
+          const leaveEnd = new Date(leave.endDate);
+          leaveEnd.setUTCHours(23, 59, 59, 999);
+          return dayTime >= leaveStart.getTime() && dayTime <= leaveEnd.getTime();
+        });
+      })
+      .map((day) => day.id);
+  }, [menuDays, userLeaves, isGuest, week, year]);
 
-  const isTargetUserAlreadySelected = useMemo(() => {
-    if (isAdminOrHr || isGuest || !targetUserId || targetUserId === currentUserId) return false;
+  const leaveDayIdSet = useMemo(() => new Set(leaveDayIds), [leaveDayIds]);
+
+  const isUserOnFullWeekLeave = useMemo(() => {
+    if (isGuest || !targetUserId || !menuDays.length) return false;
+    return menuDays.length > 0 && menuDays.every((day) => leaveDayIdSet.has(day.id));
+  }, [isGuest, targetUserId, menuDays, leaveDayIdSet]);
+
+  const targetWeekDateString = useMemo(() => {
+    return getDateFromISOWeek(week, year).toISOString().split('T')[0];
+  }, [week, year]);
+  const weeklySelectionsQuery = useWeeklySelectionsQuery(targetUserId, targetWeekDateString);
+
+  const isTargetUserSelfSelected = useMemo(() => {
+    if (isGuest || !targetUserId || targetUserId === currentUserId) return false;
     const userSelections = weeklySelectionsQuery.data?.mealSelections;
-    return Boolean(userSelections && Object.keys(userSelections).length > 0);
-  }, [isAdminOrHr, isGuest, targetUserId, currentUserId, weeklySelectionsQuery.data]);
+    if (!userSelections || Object.keys(userSelections).length === 0) return false;
+    const createdById = weeklySelectionsQuery.data?.createdById;
+    const createdForId = weeklySelectionsQuery.data?.createdForId ?? targetUserId;
+    return createdById !== null && createdById === createdForId;
+  }, [isGuest, targetUserId, currentUserId, weeklySelectionsQuery.data]);
+
+  const isTargetUserBlockedFromSelection = useMemo(() => {
+    if (isGuest || !targetUserId || targetUserId === currentUserId) return false;
+    const userSelections = weeklySelectionsQuery.data?.mealSelections;
+    if (!userSelections || Object.keys(userSelections).length === 0) return false;
+
+    // 1. If user self-selected, nobody (including admin) can override/edit
+    if (isTargetUserSelfSelected) return true;
+
+    // 2. If selected on their behalf, admin CAN edit/override, but regular user cannot
+    if (!isAdminOrHr) return true;
+
+    return false;
+  }, [isGuest, targetUserId, currentUserId, weeklySelectionsQuery.data, isTargetUserSelfSelected, isAdminOrHr]);
 
   const initializedUserIdRef = useRef<number | undefined>(undefined);
   const hasInitializedDayIndexRef = useRef(false);
@@ -230,12 +313,12 @@ export default function SelectMealPage() {
       const hasHoliday = Boolean(day.day && holidayDayNames.has(day.day.toUpperCase()));
       if (hasHoliday) {
         defaultSelections[day.id] = 'HOLIDAY';
-      } else if (pastDayIdSet.has(day.id)) {
+      } else if (pastDayIdSet.has(day.id) || leaveDayIdSet.has(day.id)) {
         defaultSelections[day.id] = 'UNAVAILABLE';
       }
     }
     return defaultSelections;
-  }, [menuDays, holidayDayNames, pastDayIdSet]);
+  }, [menuDays, holidayDayNames, pastDayIdSet, leaveDayIdSet]);
 
   // Reset selections and existing IDs whenever target user(s) or guest mode changes
   useEffect(() => {
@@ -250,7 +333,7 @@ export default function SelectMealPage() {
     }
   }, [targetKey, getInitialDefaultSelections, menuDays, pastDayIdSet]);
 
-  // Pre-populate holidays and past days defaults into selections
+  // Pre-populate holidays, past days, and leave days defaults into selections
   useEffect(() => {
     if (!menuDays.length) return;
     if (isGuest) {
@@ -278,7 +361,7 @@ export default function SelectMealPage() {
           if (hasHoliday && next[day.id] !== 'HOLIDAY') {
             next[day.id] = 'HOLIDAY';
             updated = true;
-          } else if (pastDayIdSet.has(day.id) && next[day.id] === undefined) {
+          } else if ((pastDayIdSet.has(day.id) || leaveDayIdSet.has(day.id)) && next[day.id] !== 'UNAVAILABLE' && next[day.id] !== 'HOLIDAY') {
             next[day.id] = 'UNAVAILABLE';
             updated = true;
           }
@@ -286,7 +369,7 @@ export default function SelectMealPage() {
         return updated ? next : prev;
       });
     }
-  }, [isGuest, menuDays, holidayDayNames, pastDayIdSet]);
+  }, [isGuest, menuDays, holidayDayNames, pastDayIdSet, leaveDayIdSet]);
 
   // Pre-populate existing weekly selections if available for a single target user
   useEffect(() => {
@@ -486,11 +569,13 @@ export default function SelectMealPage() {
       return;
     }
 
-    if (isTargetUserAlreadySelected) {
+    if (isTargetUserBlockedFromSelection) {
       setToast({
         isOpen: true,
         type: 'error',
-        message: `${selectedUsers[0]?.name || 'The selected user'} has already made meal selections for this week.`,
+        message: isTargetUserSelfSelected
+          ? `${selectedUsers[0]?.name || 'The selected user'} has selected their meals for themselves and cannot be modified.`
+          : `${selectedUsers[0]?.name || 'The selected user'} already has meal selections made on their behalf.`,
       });
       setIsPresetModalOpen(false);
       return;
@@ -605,11 +690,13 @@ export default function SelectMealPage() {
       return;
     }
 
-    if (isTargetUserAlreadySelected) {
+    if (isTargetUserBlockedFromSelection) {
       setToast({
         isOpen: true,
         type: 'error',
-        message: `${selectedUsers[0]?.name || 'The selected user'} has already made meal selections for this week.`,
+        message: isTargetUserSelfSelected
+          ? `${selectedUsers[0]?.name || 'The selected user'} has selected their meals for themselves and cannot be modified.`
+          : `${selectedUsers[0]?.name || 'The selected user'} already has meal selections made on their behalf.`,
       });
       setIsConfirmModalOpen(false);
       return;
@@ -892,7 +979,8 @@ export default function SelectMealPage() {
             isSubmitting ||
             isLoading ||
             (isScheduleClosed && !isAdminOrHr) ||
-            isTargetUserAlreadySelected,
+            isTargetUserBlockedFromSelection ||
+            isUserOnFullWeekLeave,
         }}
       />
 
@@ -908,12 +996,34 @@ export default function SelectMealPage() {
         </div>
       )}
 
-      {/* Selected Target User Already Selected Notice */}
-      {isTargetUserAlreadySelected && (
+      {/* User On Full Week Leave Notice */}
+      {isUserOnFullWeekLeave && (
         <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
           <AlertCircle size={16} className="text-amber-600 shrink-0" />
           <span className="font-semibold">
-            {selectedUsers[0]?.name || 'Selected user'} has already made meal selections for this week.
+            {selectedUsers.length === 1 && selectedUsers[0].id !== currentUserId
+              ? `${selectedUsers[0].name} is on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`
+              : `You are on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`}
+          </span>
+        </div>
+      )}
+
+      {/* Target User Self Selected Notice */}
+      {isTargetUserSelfSelected && isForSomeone && !isGuest && !isUserOnFullWeekLeave && (
+        <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
+          <AlertCircle size={16} className="text-amber-600 shrink-0" />
+          <span className="font-semibold">
+            {selectedUsers[0]?.name || 'Selected user'} has selected their meals for themselves and cannot be edited.
+          </span>
+        </div>
+      )}
+
+      {/* Target User Blocked for Regular Users Notice */}
+      {!isAdminOrHr && !isTargetUserSelfSelected && isTargetUserBlockedFromSelection && isForSomeone && !isGuest && !isUserOnFullWeekLeave && (
+        <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
+          <AlertCircle size={16} className="text-amber-600 shrink-0" />
+          <span className="font-semibold">
+            {selectedUsers[0]?.name || 'Selected user'} already has meal selections made on their behalf.
           </span>
         </div>
       )}
@@ -988,6 +1098,7 @@ export default function SelectMealPage() {
           onGuestMealQuantityChange={handleGuestMealQuantityChange}
           onGuestNonMealChange={handleGuestNonMealChange}
           pastDayIds={pastDayIds}
+          leaveDayIds={leaveDayIds}
           todayDayId={todayDayId}
           isScheduleClosed={isScheduleClosed && !isAdminOrHr}
           closedMessage={
@@ -998,12 +1109,45 @@ export default function SelectMealPage() {
           mode={
             isScheduleClosed && !isAdminOrHr
               ? 'view'
-              : isTargetUserAlreadySelected
+              : isUserOnFullWeekLeave
+              ? 'view'
+              : isTargetUserBlockedFromSelection
               ? 'view'
               : 'select'
           }
         />
       )}
+
+      {/* Full Week Leave Modal */}
+      <Modal
+        isOpen={isUserOnFullWeekLeave}
+        onClose={() => navigateBack(navigate, '/activities')}
+        variant="center"
+        showCloseButton={true}
+      >
+        <div className="p-6 text-center space-y-4 text-slate-900 font-sans">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+            <AlertCircle size={28} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">User On Leave</h3>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+              {selectedUsers.length === 1 && selectedUsers[0].id !== currentUserId
+                ? `${selectedUsers[0].name} is on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`
+                : `You are on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`}
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigateBack(navigate, '/activities')}
+              className="px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors shadow-2xs cursor-pointer"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Select Preset Modal */}
       <SelectPresetModal

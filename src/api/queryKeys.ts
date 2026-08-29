@@ -17,9 +17,12 @@ export const queryKeys = {
     ['meal-selections', 'weekly', userId, date] as const,
   weeklyMealReport: (date: string) => ['meal-selections', 'weekly-report', date] as const,
   weeklyNoSelections: (date: string) => ['meal-selections', 'weekly-no-selections', date] as const,
+  weeklyWithSelections: (date: string) => ['meal-selections', 'weekly-with-selections', date] as const,
+  weeklyGuestSelections: (date: string) => ['meal-selections', 'weekly-guest', date] as const,
   holidays: (year?: number) => ['holidays', year] as const,
   weeklyHolidays: (week: number, year: number) => ['holidays', 'weekly', week, year] as const,
   userProfile: () => ['user', 'profile'] as const,
+  userLeaves: (userId: number) => ['users', userId, 'leaves'] as const,
   userPreferences: () => ['user', 'preferences'] as const,
   weeklyHistory: (params?: unknown) => ['meal-selections', 'history', params] as const,
   userWeeklyHistory: (userId?: number, params?: unknown) =>

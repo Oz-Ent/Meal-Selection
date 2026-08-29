@@ -21,7 +21,15 @@ describe('Weekly Meal Selection Integration Tests', () => {
     });
     window.localStorage.setItem('token', 'mock-token-xyz');
     window.localStorage.setItem('refreshToken', 'mock-refresh-xyz');
-    window.localStorage.setItem('user', JSON.stringify(mockUser));
+    // Mock auth refresh
+    cy.intercept('POST', '**/auth/refresh', {
+      statusCode: 200,
+      body: {
+        token: 'mock-refreshed-token',
+        refreshToken: 'mock-refresh-xyz',
+        user: mockUser,
+      },
+    }).as('refreshToken');
 
     // Mock weekly schedule API
     cy.intercept('GET', '**/week-menu-schedules/**', {
@@ -127,30 +135,26 @@ describe('Weekly Meal Selection Integration Tests', () => {
 
   it('renders weekly meal selection page with weekday tabs and meal options', () => {
     cy.visit('/select-meal');
+    cy.wait('@getSchedule');
+    cy.wait('@getMenuDays');
 
-    cy.contains(/Select Meal/i).should('exist');
+    cy.get('button[aria-label="Back"]').should('exist');
     cy.contains(/Monday|Tuesday|Wednesday|Thursday|Friday/i).should('exist');
   });
 
   it('allows switching days and choosing meals', () => {
     cy.visit('/select-meal');
+    cy.wait('@getSchedule');
 
     // Choose first meal option
     cy.get('button[role="radio"]').first().should('exist').click({ force: true });
   });
 
-  it('opens confirmation modal when saving complete selections', () => {
+  it('navigates dynamically back on clicking Back button', () => {
+    cy.visit('/history');
     cy.visit('/select-meal');
 
-    // Intercept meal selection submission
-    cy.intercept('POST', '**/meal-selections', {
-      statusCode: 201,
-      body: { message: 'Selections saved successfully' },
-    }).as('saveSelections');
-
-    // If Save button is visible in header
-    cy.get('nav').within(() => {
-      cy.get('button').contains(/Save/i).should('exist');
-    });
+    cy.get('button[aria-label="Back"]').click();
+    cy.url().should('include', '/history');
   });
 });

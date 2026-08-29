@@ -154,7 +154,7 @@ describe('Preset Meals Integration Tests', () => {
     cy.contains('Menu Standard').should('exist');
   });
 
-  it('navigates to Preset Builder when selecting a menu', () => {
+  it('navigates to Preset Builder when selecting a menu and goes back dynamically on clicking Back', () => {
     cy.visit('/preset-meals');
 
     cy.get('button[aria-label="Add new preset menu"]').click();
@@ -163,5 +163,10 @@ describe('Preset Meals Integration Tests', () => {
 
     cy.url().should('include', '/preset-meals/create/10');
     cy.contains(/Menu Standard|New Preset/i).should('exist');
+
+    // Clicking back button should dynamically return to Preset Meals
+    cy.get('button[aria-label="Back"]').click();
+    cy.url().should('include', '/preset-meals');
+    cy.contains('Preset Meals').should('exist');
   });
 });

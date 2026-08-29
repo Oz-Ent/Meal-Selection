@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Download } from 'lucide-react';
+import { navigateBack } from '../../utils/navigation';
 
 export interface INavBarActionButton {
   label: string;
@@ -31,27 +32,27 @@ export function NavBar({
   actionButton,
   rightElement,
 }: INavBar) {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onBackClick) {
+      onBackClick();
+      return;
+    }
+    navigateBack(navigate, backUrl ?? '/');
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-msListBorder bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 font-sans shadow-2xs">
       <div className="relative flex min-h-7 w-full items-center justify-between">
-        {onBackClick ? (
-          <button
-            type="button"
-            onClick={onBackClick}
-            aria-label="Back"
-            className="p-1 text-secondary hover:text-text-primary transition-colors z-10 cursor-pointer"
-          >
-            <ArrowLeft className="h-5 w-5 stroke-current" />
-          </button>
-        ) : (
-          <NavLink
-            to={backUrl ?? '/'}
-            aria-label="Back"
-            className="p-1 text-secondary hover:text-text-primary transition-colors z-10"
-          >
-            <ArrowLeft className="h-5 w-5 stroke-current" />
-          </NavLink>
-        )}
+        <button
+          type="button"
+          onClick={handleBack}
+          aria-label="Back"
+          className="p-1 text-secondary hover:text-text-primary transition-colors z-10 cursor-pointer"
+        >
+          <ArrowLeft className="h-5 w-5 stroke-current" />
+        </button>
 
         {title && (
           <h3 className="absolute inset-x-0 text-center text-base sm:text-lg font-bold text-text-primary px-16 truncate pointer-events-none">

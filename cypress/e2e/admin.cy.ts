@@ -14,6 +14,11 @@ describe('Admin Portal Integration Tests', () => {
   };
 
   beforeEach(() => {
+    cy.on('window:before:load', (win) => {
+      win.localStorage.setItem('token', 'mock-admin-token');
+      win.localStorage.setItem('refreshToken', 'mock-admin-refresh');
+      win.localStorage.setItem('user', JSON.stringify(mockAdminUser));
+    });
     window.localStorage.setItem('token', 'mock-admin-token');
     window.localStorage.setItem('refreshToken', 'mock-admin-refresh');
     window.localStorage.setItem('user', JSON.stringify(mockAdminUser));
@@ -105,10 +110,13 @@ describe('Admin Portal Integration Tests', () => {
     cy.contains(/Mark Company Holiday/i).should('exist');
   });
 
-  it('navigates to meals management page', () => {
+  it('navigates to meals management page and returns on clicking back button', () => {
+    cy.visit('/admin/activities');
     cy.visit('/admin/meal');
-
-    cy.contains(/Meal/i).should('exist');
     cy.contains('Waakye Deluxe').should('exist');
+
+    // Click back button to dynamically return to admin activities
+    cy.get('button[aria-label="Back"]').click();
+    cy.url().should('include', '/admin/activities');
   });
 });

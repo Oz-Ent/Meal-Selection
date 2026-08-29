@@ -55,12 +55,17 @@ describe('EditMeal Component', () => {
         expect(screen.queryByText(/2 Selected/i)).not.toBeInTheDocument(); // 0 items selected
     });
 
+    it('renders back button and navigates', () => {
+        renderWithRouter('/admin/meal/edit/1');
+        const backBtn = screen.getByRole('button', { name: 'Back' });
+        expect(backBtn).toBeInTheDocument();
+        fireEvent.click(backBtn);
+    });
+
     it('opens Edit Modal when edit button is clicked for one selected item', () => {
         renderWithRouter('/admin/meal/edit/1');
         
-        const editBtns = screen.getAllByRole('button');
-        const editBtn = editBtns[0]; // Assuming edit is first in header
-        
+        const editBtn = screen.getByRole('button', { name: 'Edit Meal' });
         fireEvent.click(editBtn);
         
         expect(screen.getByRole('heading', { name: 'Edit Meal' })).toBeInTheDocument();
@@ -70,9 +75,7 @@ describe('EditMeal Component', () => {
     it('opens Delete Modal and removes item', () => {
         renderWithRouter('/admin/meal/edit/1');
         
-        const actionBtns = screen.getAllByRole('button');
-        const deleteBtn = actionBtns[1]; // Delete is second
-        
+        const deleteBtn = screen.getByRole('button', { name: 'Delete Meal' });
         fireEvent.click(deleteBtn);
         expect(screen.getByText(/Please confirm if you want to delete meal/i)).toBeInTheDocument();
         

@@ -1,6 +1,8 @@
 import { exportWeeklyReportToPdf, formatDay } from './exportMealReportPdf';
 import type { WeeklyMealReport } from '../api/Services/MealSelectionServices';
 
+import autoTable from 'jspdf-autotable';
+
 const mockDocText = jest.fn();
 const mockDocSave = jest.fn();
 
@@ -65,6 +67,16 @@ describe('exportMealReportPdf utility', () => {
 
     expect(mockDocText).toHaveBeenCalledWith('Weekly Meal Report - All', 14, 15);
     expect(mockDocSave).toHaveBeenCalledWith('Meal_Report_All.pdf');
+    expect(autoTable).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        body: [
+          ['Monday', 'Waakye Deluxe', '10'],
+          ['', '', ''],
+          ['Tuesday', 'Jollof', '5'],
+        ],
+      }),
+    );
   });
 
   it('exports single day report when selectedDay is specified', () => {
@@ -92,5 +104,13 @@ describe('exportMealReportPdf utility', () => {
 
     expect(mockDocText).toHaveBeenCalledWith('Meal Selection Report - Monday', 14, 15);
     expect(mockDocSave).toHaveBeenCalledWith('Meal_Report_Monday.pdf');
+    expect(autoTable).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        body: [
+          ['Monday', 'Waakye Deluxe', '10'],
+        ],
+      }),
+    );
   });
 });

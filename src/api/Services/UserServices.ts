@@ -121,6 +121,11 @@ export const userService = {
     return response.data;
   },
 
+  getUserLeaves: async (userId: number): Promise<UserLeave[]> => {
+    const response = await apiClient.get<UserLeave[]>(`/users/${userId}/leaves`);
+    return response.data;
+  },
+
   changePassword: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
     const response = await apiClient.post<ChangePasswordResponse>("/auth/change-password", data);
     return response.data;

@@ -5,6 +5,7 @@ import { NavBar } from '../../components/NavBar/NavBar';
 import { MealSelectionView, type DaySelectionValue } from '../../components/MealSelectionView/MealSelectionView';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import { navigateBack } from '../../utils/navigation';
 
 import {
   useMenuDaysQuery,
@@ -184,7 +185,7 @@ export function PresetDetail() {
           if (isEditing) {
             setIsEditing(false);
           } else {
-            navigate('/preset-meals');
+            navigateBack(navigate, '/preset-meals');
           }
         }}
         actionButton={

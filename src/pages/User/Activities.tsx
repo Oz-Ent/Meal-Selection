@@ -43,22 +43,27 @@ export function UserActivities() {
   const [selectedUserForPicker, setSelectedUserForPicker] = useState<User | null>(null);
 
   const defaultCarouselIndex = useMemo(() => {
-    const currentDayIndex = new Date().getDay() - 1; // 0 for Monday
+    const currentDayIndex = new Date().getDay() - 1; // 0 for Monday, ..., 4 for Friday
     return currentDayIndex >= 0 && currentDayIndex < 5 ? currentDayIndex : 0;
+  }, []);
+
+  const todayIndex = useMemo(() => {
+    const currentDayIndex = new Date().getDay() - 1; // 0 for Monday, ..., 4 for Friday
+    return currentDayIndex >= 0 && currentDayIndex < 5 ? currentDayIndex : -1;
   }, []);
 
   const carouselItems: CarouselMealItem[] = useMemo(() => {
     const rawData = selectionsQuery.data;
     if (!rawData) {
       return days.map((day, index) => ({
-        day: index === defaultCarouselIndex ? 'Today' : day,
+        day: index === todayIndex ? 'Today' : day,
         dayName: day,
         mealName: 'No Meal Selected',
         imageUrl: MealForeground,
         hasSelection: false,
         isUnavailable: false,
         isHoliday: false,
-        isToday: index === defaultCarouselIndex,
+        isToday: index === todayIndex,
       }));
     }
 
@@ -109,7 +114,7 @@ export function UserActivities() {
 
     return days.map((day, index) => {
       const selection = findSelectionForDay(day);
-      const isToday = index === defaultCarouselIndex;
+      const isToday = index === todayIndex;
 
       const selectionType = selection?.selectionType || (selection?.dayMeal ? 'MEAL' : undefined);
       const isUnavailable = selectionType === 'UNAVAILABLE' || selection?.mealName === 'Unavailable';
@@ -160,7 +165,7 @@ export function UserActivities() {
         isToday,
       };
     });
-  }, [defaultCarouselIndex, selectionsQuery.data]);
+  }, [todayIndex, selectionsQuery.data]);
 
   const hasSelections = useMemo(() => {
     return carouselItems.some((item) => item.hasSelection);

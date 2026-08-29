@@ -17,12 +17,19 @@ export default function ListCard({
     highlightedColor,
     onLongPress,
 }: IListCard) {
-    const longPressHandlers = useLongPress(() => onLongPress?.(id), 500);
+    const { isLongPress, ...longPressHandlers } = useLongPress(() => onLongPress?.(id), 500);
     const isSelected = selectedValue !== undefined && (Array.isArray(selectedValue) ? (selectedValue as (string | number)[]).includes(id) : selectedValue === id);
     const CardContainer = (inputType === "radio" || inputType === "checkbox") ? "label" : "div";
 
+    const handleClick = (e: React.MouseEvent) => {
+        if (isLongPress()) {
+            e.preventDefault();
+        }
+    };
+
     return (<CardContainer 
     className={`relative flex items-center gap-3 px-2 py-3 ${inputType === "radio" || inputType === "checkbox" ? "cursor-pointer" : ""} transition-colors duration-150 border-b border-msListBorder ${isSelected ? highlightedColor || 'bg-gray-50' : 'bg-white hover:bg-gray-50'}`}
+    onClick={handleClick}
     {...longPressHandlers}
     >
         {inputType === "radio" && <input type="radio" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} onClick={(e) => e.stopPropagation()} className="w-5 h-5 shrink-0 accent-msDeepBlue cursor-pointer"/> }

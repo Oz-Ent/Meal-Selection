@@ -44,20 +44,23 @@ export function exportWeeklyReportToPdf({
   const selectedDayLabel = selectedDay === 'ALL' ? 'All' : formatDay(selectedDay);
   const tableRows: string[][] = [];
 
-  selectedDays.forEach(([day, data]) => {
+  selectedDays.forEach(([day, data], dayIndex) => {
+    if (dayIndex > 0) {
+      tableRows.push(['', '', '']);
+    }
+
     if (data.isHoliday) {
       tableRows.push([
         formatDay(day),
         `Holiday: ${data.holidayTitle || 'Public / Company Holiday'}`,
         '-',
       ]);
-    }
-    if (data.response.length === 0 && !data.isHoliday) {
+    } else if (data.response.length === 0) {
       tableRows.push([formatDay(day), 'No selections recorded', '0']);
     } else {
       data.response.forEach((meal, index) => {
         tableRows.push([
-          index === 0 && !data.isHoliday ? formatDay(day) : '',
+          index === 0 ? formatDay(day) : '',
           meal.name,
           String(meal.count),
         ]);

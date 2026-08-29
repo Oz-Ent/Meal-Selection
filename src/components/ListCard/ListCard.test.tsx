@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import ListCard from './ListCard';
 
 describe('ListCard Component', () => {
@@ -91,5 +91,25 @@ describe('ListCard Component', () => {
         
         const span = screen.getByText('Test Meal');
         expect(span).not.toHaveClass('font-semibold');
+    });
+
+    it('triggers onLongPress callback when long pressed for 500ms', () => {
+        jest.useFakeTimers();
+        const mockOnLongPress = jest.fn();
+        const { container } = render(<ListCard {...defaultProps} onLongPress={mockOnLongPress} />);
+
+        const label = container.querySelector('label');
+        expect(label).toBeInTheDocument();
+
+        fireEvent.pointerDown(label!, { button: 0, clientX: 100, clientY: 100 });
+
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+
+        expect(mockOnLongPress).toHaveBeenCalledWith('1');
+
+        fireEvent.pointerUp(label!);
+        jest.useRealTimers();
     });
 });

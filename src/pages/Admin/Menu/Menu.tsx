@@ -22,7 +22,7 @@ import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 
 import EmptyMenuSvg from '../../../assets/admin/EmptyMenuPage.svg';
-import BurgerSvg from '../../../assets/admin/BurgeronAdminCard.svg';
+import PresetIllustration from '../../../assets/Preset Illustration.svg';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../api/queryKeys';
@@ -39,28 +39,7 @@ import {
 } from '../../../api/useApiQueries';
 import { getSchedulingWeekAndYear, formatWeekDateRange } from '../../../utils/dateHelpers';
 
-const MENU_ORDER_STORAGE_KEY = 'admin_menu_order';
 
-function getStoredMenuOrder(): number[] {
-  try {
-    const raw = localStorage.getItem(MENU_ORDER_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.every((id) => typeof id === 'number')
-      ? (parsed as number[])
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveMenuOrder(ids: number[]) {
-  try {
-    localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(ids));
-  } catch {
-    // ignore
-  }
-}
 
 export function Menu() {
   const navigate = useNavigate();
@@ -90,7 +69,7 @@ export function Menu() {
 
   const [duplicatingMenuId, setDuplicatingMenuId] = useState<number | null>(null);
 
-  const [orderedMenuIds, setOrderedMenuIds] = useState<number[]>(() => getStoredMenuOrder());
+  const [orderedMenuIds, setOrderedMenuIds] = useState<number[]>([]);
   const [hasUnsavedOrderChanges, setHasUnsavedOrderChanges] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [isConfirmSaveModalOpen, setIsConfirmSaveModalOpen] = useState(false);
@@ -124,6 +103,15 @@ export function Menu() {
     message: '',
   });
 
+  // Clear any legacy local storage key that might have overridden server menu order
+  useEffect(() => {
+    try {
+      localStorage.removeItem('admin_menu_order');
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Warn on page reload or external navigation if order is unsaved
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -139,11 +127,17 @@ export function Menu() {
   const { week, year, isNextWeek } = getSchedulingWeekAndYear();
   const activeMenus = useMemo(() => {
     const rawMenus = Array.isArray(menusQuery.data) ? menusQuery.data : [];
-    return rawMenus.filter((m) => m?.isActive);
+    return rawMenus
+      .filter((m) => m?.isActive)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id - b.id);
   }, [menusQuery.data]);
 
   const menus = useMemo(() => {
     if (activeMenus.length === 0) return [];
+    if (!hasUnsavedOrderChanges || orderedMenuIds.length === 0) {
+      return activeMenus;
+    }
+
     const idMap = new Map(activeMenus.map((m) => [m.id, m]));
     const sorted: MenuRecord[] = [];
 
@@ -156,12 +150,12 @@ export function Menu() {
     });
 
     const remaining = Array.from(idMap.values()).sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0),
+      (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id - b.id,
     );
     sorted.push(...remaining);
 
     return sorted;
-  }, [activeMenus, orderedMenuIds]);
+  }, [activeMenus, hasUnsavedOrderChanges, orderedMenuIds]);
 
   const rawSchedules = Array.isArray(weekSchedulesQuery.data) ? weekSchedulesQuery.data : [];
   const currentSchedule: WeekMenuSchedule | null =
@@ -211,7 +205,6 @@ export function Menu() {
   const handleConfirmSaveOrder = async () => {
     setIsSavingOrder(true);
     try {
-      saveMenuOrder(orderedMenuIds);
       await Promise.all(
         menus.map((m, idx) =>
           updateMenuMutation.mutateAsync({
@@ -220,7 +213,13 @@ export function Menu() {
           }),
         ),
       );
+      try {
+        localStorage.removeItem('admin_menu_order');
+      } catch {
+        // ignore
+      }
       setHasUnsavedOrderChanges(false);
+      setOrderedMenuIds([]);
       setIsConfirmSaveModalOpen(false);
       showToast('success', 'Menu order saved successfully.');
     } catch (err) {
@@ -232,7 +231,7 @@ export function Menu() {
   };
 
   const handleDiscardOrderChanges = () => {
-    setOrderedMenuIds(getStoredMenuOrder());
+    setOrderedMenuIds([]);
     setHasUnsavedOrderChanges(false);
     showToast('success', 'Order changes discarded.');
   };
@@ -505,12 +504,12 @@ export function Menu() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-28 font-sans">
-      <NavBar title="Menu" />
+    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
+      <NavBar title="Menu" backUrl="/admin/activities" />
 
       {/* UNSAVED CHANGES FLOATING BANNER */}
       {hasUnsavedOrderChanges && (
-        <div className="sticky top-16 z-20 mx-auto max-w-5xl px-4 sm:px-6 pt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="sticky top-16 z-20 w-full px-4 sm:px-6 pt-3 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 text-white p-3 sm:p-3.5 rounded-2xl shadow-xl border border-slate-800">
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
@@ -915,7 +914,7 @@ export function Menu() {
               onClick={() => {
                 setIsUnsavedChangesModalOpen(false);
                 setHasUnsavedOrderChanges(false);
-                setOrderedMenuIds(getStoredMenuOrder());
+                setOrderedMenuIds([]);
                 const target = pendingNavigationPath;
                 setPendingNavigationPath(null);
                 if (target) {
@@ -972,7 +971,7 @@ export function Menu() {
       >
         <section className="p-4 pt-6 text-text-primary flex flex-col items-center text-center font-sans w-full">
           <div className="mb-3 flex h-24 w-24 items-center justify-center">
-            <img src={BurgerSvg} alt="Delete menu" className="h-full w-full object-contain" />
+            <img src={PresetIllustration} alt="Delete menu" className="h-full w-full object-contain" />
           </div>
           <h2 className="mb-6 w-full text-left text-base font-bold text-slate-900">Delete menu</h2>
           <button

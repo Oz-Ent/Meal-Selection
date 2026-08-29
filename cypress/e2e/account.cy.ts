@@ -39,7 +39,7 @@ describe('User Account & Profile Integration Tests', () => {
     window.localStorage.setItem('user', JSON.stringify(mockUser));
 
     // Mock profile
-    cy.intercept('GET', '**/users/profile/**', {
+    cy.intercept('GET', '**/users/profile**', {
       statusCode: 200,
       body: mockProfileResponse,
     }).as('getProfile');
@@ -85,6 +85,82 @@ describe('User Account & Profile Integration Tests', () => {
     cy.contains('Dietary Preferences').should('exist');
     cy.contains('Leave Days & Availability').should('exist');
     cy.contains('Security & Password').should('exist');
+  });
+
+  it('opens edit modal and displays current user details', () => {
+    cy.visit('/account');
+
+    cy.get('button[aria-label="Edit Profile"]').click({ force: true });
+    cy.contains('Edit Account Details').should('be.visible');
+    cy.get('input[value="Kofi Mensah"]').should('be.disabled');
+    cy.get('input[type="email"]').should('have.value', 'kofi@example.com');
+  });
+
+  it('validates email format and blocks disposable email addresses with error feedback', () => {
+    cy.visit('/account');
+
+    cy.get('button[aria-label="Edit Profile"]').click({ force: true });
+    cy.contains('Edit Account Details').should('be.visible');
+
+    const emailInput = cy.get('input[type="email"]');
+    
+    // Clear and enter invalid email
+    emailInput.clear().type('invalid-email');
+    cy.contains(/Please enter a valid email address/i).should('be.visible');
+    cy.contains('button', /Save Changes/i).should('be.disabled');
+
+    // Enter disposable email
+    emailInput.clear().type('kofi@mailinator.com');
+    cy.contains(/Disposable \/ temporary email addresses cannot receive notification/i).should('be.visible');
+    cy.contains('button', /Save Changes/i).should('be.disabled');
+  });
+
+  it('shows typo correction suggestion and auto-applies suggestion on click', () => {
+    cy.visit('/account');
+
+    cy.get('button[aria-label="Edit Profile"]').click({ force: true });
+    cy.contains('Edit Account Details').should('be.visible');
+
+    const emailInput = cy.get('input[type="email"]');
+    emailInput.clear().type('kofi@gmai.com');
+
+    cy.contains(/Did you mean/i).should('be.visible');
+    cy.contains('kofi@gmail.com').should('be.visible');
+
+    // Click Apply button
+    cy.contains('button', 'Apply').click();
+    cy.get('input[type="email"]').should('have.value', 'kofi@gmail.com');
+    cy.contains(/Valid email address ready for notifications/i).should('be.visible');
+  });
+
+  it('shows progress indicator and submits updated email address successfully', () => {
+    // Intercept user update PUT request with artificial delay to verify progress indicator
+    cy.intercept('PUT', '**/users/1**', {
+      delay: 500,
+      statusCode: 200,
+      body: {
+        ...mockProfileResponse,
+        email: 'kofi.updated@example.com',
+      },
+    }).as('updateUser');
+
+    cy.visit('/account');
+
+    cy.get('button[aria-label="Edit Profile"]').click({ force: true });
+    cy.contains('Edit Account Details').should('be.visible');
+
+    const emailInput = cy.get('input[type="email"]');
+    emailInput.clear().type('kofi.updated@example.com');
+
+    // Click Save Changes and verify progress indicator / spinner
+    const saveButton = cy.contains('button', /Save Changes/i);
+    saveButton.should('not.be.disabled').click();
+
+    // Verify loading progress state
+    cy.get('.animate-spin').should('exist');
+
+    cy.wait('@updateUser');
+    cy.contains('Edit Account Details').should('not.exist');
   });
 
   it('opens dietary preferences modal when Configure is clicked', () => {

@@ -5,6 +5,7 @@ import {
   Hash,
   Calendar,
   Pencil,
+  CheckCircle2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -18,7 +19,8 @@ import Modal from '../../../components/Modal/Modal';
 import InputField from '../../../components/InputField/InputField';
 
 import { useUpdateUserProfileMutation } from '../../../api/useApiQueries';
-import { EMAIL_REGEX } from '../../../helpers/regex';
+import { validateEmail } from '../../../helpers/emailValidation';
+import { getErrorMessage } from '../../../helpers/errorMessageHelper';
 
 interface AccountProfileCardProps {
   profile: UserProfileResponse;
@@ -28,6 +30,8 @@ export const AccountProfileCard = ({
   profile,
 }: AccountProfileCardProps) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [isTouched, setIsTouched] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const [form, setForm] = useState<UpdateUserRequest>({
     email: profile.email ?? '',
@@ -36,20 +40,19 @@ export const AccountProfileCard = ({
 
   const userUpdateMutation = useUpdateUserProfileMutation();
 
-  const isEmailValid = useMemo(() => {
-    const email = form.email?.trim();
-
-    return !!email && EMAIL_REGEX.test(email);
+  const emailValidation = useMemo(() => {
+    return validateEmail(form.email);
   }, [form.email]);
 
-  const isFormValid = isEmailValid;
+  const isFormValid = emailValidation.isValid;
 
   const handleOpenEdit = () => {
     setForm({
       email: profile.email ?? '',
       name: profile.name,
     });
-
+    setIsTouched(false);
+    setApiError(null);
     setEditModalOpen(true);
   };
 
@@ -60,9 +63,11 @@ export const AccountProfileCard = ({
   };
 
   const handleProfileUpdate = async () => {
+    setIsTouched(true);
     if (!isFormValid || userUpdateMutation.isPending) return;
 
     try {
+      setApiError(null);
       await userUpdateMutation.mutateAsync({
         id: profile.id,
         data: {
@@ -72,9 +77,13 @@ export const AccountProfileCard = ({
       });
 
       setEditModalOpen(false);
-    } catch (error) {
-      // Mutation error can be handled by your mutation/toast layer
-      console.error('Failed to update profile:', error);
+    } catch (error: unknown) {
+      setApiError(
+        getErrorMessage(
+          error,
+          'Failed to update email address. Please try again.'
+        )
+      );
     }
   };
 
@@ -115,6 +124,7 @@ export const AccountProfileCard = ({
               </h2>
 
               <Button
+                aria-label="Edit Profile"
                 variant="none"
                 icon={
                   <Pencil className="h-4 w-4 shrink-0 text-emerald-300 sm:h-5 sm:w-5" />
@@ -242,19 +252,61 @@ export const AccountProfileCard = ({
               onChange={() => {}}
             />
 
-            <InputField
-              label="Email"
-              value={form.email ?? ''}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  email: e.target.value,
-                }))
-              }
-            />
+            <div>
+              <InputField
+                label="Email"
+                type="email"
+                placeholder="e.g. name@domain.com"
+                value={form.email ?? ''}
+                error={isTouched && !emailValidation.isValid}
+                errorMessage={emailValidation.error}
+                onChange={(e) => {
+                  setIsTouched(true);
+                  setApiError(null);
+                  setForm((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                  }));
+                }}
+              />
+
+              {emailValidation.suggestion && (
+                <div className="mt-1.5 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                  <span>
+                    Did you mean <strong>{emailValidation.suggestion}</strong>?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        email: emailValidation.suggestion,
+                      }));
+                      setIsTouched(true);
+                    }}
+                    className="ml-2 font-semibold text-amber-900 underline hover:text-amber-950 cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
+
+              {isTouched && emailValidation.isValid && !emailValidation.suggestion && (
+                <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-600">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Valid email address ready for notifications</span>
+                </div>
+              )}
+            </div>
+
+            {apiError && (
+              <p className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-600">
+                {apiError}
+              </p>
+            )}
 
             <Button
-              label="Save Changes"
+              label={userUpdateMutation.isPending ? 'Saving Changes...' : 'Save Changes'}
               pending={userUpdateMutation.isPending}
               disabled={!isFormValid || userUpdateMutation.isPending}
               onClick={handleProfileUpdate}

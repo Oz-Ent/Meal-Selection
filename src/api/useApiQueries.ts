@@ -145,6 +145,20 @@ export const useWeeklyNoSelectionsQuery = (date: string, options?: { enabled?: b
     enabled: options?.enabled ?? Boolean(date),
   });
 
+export const useWeeklyWithSelectionsQuery = (date: string, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: queryKeys.weeklyWithSelections(date),
+    queryFn: () => mealSelectionService.getWeeklyWithSelections(date),
+    enabled: options?.enabled ?? Boolean(date),
+  });
+
+export const useWeeklyGuestSelectionsQuery = (date: string, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: queryKeys.weeklyGuestSelections(date),
+    queryFn: () => mealSelectionService.getWeeklyGuestSelections(date),
+    enabled: options?.enabled ?? Boolean(date),
+  });
+
 export const useWeeklyHistoryQuery = (params?: WeeklyHistoryFilterParams) =>
   useQuery({
     queryKey: queryKeys.weeklyHistory(params),
@@ -493,6 +507,13 @@ export const useUserProfileQuery = () =>
     queryFn: () => userService.getProfile(),
   });
 
+export const useUserLeavesQuery = (userId: number | undefined, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: queryKeys.userLeaves(userId ?? 0),
+    queryFn: () => userService.getUserLeaves(userId!),
+    enabled: (options?.enabled ?? true) && Boolean(userId),
+  });
+
 
 export const useUpdateUserProfileMutation = () => {
   const queryClient = useQueryClient();
@@ -524,6 +545,27 @@ export const useUpdateUserPreferencesMutation = () => {
 export const useChangePasswordMutation = () => {
   return useMutation({
     mutationFn: (data: ChangePasswordRequest) => userService.changePassword(data),
+  });
+};
+
+export const useDeleteGuestSelectionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, count }: { id: number; count?: number }) =>
+      mealSelectionService.deleteGuestSelection(id, count),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['meal-selections'] });
+    },
+  });
+};
+
+export const useBulkDeleteGuestSelectionsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => mealSelectionService.bulkDeleteGuestSelections(ids),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['meal-selections'] });
+    },
   });
 };
 

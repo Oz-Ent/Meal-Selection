@@ -2,13 +2,13 @@ import { render, fireEvent, act } from '@testing-library/react';
 import { useLongPress } from './useLongPress';
 
 function TestComponent({ onLongPress, delay = 500 }: { onLongPress: () => void; delay?: number }) {
-  const longPressHandlers = useLongPress(onLongPress, delay);
+  const { isLongPress, ...longPressHandlers } = useLongPress(onLongPress, delay);
   return (
     <button
       data-testid="long-press-button"
       {...longPressHandlers}
       onClick={() => {
-        if (longPressHandlers.isLongPress()) return;
+        if (isLongPress()) return;
       }}
     >
       Press Me
@@ -98,5 +98,38 @@ describe('useLongPress hook', () => {
     });
 
     expect(handleLongPress).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-primary mouse clicks (e.g. right click button !== 0)', () => {
+    const handleLongPress = jest.fn();
+    const { getByTestId } = render(<TestComponent onLongPress={handleLongPress} delay={500} />);
+    const button = getByTestId('long-press-button');
+
+    fireEvent.mouseDown(button, { button: 2, clientX: 100, clientY: 100 });
+
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(handleLongPress).not.toHaveBeenCalled();
+  });
+
+  it('prevents default context menu when long press is triggered', () => {
+    const handleLongPress = jest.fn();
+    const { getByTestId } = render(<TestComponent onLongPress={handleLongPress} delay={500} />);
+    const button = getByTestId('long-press-button');
+
+    fireEvent.pointerDown(button, { button: 0, clientX: 100, clientY: 100 });
+
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(handleLongPress).toHaveBeenCalledTimes(1);
+
+    const contextMenuEvent = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    button.dispatchEvent(contextMenuEvent);
+
+    expect(contextMenuEvent.defaultPrevented).toBe(true);
   });
 });

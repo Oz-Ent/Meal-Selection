@@ -33,7 +33,10 @@ export default function MealButton({
     isLongPress,
     ...longPressEventHandlers
   } = useLongPress(
-    () => onLongPress(meal.meal.foodCode),
+    () => {
+      if (isDisabled) return;
+      onLongPress(meal.meal.foodCode);
+    },
     500,
   );
 

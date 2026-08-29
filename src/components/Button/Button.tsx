@@ -1,5 +1,5 @@
 import type React from 'react';
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import { LoaderCircle } from 'lucide-react';
 
 export type ButtonVariant =
   | 'primary'
@@ -59,7 +59,12 @@ export default function Button({
       ) : (
         <div className="flex h-full flex-1 items-center justify-center cursor-inherit">
           {pending ? (
-            <LoadingSpinner />
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full">
+                <LoaderCircle className="h-4 w-4 text-current" />
+              </div>
+              <span>{label ?? ''}</span>
+            </div>
           ) : (
             <>
               {icon}

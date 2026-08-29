@@ -1,4 +1,5 @@
 import apiClient from '../axios';
+import type { User } from './UserServices';
 
 export interface Selection {
   id: number;
@@ -199,6 +200,36 @@ export interface UserWeeklyHistoryResponse {
   data: UserWeeklyHistoryItem[];
 }
 
+export interface WeeklyGuestSelectionItem {
+  id: number;
+  guestCount: number;
+  weekMenuScheduleId: number;
+  selectionStatus: string;
+  selectionType: 'MEAL' | 'UNAVAILABLE' | 'HOLIDAY';
+  createdByUser?: {
+    id: number;
+    name: string;
+  };
+  createdForUser?: {
+    id: number;
+    name: string;
+  };
+  menuDay: {
+    id: number;
+    day: string;
+  };
+  dayMeal?: {
+    id: number;
+    meal: {
+      id: number;
+      name: string;
+      imagePath?: string;
+      calories?: number;
+      foodCode?: string;
+    };
+  };
+}
+
 export const mealSelectionService = {
   getAll: async (): Promise<Selection[]> => {
     const response = await apiClient.get<Selection[]>('/meal-selections');
@@ -268,6 +299,52 @@ export const mealSelectionService = {
         params: { date },
       },
     );
+    return response.data;
+  },
+
+  getWeeklyWithSelections: async (date: string): Promise<User[]> => {
+    const response = await apiClient.get<User[]>(
+      '/meal-selections/weekly/with-selections',
+      {
+        params: { date },
+      },
+    );
+    return response.data;
+  },
+
+  getWeeklyGuestSelections: async (date: string): Promise<WeeklyGuestSelectionItem[]> => {
+    const response = await apiClient.get<WeeklyGuestSelectionItem[]>(
+      '/meal-selections/weekly/guest',
+      {
+        params: { date },
+      },
+    );
+    return response.data;
+  },
+
+  deleteGuestSelection: async (
+    id: number,
+    count?: number,
+  ): Promise<{ deleted: boolean; remainingCount: number; message: string }> => {
+    const response = await apiClient.delete<{
+      deleted: boolean;
+      remainingCount: number;
+      message: string;
+    }>(`/meal-selections/guest/${id}`, {
+      params: count ? { count } : undefined,
+    });
+    return response.data;
+  },
+
+  bulkDeleteGuestSelections: async (
+    ids: number[],
+  ): Promise<{ deletedCount: number; message: string }> => {
+    const response = await apiClient.delete<{
+      deletedCount: number;
+      message: string;
+    }>('/meal-selections/guest/bulk', {
+      data: { ids },
+    });
     return response.data;
   },
 
