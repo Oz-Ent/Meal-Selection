@@ -16,7 +16,7 @@ describe('BottomStatusModal Component', () => {
         render(<BottomStatusModal {...defaultProps} type="success" />);
         expect(screen.getByText('Action completed')).toBeInTheDocument();
         const img = screen.getByRole('img');
-        expect(img).toHaveAttribute('alt', 'Success');
+        expect(img).toHaveAccessibleName('Success');
         
         const closeBtn = screen.getByRole('button', { name: 'Close' });
         expect(closeBtn).toBeInTheDocument();
@@ -30,7 +30,7 @@ describe('BottomStatusModal Component', () => {
         render(<BottomStatusModal {...defaultProps} type="error" />);
         expect(screen.getByText('Action completed')).toBeInTheDocument();
         const img = screen.getByRole('img');
-        expect(img).toHaveAttribute('alt', 'Error');
+        expect(img).toHaveAccessibleName('Error');
         
         const retryBtn = screen.getByRole('button', { name: 'Try Again' });
         const closeBtn = screen.getByRole('button', { name: 'Close' });

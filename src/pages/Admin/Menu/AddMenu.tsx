@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Check, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 
 import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';

@@ -1,10 +1,9 @@
 import { NavLink, useParams } from 'react-router-dom';
 import ListCard from '../../../components/ListCard/ListCard';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, SquarePen } from 'lucide-react';
 import { useState } from 'react';
-import EditIcon from '../../../assets/EditIcon.svg';
 import Button from '../../../components/Button/Button';
-import DeleteIcon from '../../../assets/DeleteIcon.svg';
+import { Trash2 } from 'lucide-react';
 import { MealModal, type MealFormData } from './Modals/MealModal';
 import { BottomStatusModal } from './Modals/BottomStatusModal';
 import Modal from '../../../components/Modal/Modal';
@@ -146,7 +145,7 @@ export function EditMeal() {
                 );
               }}
             >
-              <img src={EditIcon} className="stroke-msDeepBlue h-4.5 w-4.5" />
+              <SquarePen className="stroke-msDeepBlue h-4.5 w-4.5" />
             </Button>
             <Button
               variant="none"
@@ -154,7 +153,7 @@ export function EditMeal() {
               className="cursor-pointer p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               onClick={() => setIsDeleteModalOpen(true)}
             >
-              <img src={DeleteIcon} className="stroke-msDeepBlue h-4.5 w-4.5" />
+              <Trash2 className="text-msDeepBlue h-4.5 w-4.5" />
             </Button>
           </div>
         </section>

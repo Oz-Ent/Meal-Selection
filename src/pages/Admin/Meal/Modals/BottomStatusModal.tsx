@@ -1,7 +1,6 @@
 import Modal from "../../../../components/Modal/Modal";
 import Button from "../../../../components/Button/Button";
-import Check from '../../../../assets/Check.svg';
-import Exclamation from '../../../../assets/Exclamation.svg';
+import { BadgeCheck, BadgeAlert} from "lucide-react";
 
 interface IBottomStatusModal {
   type?: 'success' | 'error';
@@ -15,11 +14,7 @@ export function BottomStatusModal({ type = 'success', message, onClose, retry }:
   return (
     <Modal isOpen={true} onClose={onClose} variant="bottom">
       <div className="p-4 h-86 flex flex-col items-center">
-        <img
-          src={type === 'success' ? Check : Exclamation}
-          alt={type === 'success' ? 'Success' : 'Error'}
-          className="w-23 h-23 mt-9"
-        />
+        {type === 'success' ? <BadgeCheck role="img" className="w-23 h-23 mt-9 text-msGreen" aria-label="Success" /> : <BadgeAlert role="img" className="w-23 h-23 mt-9 text-msError" aria-label="Error" />}
         <p className="text-msTextPrimary mt-2 text-[14px]">{message}</p>
         {type === 'success' && (
           <div className="h-12 mt-auto w-full">

@@ -1,7 +1,6 @@
 import type { IListCard } from "../../utils/interfaces";
-import DeleteIcon from '../../assets/DeleteIcon.svg';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useLongPress } from "../../hooks/useLongPress";
+import { Trash2, ChevronDown } from "lucide-react";
 
 
 export default function ListCard({
@@ -45,9 +44,9 @@ export default function ListCard({
         )}
 
         {inputType === "checkbox" && <input type="checkbox" name="list-card" value={id} checked={isSelected} onChange={(e) => onChange?.(e.target.value)} onClick={(e) => e.stopPropagation()} className="w-4.5 h-4.5 absolute right-6 shrink-0 cursor-pointer"/> }
-        {inputType === "delete" && <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange?.(id.toString()); }} className="w-4.5 h-4.5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer"><img src={DeleteIcon} alt="Delete Icon" className="w-4.5 h-4.5" /></button> }
+        {inputType === "delete" && <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange?.(id.toString()); }} className="w-4.5 h-4.5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer"><Trash2 className="w-4.5 h-4.5" /></button> }
         {inputType === "expand" && <button type="button" onClick={(e) => { e.preventDefault(); onChange?.(id.toString()); }} className="w-5 h-5 absolute right-6 shrink-0 accent-msDeepBlue cursor-pointer text-gray-400">
-            <KeyboardArrowDownIcon className={`transition-transform duration-300 ${isSelected ? '-rotate-180' : 'rotate-0'}`}/>
+            <ChevronDown className={`transition-transform duration-300 ${isSelected ? '-rotate-180' : 'rotate-0'}`}/>
         </button> }
     </CardContainer>);
 }

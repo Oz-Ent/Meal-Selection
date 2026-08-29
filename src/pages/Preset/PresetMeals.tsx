@@ -17,7 +17,6 @@ import { BottomToast, type ToastType } from '../../components/BottomToast/Bottom
 import { LoadingOverlay } from '../../components/LoadingOverlay/LoadingOverlay';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import PresetIllustration from '../../assets/Preset Illustration.svg';
-import MenuIllustration from '../../assets/Menu Illustration.svg';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreatePresetMutation,
@@ -445,7 +444,7 @@ export function PresetMeals() {
           {/* Menu Burger Illustration */}
           <div className="flex justify-center mb-2">
             <img
-              src={MenuIllustration}
+              src={PresetIllustration}
               alt="Select Menu Illustration"
               className="w-28 h-24 object-contain m-10"
             />

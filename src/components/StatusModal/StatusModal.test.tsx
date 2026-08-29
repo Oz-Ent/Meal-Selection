@@ -18,14 +18,14 @@ describe('StatusModal Component', () => {
         expect(screen.getByText('Success')).toBeInTheDocument();
         expect(screen.getByText('Action was successful')).toBeInTheDocument();
         const img = screen.getByRole('img');
-        expect(img).toHaveAttribute('alt', 'Success');
+        expect(img).toHaveAccessibleName('Success');
     });
 
     it('renders error status correctly', () => {
         render(<StatusModal {...defaultProps} status="error" title="Error Occurred" />);
         expect(screen.getByText('Error Occurred')).toBeInTheDocument();
         const img = screen.getByRole('img');
-        expect(img).toHaveAttribute('alt', 'Error');
+        expect(img).toHaveAccessibleName('Error');
     });
 
     it('renders primary button and handles click', () => {

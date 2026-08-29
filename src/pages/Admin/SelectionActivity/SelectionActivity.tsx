@@ -20,7 +20,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import { SearchBar } from '../../../components/SearchBar/SearchBar';
 
 import EmptyFoodAssignmentSvg from '../../../assets/admin/EmptyFoodAssignment.svg';
-import MenuIllustration from '../../../assets/Menu Illustration.svg';
+import MenuFood from '../../../assets/admin/MenuFood.webp';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 import { getISOWeekAndYear } from '../../../utils/dateHelpers';
 import {
@@ -675,7 +675,7 @@ export function SelectionActivity() {
           {/* Burger Illustration */}
           <div className="flex justify-center my-3">
             <img
-              src={MenuIllustration}
+              src={MenuFood}
               alt="Export food assignment"
               className="w-24 h-20 sm:w-28 sm:h-24 object-contain"
             />

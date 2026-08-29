@@ -1,8 +1,7 @@
 import type React from "react";
 import Modal from "../Modal/Modal";
 import Button from "../Button/Button";
-import Check from "../../assets/Check.svg";
-import Exclamation from "../../assets/Exclamation.svg";
+import { BadgeAlert, BadgeCheck } from "lucide-react";
 
 type StatusType = "success" | "error";
 
@@ -34,9 +33,6 @@ export default function StatusModal({
     children
 }: StatusModalProps) {
     const isSuccess = status === "success";
-    const icon = isSuccess ? Check : Exclamation;
-    const iconAlt = isSuccess ? "Success" : "Error";
-
     const handlePrimaryAction = () => {
         if (onPrimaryActionClick) {
             onPrimaryActionClick();
@@ -61,7 +57,7 @@ export default function StatusModal({
             showCloseButton={showCloseButton}
         >
             <div className="p-4 flex flex-col items-center justify-center w-55">
-                <img src={icon} alt={iconAlt} className="h-12 w-12 mb-4" />
+               {isSuccess ? <BadgeCheck role="img" className="w-23 h-23 mt-9 text-msGreen" aria-label="Success"/> : <BadgeAlert role="img" className="w-23 h-23 mt-9 text-msError" aria-label="Error" />}
                 {title && <h3 className="text-msTextPrimary font-semibold text-base mb-1">{title}</h3>}
                 <p className="text-gray-600 text-center">{message}</p>
                 {children}
