@@ -3,6 +3,7 @@ import apiClient from "../axios";
 export interface LoginRequest {
   email: string;
   password: string;
+  keepSignedIn?: boolean;
 }
 
 export interface LoginResponse {
@@ -18,7 +19,7 @@ export interface LoginResponse {
     endDate: string;
   };
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface RegisterRequest {
@@ -45,7 +46,7 @@ export interface OnboardingResponse {
 }
 
 export interface LogoutRequest {
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface LogoutResponse {
@@ -53,12 +54,23 @@ export interface LogoutResponse {
 }
 
 export interface RefreshRequest {
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface RefreshResponse {
   accessToken: string;
-    refreshToken: string;
+  refreshToken?: string;
+  user?: {
+    id: number;
+    email: string;
+    name: string;
+    roleId: number;
+    roleName: string;
+  };
+  availability?: {
+    startDate: string;
+    endDate: string;
+  };
 }
 
 export interface GeneratePasswordTokenRequest {
@@ -84,6 +96,20 @@ export interface ResetPasswordResponse {
   message: string;
 }
 
+export interface MeResponse {
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    roleId: number;
+    roleName: string;
+  };
+  availability: {
+    startDate: string;
+    endDate: string;
+  };
+}
+
 export const authService = {
   login: async (loginRequest: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>("/auth/login", loginRequest);
@@ -100,13 +126,18 @@ export const authService = {
     return response.data;
   },
 
-  logout: async (logoutRequest: LogoutRequest): Promise<LogoutResponse> => {
-    const response = await apiClient.post<LogoutResponse>("/auth/logout", logoutRequest);
+  logout: async (logoutRequest?: LogoutRequest): Promise<LogoutResponse> => {
+    const response = await apiClient.post<LogoutResponse>("/auth/logout", logoutRequest || {});
     return response.data;
   },
 
-  refresh: async (refreshRequest: RefreshRequest): Promise<RefreshResponse> => {
-    const response = await apiClient.post<RefreshResponse>("/auth/refresh", refreshRequest);
+  refresh: async (refreshRequest?: RefreshRequest): Promise<RefreshResponse> => {
+    const response = await apiClient.post<RefreshResponse>("/auth/refresh", refreshRequest || {});
+    return response.data;
+  },
+
+  getMe: async (): Promise<MeResponse> => {
+    const response = await apiClient.get<MeResponse>("/auth/me");
     return response.data;
   },
 

@@ -21,6 +21,7 @@ describe('useLoginHandler Hook', () => {
     profile: null,
     token: null,
     refreshToken: null,
+    isInitializing: false,
     login: mockLogin,
     logout: jest.fn(),
   };
@@ -39,7 +40,7 @@ describe('useLoginHandler Hook', () => {
     jest.clearAllMocks();
   });
 
-  it('calls authService.login and context login on success', async () => {
+  it('calls authService.login and context login on success with default persistent true', async () => {
     const mockResponse = {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -54,12 +55,39 @@ describe('useLoginHandler Hook', () => {
     expect(mockedAuthService.login).toHaveBeenCalledWith({
       email: 'test@test.com',
       password: 'password123',
+      keepSignedIn: true,
     });
     expect(mockLogin).toHaveBeenCalledWith(
       { user: mockResponse.user, availability: mockResponse.availability },
       'access-token',
-      'refresh-token',
+      undefined,
       true,
+    );
+    expect(response).toEqual(mockResponse);
+  });
+
+  it('calls authService.login with keepSignedIn false when specified', async () => {
+    const mockResponse = {
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      user: { id: 1, email: 'test@test.com', name: 'Test', roleId: 1, roleName: 'Admin' },
+      availability: { startDate: '2025-01-01', endDate: '2025-12-31' },
+    };
+    mockedAuthService.login.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => useLoginHandler(), { wrapper });
+
+    const response = await result.current('test@test.com', 'password123', false);
+    expect(mockedAuthService.login).toHaveBeenCalledWith({
+      email: 'test@test.com',
+      password: 'password123',
+      keepSignedIn: false,
+    });
+    expect(mockLogin).toHaveBeenCalledWith(
+      { user: mockResponse.user, availability: mockResponse.availability },
+      'access-token',
+      undefined,
+      false,
     );
     expect(response).toEqual(mockResponse);
   });

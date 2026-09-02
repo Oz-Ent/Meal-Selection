@@ -6,9 +6,9 @@ export const useLoginHandler = () => {
     const loginMutation = useLoginMutation();
 
     const handleLogin = async (email: string, password: string, isPersistent: boolean = true) => {
-            const response = await loginMutation.mutateAsync({ email, password });
-            const { accessToken, refreshToken, user, availability } = response;
-            login({user, availability }, accessToken, refreshToken, isPersistent);
+            const response = await loginMutation.mutateAsync({ email, password, keepSignedIn: isPersistent });
+            const { accessToken, user, availability } = response;
+            login({ user, availability }, accessToken, undefined, isPersistent);
             return response;
     }
     return handleLogin;

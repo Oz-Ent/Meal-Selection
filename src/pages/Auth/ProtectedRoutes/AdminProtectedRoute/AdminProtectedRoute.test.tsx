@@ -83,4 +83,33 @@ describe('AdminProtectedRoute Component', () => {
 
     expect(screen.getByText('Admin Content')).toBeInTheDocument();
   });
+
+  it('shows loading spinner while session is initializing', () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      profile: null,
+      token: null,
+      isInitializing: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/admin/menu']}>
+        <Routes>
+          <Route
+            path="/admin/menu"
+            element={
+              <AdminProtectedRoute>
+                <div>Admin Content</div>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<div>Login Page</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Verifying session...')).toBeInTheDocument();
+    expect(screen.queryByText('Admin Content')).not.toBeInTheDocument();
+    expect(screen.queryByText('Login Page')).not.toBeInTheDocument();
+  });
 });
+
