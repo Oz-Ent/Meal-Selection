@@ -29,18 +29,19 @@ describe('authStorage', () => {
     expect(authStorage.getRawUser()).toBeNull();
   });
 
-  it('isPersistent is true only when a refresh token is in localStorage', () => {
+  it('isPersistent is true only when an access token is in localStorage', () => {
     expect(authStorage.isPersistent()).toBe(false);
-    sessionStorage.setItem(REFRESH_TOKEN_KEY, 'sr');
+    sessionStorage.setItem(TOKEN_KEY, 'st');
     expect(authStorage.isPersistent()).toBe(false);
-    localStorage.setItem(REFRESH_TOKEN_KEY, 'lr');
+    localStorage.setItem(TOKEN_KEY, 'lt');
     expect(authStorage.isPersistent()).toBe(true);
   });
 
-  it('setTokens persists to localStorage when persistent', () => {
+  it('setTokens persists to localStorage when persistent and removes any refresh tokens', () => {
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'old_rt');
     authStorage.setTokens('at', 'rt', true);
     expect(localStorage.getItem(TOKEN_KEY)).toBe('at');
-    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('rt');
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
@@ -50,16 +51,17 @@ describe('authStorage', () => {
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
-  it('setSession writes user, token and refreshToken', () => {
+  it('setSession writes user and token, ensuring refreshToken is omitted for HttpOnly cookie security', () => {
     authStorage.setSession(user, 'at', 'rt', true);
     expect(localStorage.getItem(USER_KEY)).toBe(JSON.stringify(user));
     expect(localStorage.getItem(TOKEN_KEY)).toBe('at');
-    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('rt');
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
   });
 
   it('setSession defaults to localStorage when persistence is omitted', () => {
     authStorage.setSession(user, 'at', 'rt');
     expect(localStorage.getItem(TOKEN_KEY)).toBe('at');
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
   });
 
   it('clear removes all keys from both storages', () => {
@@ -70,5 +72,27 @@ describe('authStorage', () => {
       expect(localStorage.getItem(key)).toBeNull();
       expect(sessionStorage.getItem(key)).toBeNull();
     }
+  });
+  it('setSession clears opposite storage when switching persistence', () => {
+    // First: persistent login writes to localStorage
+    authStorage.setSession(user, 'at-persistent', undefined, true);
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('at-persistent');
+    expect(localStorage.getItem(USER_KEY)).toBe(JSON.stringify(user));
+
+    // Second: session-only login should clear localStorage
+    authStorage.setSession(user, 'at-session', undefined, false);
+    expect(sessionStorage.getItem(TOKEN_KEY)).toBe('at-session');
+    expect(sessionStorage.getItem(USER_KEY)).toBe(JSON.stringify(user));
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    expect(localStorage.getItem(USER_KEY)).toBeNull();
+  });
+
+  it('setTokens clears opposite storage when switching persistence', () => {
+    authStorage.setTokens('at-persistent', undefined, true);
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('at-persistent');
+
+    authStorage.setTokens('at-session', undefined, false);
+    expect(sessionStorage.getItem(TOKEN_KEY)).toBe('at-session');
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 });

@@ -1,6 +1,16 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { AuthProvider, AuthContext } from './AuthContext';
 import { useContext } from 'react';
+import { authService } from '../../../api/Services/AuthServices';
+
+jest.mock('../../../api/Services/AuthServices', () => ({
+    authService: {
+        refresh: jest.fn().mockRejectedValue(new Error('No cookie')),
+        logout: jest.fn().mockResolvedValue({ message: 'Logged out' }),
+    },
+}));
+
+const mockedAuthService = authService as jest.Mocked<typeof authService>;
 
 // Helper component to consume and display auth context values
 function AuthConsumer() {
@@ -10,6 +20,7 @@ function AuthConsumer() {
         <div>
             <span data-testid="token">{context.token ?? 'null'}</span>
             <span data-testid="user">{context.profile ? JSON.stringify(context.profile) : 'null'}</span>
+            <span data-testid="initializing">{context.isInitializing ? 'loading' : 'ready'}</span>
             <button onClick={() => context.login(
                 {
                     user: { id: 1, email: 'test@test.com', name: 'Test', roleId: 1, roleName: 'Admin' },
@@ -25,10 +36,12 @@ function AuthConsumer() {
 
 beforeEach(() => {
     localStorage.clear();
+    jest.clearAllMocks();
+    mockedAuthService.refresh.mockRejectedValue(new Error('No cookie'));
 });
 
 describe('AuthContext', () => {
-    it('provides null values by default when localStorage is empty', () => {
+    it('provides null values by default when localStorage is empty', async () => {
         render(
             <AuthProvider>
                 <AuthConsumer />
@@ -36,9 +49,12 @@ describe('AuthContext', () => {
         );
         expect(screen.getByTestId('token')).toHaveTextContent('null');
         expect(screen.getByTestId('user')).toHaveTextContent('null');
+        await waitFor(() => {
+            expect(screen.getByTestId('initializing')).toHaveTextContent('ready');
+        });
     });
 
-    it('sets user, token, and refreshToken on login', () => {
+    it('sets user, token, and refreshToken on login', async () => {
         render(
             <AuthProvider>
                 <AuthConsumer />
@@ -53,7 +69,7 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('user')).not.toHaveTextContent('null');
     });
 
-    it('clears user, token, and refreshToken on logout', () => {
+    it('clears user, token, and refreshToken on logout', async () => {
         render(
             <AuthProvider>
                 <AuthConsumer />
@@ -65,7 +81,7 @@ describe('AuthContext', () => {
         });
         expect(screen.getByTestId('token')).toHaveTextContent('test-token');
 
-        act(() => {
+        await act(async () => {
             screen.getByText('Logout').click();
         });
         expect(screen.getByTestId('token')).toHaveTextContent('null');
@@ -87,7 +103,7 @@ describe('AuthContext', () => {
         expect(localStorage.getItem('user')).toBeTruthy();
     });
 
-    it('clears localStorage on logout', () => {
+    it('clears localStorage on logout', async () => {
         render(
             <AuthProvider>
                 <AuthConsumer />
@@ -97,7 +113,7 @@ describe('AuthContext', () => {
         act(() => {
             screen.getByText('Login').click();
         });
-        act(() => {
+        await act(async () => {
             screen.getByText('Logout').click();
         });
 
@@ -122,6 +138,28 @@ describe('AuthContext', () => {
 
         expect(screen.getByTestId('token')).toHaveTextContent('stored-token');
         expect(screen.getByTestId('user')).not.toHaveTextContent('null');
+    });
+
+    it('restores session from HttpOnly cookie via silent refresh', async () => {
+        const cookieUser = { id: 2, email: 'cookie@test.com', name: 'Cookie User', roleId: 2, roleName: 'Employee' };
+        mockedAuthService.refresh.mockResolvedValueOnce({
+            accessToken: 'cookie-access-token',
+            refreshToken: 'cookie-refresh-token',
+            user: cookieUser,
+            availability: { startDate: '2025-01-01', endDate: '2025-12-31' }
+        });
+
+        render(
+            <AuthProvider>
+                <AuthConsumer />
+            </AuthProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('token')).toHaveTextContent('cookie-access-token');
+            expect(screen.getByTestId('user')).toHaveTextContent('Cookie User');
+            expect(screen.getByTestId('initializing')).toHaveTextContent('ready');
+        });
     });
 
     it('handles corrupted localStorage user gracefully', () => {

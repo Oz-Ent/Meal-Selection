@@ -3,7 +3,6 @@ import { LogOut, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../../components/Modal/Modal';
 import { useAuth } from '../../Auth/useAuth/useAuth';
-import { authService } from '../../../api/Services/AuthServices';
 
 interface LogoutConfirmModalProps {
   isOpen: boolean;
@@ -14,20 +13,15 @@ export const LogoutConfirmModal = ({
   isOpen,
   onClose,
 }: LogoutConfirmModalProps) => {
-  const { logout, refreshToken } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
     try {
-      if (refreshToken) {
-        await authService.logout({ refreshToken });
-      }
-    } catch (e) {
-      console.error('Logout error on server:', e);
+      await logout();
     } finally {
-      logout();
       setIsLoggingOut(false);
       onClose();
       navigate('/login');

@@ -8,8 +8,12 @@ import { authService } from './Services/AuthServices';
 import { getErrorMessage } from '../helpers/errorMessageHelper';
 import { authStorage } from '../utils/misc/authStorage';
 
+// Custom event to notify React auth context of unrecoverable auth failures
+export const AUTH_ERROR_EVENT = 'auth:error';
+
 const apiClient = axios.create({
   baseURL: `${MEAL_APP_CORE}`,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -102,27 +106,23 @@ apiClient.interceptors.response.use(
       const refreshToken = authStorage.getRefreshToken();
       const isPersistent = authStorage.isPersistent();
 
-      if (!refreshToken) {
-        authStorage.clear();
-        window.location.href = '/login';
-
-        return Promise.reject(
-          new Error('No refresh token available'),
-        );
-      }
-
       isRefreshing = true;
 
       try {
-        const response =
-          await authService.refresh({ refreshToken });
+        const response = await authService.refresh(
+          refreshToken ? { refreshToken } : undefined,
+        );
 
         const {
           accessToken,
           refreshToken: newRefreshToken,
         } = response;
 
-        authStorage.setTokens(accessToken, newRefreshToken, isPersistent);
+        authStorage.setTokens(
+          accessToken,
+          newRefreshToken || refreshToken || '',
+          isPersistent,
+        );
 
         processQueue(null, accessToken);
 
@@ -134,8 +134,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (err) {
         authStorage.clear();
-        window.location.href = '/login';
-
+        window.dispatchEvent(new Event(AUTH_ERROR_EVENT));
         processQueue(err, null);
 
         return Promise.reject(err);

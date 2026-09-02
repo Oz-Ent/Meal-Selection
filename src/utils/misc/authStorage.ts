@@ -15,29 +15,38 @@ export const authStorage = {
   getRefreshToken: (): string | null => read(REFRESH_TOKEN_KEY),
   getRawUser: (): string | null => read(USER_KEY),
 
-  // A refresh token in localStorage means the user opted into a persistent session.
-  isPersistent: (): boolean => localStorage.getItem(REFRESH_TOKEN_KEY) !== null,
+  // Check if session is persisted in localStorage
+  isPersistent: (): boolean => localStorage.getItem(TOKEN_KEY) !== null,
 
   setTokens: (
     accessToken: string,
-    refreshToken: string,
+    _refreshToken?: string,
     persistent = true,
   ): void => {
     const storage = persistent ? localStorage : sessionStorage;
+    const other = persistent ? sessionStorage : localStorage;
     storage.setItem(TOKEN_KEY, accessToken);
-    storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    other.removeItem(TOKEN_KEY);
+    // Ensure HttpOnly cookie security: never store refresh token in Web Storage
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 
   setSession: (
     user: IAuthUser,
     accessToken: string,
-    refreshToken: string,
+    _refreshToken?: string,
     persistent = true,
   ): void => {
     const storage = persistent ? localStorage : sessionStorage;
+    const other = persistent ? sessionStorage : localStorage;
     storage.setItem(USER_KEY, JSON.stringify(user));
     storage.setItem(TOKEN_KEY, accessToken);
-    storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    other.removeItem(USER_KEY);
+    other.removeItem(TOKEN_KEY);
+    // Ensure HttpOnly cookie security: never store refresh token in Web Storage
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 
   clear: (): void => {

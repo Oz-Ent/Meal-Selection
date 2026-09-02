@@ -20,6 +20,7 @@ describe('useAuth Hook', () => {
             profile: null,
             token: 'test-token',
             refreshToken: 'test-refresh',
+            isInitializing: false,
             login: jest.fn(),
             logout: jest.fn(),
         };
