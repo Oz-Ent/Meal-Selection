@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../pages/Auth/useAuth/useAuth';
 import { Contact, History, Home, UserRound, type LucideIcon } from 'lucide-react';
+import { isAdminRole } from '../../utils/Enums/Role';
 
 export type NavTab = 'home' | 'admin' | 'history' | 'account';
 
@@ -18,8 +19,7 @@ interface NavItemConfig {
 export function BottomNavbar({ activeTab }: BottomNavbarProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const role = profile?.user?.roleName?.toLowerCase();
-  const isAdminOrHr = role === 'admin' || role === 'hr';
+  const isAdminOrHr = isAdminRole(profile?.user);
 
   const handleNavigation = (tab: NavTab, path: string) => {
     if (activeTab !== tab) {

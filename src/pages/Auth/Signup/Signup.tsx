@@ -17,6 +17,7 @@ import AppIcon from '../../../assets/App Icon.svg';
 import bro from '../../../assets/bro.svg';
 import { OtpInput } from '../../../components/OtpInput/OtpInput';
 import { EMAIL_REGEX, PASSWORD_REGEX, TOKEN_REGEX } from '../../../helpers/regex';
+import { isAdminRole } from '../../../utils/Enums/Role';
 
 type Errors = {
   email?: string;
@@ -192,10 +193,8 @@ function Signup() {
         keepSignedIn,
       );
 
-      const role = response.user.roleName.toLowerCase();
-
       navigate(
-        role === 'admin' || role === 'hr'
+        isAdminRole(response.user)
           ? '/admin/activities'
           : '/activities',
       );

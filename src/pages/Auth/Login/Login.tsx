@@ -6,6 +6,7 @@ import PasswordField from '../../../components/PasswordField/PasswordField';
 import AuthLink from '../../../components/AuthLink/AuthLink';
 import Checkbox from '../../../components/Checkbox/Checkbox';
 import { useLoginHandler } from '../LoginHandler/LoginHandler';
+import { isAdminRole } from '../../../utils/Enums/Role';
 import AppIcon from '../../../assets/App Icon.svg';
 import bro from '../../../assets/bro.svg';
 
@@ -29,8 +30,7 @@ function Login() {
     setIsLoading(true);
     try {
       const response = await handleLoginSubmit(email, password, keepSignedIn);
-      const roleName = response.user.roleName.toLowerCase();
-      if (roleName === 'admin' || roleName === 'hr') {
+      if (isAdminRole(response.user)) {
         navigate('/admin/activities');
       } else {
         navigate('/activities');

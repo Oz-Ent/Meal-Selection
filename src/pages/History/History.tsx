@@ -27,12 +27,12 @@ import type { WeeklyHistoryFilterParams } from '../../api/Services/MealSelection
 import { DAY_ORDER, formatDay, exportWeeklyReportToPdf } from '../../utils/exportMealReportPdf';
 import { formatWeekDateRange, formatDayDate } from '../../utils/dateHelpers';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
+import { isAdminRole } from '../../utils/Enums/Role';
 
 
 export function History() {
   const { profile } = useAuth();
-  const roleName = profile?.user?.roleName?.toLowerCase();
-  const isAdminOrHr = roleName === 'admin' || roleName === 'hr';
+  const isAdminOrHr = isAdminRole(profile?.user);
 
   // Tabs for Admin/HR: 'my-history' | 'admin-report'
   const [activeTab, setActiveTab] = useState<'my-history' | 'admin-report'>('my-history');

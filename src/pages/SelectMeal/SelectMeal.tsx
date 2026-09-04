@@ -40,6 +40,7 @@ import {
   isMenuDayToday,
 } from '../../utils/dateHelpers';
 import { useAuth } from '../Auth/useAuth/useAuth';
+import { isAdminRole } from '../../utils/Enums/Role';
 import { type OverviewMeal } from './MealOverview';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
 
@@ -52,8 +53,7 @@ export default function SelectMealPage() {
   const userIdParam = searchParams.get('userId');
   const userIdsParam = searchParams.get('userIds');
   const { profile } = useAuth();
-  const roleName = profile?.user?.roleName?.toLowerCase();
-  const isAdminOrHr = roleName === 'admin' || roleName === 'hr';
+  const isAdminOrHr = isAdminRole(profile?.user);
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [selections, setSelections] = useState<Record<number, DaySelectionValue>>({});

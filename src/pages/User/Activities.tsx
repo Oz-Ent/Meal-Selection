@@ -15,6 +15,7 @@ import MenuIcon from '../../assets/admin/MenuIcon.webp';
 
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { days } from '../../utils/Enums/DayOfWeek';
+import { isAdminRole } from '../../utils/Enums/Role';
 import { useUsersQuery, useWeeklySelectionsQuery } from '../../api/useApiQueries';
 import type { User } from '../../api/Services/UserServices';
 import type { WeeklyUserMealSelection } from '../../api/Services/MealSelectionServices';
@@ -171,8 +172,7 @@ export function UserActivities() {
     return carouselItems.some((item) => item.hasSelection);
   }, [carouselItems]);
 
-  const roleName = profile?.user?.roleName?.toLowerCase();
-  const isAdminOrHr = roleName === 'admin' || roleName === 'hr';
+  const isAdminOrHr = isAdminRole(profile?.user);
 
   const openGuestSelection = () => {
     setIsSelectionOpen(false);

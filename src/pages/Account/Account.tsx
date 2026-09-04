@@ -10,6 +10,7 @@ import { AccountSecurityCard } from './components/AccountSecurityCard';
 import type { UserProfileResponse } from '../../api/Services/UserServices';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { LogoutConfirmModal } from './components/LogoutConfirmModal';
+import { Roles } from '../../utils/Enums/Role';
 
 export function Account() {
   const { profile: authContextProfile } = useAuth();
@@ -24,7 +25,7 @@ export function Account() {
     referenceEmail: authContextProfile?.user?.email ?? '',
     referenceId: authContextProfile?.user?.id ?? 0,
     status: 'ACTIVE',
-    roleId: authContextProfile?.user?.roleId ?? 1,
+    roleId: authContextProfile?.user?.roleId ?? Roles.user,
     roleName: authContextProfile?.user?.roleName ?? 'Employee',
     createdAt: new Date().toISOString(),
     isActivated: true,

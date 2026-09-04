@@ -2,10 +2,10 @@ import type { JSX } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../useAuth/useAuth';
 import LoadingSpinner from '../../../../components/LoadingSpinner/LoadingSpinner';
+import { isAdminRole } from '../../../../utils/Enums/Role';
 
 export const AdminProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { profile, token, isInitializing } = useAuth();
-  const roleName = profile?.user.roleName.toLowerCase();
 
   if (isInitializing) {
     return (
@@ -19,7 +19,7 @@ export const AdminProtectedRoute = ({ children }: { children: JSX.Element }) => 
     return <Navigate to="/login" replace />;
   }
 
-  if (roleName !== 'admin' && roleName !== 'hr') {
+  if (!isAdminRole(profile?.user)) {
     return <Navigate to="/activities" replace />;
   }
 
