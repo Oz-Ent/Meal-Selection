@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
 import {
-  Check,
   Copy,
   Image as ImageIcon,
   MoreVertical,
@@ -16,6 +15,9 @@ import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import { SearchBar } from '../../../components/SearchBar/SearchBar';
+import Button from '../../../components/Button/Button';
+import InputField from '../../../components/InputField/InputField';
+import EmptyState from '../../../components/EmptyState/EmptyState';
 
 import PresetIllustration from '../../../assets/Preset Illustration.svg';
 
@@ -114,7 +116,7 @@ export function Meal() {
           <div className="h-8 w-8">
             <LoadingSpinner />
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-text-secondary">
             {isDuplicating ? 'Duplicating meal...' : 'Loading meals...'}
           </p>
         </div>
@@ -122,16 +124,11 @@ export function Meal() {
 
       {/* EMPTY STATE */}
       {!isLoading && meals.length === 0 && (
-        <div className="flex flex-col items-center justify-center px-8 pt-16 text-center">
-          <img
-            src={PresetIllustration}
-            alt="No meals"
-            className="w-56 h-auto max-h-48 object-contain mb-6"
+        <div className="px-8 pt-16">
+          <EmptyState
+            title="No Meals Configured"
+            description="There are no preset meals available, click on “add” to create a new preset menu."
           />
-          <p className="text-sm font-medium text-slate-500 max-w-xs leading-relaxed">
-            There are no preset meals available, click on{' '}
-            <span className="font-bold text-slate-900">“add”</span> to create a new preset menu.
-          </p>
         </div>
       )}
 
@@ -151,7 +148,7 @@ export function Meal() {
               <div
                 key={meal.id}
                 onClick={() => setEditingMeal(meal)}
-                className="relative flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-3.5 sm:p-4 shadow-2xs cursor-pointer hover:shadow-md hover:border-slate-200 transition-all"
+                className="relative flex items-center justify-between rounded-3xl border border-border bg-surface p-3.5 sm:p-4 shadow-2xs cursor-pointer hover:shadow-md hover:border-border-hover transition-all"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
                   <img
@@ -162,14 +159,14 @@ export function Meal() {
                         e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
                       }
                     }}
-                    className="h-12 w-12 shrink-0 rounded-2xl object-cover bg-slate-100 shadow-2xs"
+                    className="h-12 w-12 shrink-0 rounded-2xl object-cover bg-surface-muted shadow-2xs border border-border/50"
                   />
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
+                    <span className="text-xs sm:text-sm font-semibold text-text-primary leading-snug line-clamp-2">
                       {meal.name}
                     </span>
                     {meal.calories && (
-                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                      <span className="text-[11px] text-text-muted block mt-0.5">
                         {meal.calories} kcal
                       </span>
                     )}
@@ -187,7 +184,7 @@ export function Meal() {
                       e.stopPropagation();
                       setOpenKebabMealId(openKebabMealId === meal.id ? null : meal.id);
                     }}
-                    className="p-1.5 text-slate-600 hover:text-slate-900 rounded-lg"
+                    className="p-1.5 text-text-secondary hover:text-text-primary rounded-lg cursor-pointer"
                   >
                     <MoreVertical size={18} />
                   </button>
@@ -204,7 +201,7 @@ export function Meal() {
                       }}
                     />
                     <div
-                      className="absolute right-3 top-12 z-40 w-44 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl flex flex-col gap-0.5"
+                      className="absolute right-3 top-12 z-40 w-44 rounded-xl border border-border bg-surface p-1.5 shadow-xl flex flex-col gap-0.5"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
@@ -213,21 +210,21 @@ export function Meal() {
                           setOpenKebabMealId(null);
                           setEditingMeal(meal);
                         }}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-text-primary hover:bg-surface-muted text-left cursor-pointer"
                       >
-                        <Pencil size={15} className="text-slate-500" />
+                        <Pencil size={15} className="text-text-secondary" />
                         <span>Edit meal</span>
                       </button>
                       <button
                         type="button"
                         disabled={duplicatingMealId === meal.id}
                         onClick={() => void handleDuplicateMeal(meal)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left disabled:opacity-50"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-text-primary hover:bg-surface-muted text-left disabled:opacity-50 cursor-pointer"
                       >
                         {duplicatingMealId === meal.id ? (
-                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-text-secondary border-t-transparent" />
                         ) : (
-                          <Copy size={15} className="text-slate-500" />
+                          <Copy size={15} className="text-text-secondary" />
                         )}
                         <span>Duplicate meal</span>
                       </button>
@@ -237,9 +234,9 @@ export function Meal() {
                           setOpenKebabMealId(null);
                           setDeletingMeal(meal);
                         }}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 text-left"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-danger hover:bg-danger-light text-left cursor-pointer"
                       >
-                        <Trash2 size={15} className="text-red-500" />
+                        <Trash2 size={15} className="text-danger" />
                         <span>Delete Meal</span>
                       </button>
                     </div>
@@ -251,10 +248,10 @@ export function Meal() {
 
           {/* Empty search results state */}
           {filteredMeals.length === 0 && searchQuery && (
-            <div className="p-8 text-center text-slate-500 text-xs sm:text-sm bg-white rounded-2xl border border-slate-100 flex flex-col items-center gap-2 mt-2 shadow-2xs">
-              <Search size={24} className="text-slate-400" />
-              <p className="font-semibold text-slate-800">No results found for "{searchQuery}"</p>
-              <p className="text-slate-400 text-xs">Try searching for a different meal name</p>
+            <div className="p-8 text-center text-text-secondary text-xs sm:text-sm bg-surface rounded-2xl border border-border flex flex-col items-center gap-2 mt-2 shadow-2xs">
+              <Search size={24} className="text-text-muted" />
+              <p className="font-semibold text-text-primary">No results found for "{searchQuery}"</p>
+              <p className="text-text-muted text-xs">Try searching for a different meal name</p>
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
@@ -322,20 +319,17 @@ export function Meal() {
           <div className="mb-3 flex h-24 w-24 items-center justify-center">
             <img src={PresetIllustration} alt="Delete meal" className="h-full w-full object-contain" />
           </div>
-          <h2 className="mb-6 w-full text-left text-base font-bold text-slate-900">Delete meal</h2>
-          <button
-            type="button"
-            disabled={deleteMealsMutation.isPending}
+          <h2 className="mb-2 w-full text-left text-base font-bold text-text-primary">Delete meal</h2>
+          <p className="mb-6 w-full text-left text-xs text-text-secondary">
+            Are you sure you want to delete <span className="font-bold text-text-primary">"{deletingMeal?.name}"</span>?
+          </p>
+          <Button
+            variant="danger"
+            className="w-full"
+            pending={deleteMealsMutation.isPending}
+            label="Delete meal"
             onClick={() => void handleDeleteMeal()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-50"
-          >
-            {deleteMealsMutation.isPending ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <Check size={18} />
-            )}
-            <span>Save changes</span>
-          </button>
+          />
         </section>
       </Modal>
 
@@ -400,8 +394,8 @@ function NewMealModalSheet({
 
   return (
     <Modal isOpen variant="bottom" onClose={onClose} showCloseButton>
-      <section className="p-4 pt-6 text-msTextPrimary flex flex-col font-sans w-full relative">
-        <h2 className="mb-4 text-base font-bold text-slate-900">New meal</h2>
+      <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full relative">
+        <h2 className="mb-4 text-base font-bold text-text-primary">New meal</h2>
 
         <input
           type="file"
@@ -417,15 +411,15 @@ function NewMealModalSheet({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative flex h-28 w-44 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100 transition-colors"
+              className="relative flex h-28 w-44 items-center justify-center rounded-2xl border border-border bg-surface-muted/70 hover:bg-surface-muted transition-colors cursor-pointer"
             >
-              <ImageIcon size={36} className="text-slate-300 stroke-[1.5]" />
-              <div className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 shadow-2xs">
+              <ImageIcon size={36} className="text-text-muted stroke-[1.5]" />
+              <div className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface border border-border text-text-secondary shadow-2xs">
                 <Plus size={14} />
               </div>
             </button>
           ) : (
-            <div className="relative h-28 w-44 rounded-2xl overflow-hidden border border-slate-100">
+            <div className="relative h-28 w-44 rounded-2xl overflow-hidden border border-border">
               <img
                 src={imagePreviewUrl}
                 alt="Meal preview"
@@ -434,21 +428,21 @@ function NewMealModalSheet({
               <button
                 type="button"
                 onClick={() => setIsImageMenuOpen(!isImageMenuOpen)}
-                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-xs hover:bg-white"
+                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 text-text-primary shadow-md backdrop-blur-xs hover:bg-surface cursor-pointer"
               >
                 <Pencil size={14} />
               </button>
 
               {/* Image Option Menu Popup */}
               {isImageMenuOpen && (
-                <div className="absolute bottom-10 right-2 z-30 w-36 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl flex flex-col gap-0.5 text-xs">
+                <div className="absolute bottom-10 right-2 z-30 w-36 rounded-xl border border-border bg-surface p-1.5 shadow-xl flex flex-col gap-0.5 text-xs">
                   <button
                     type="button"
                     onClick={() => {
                       setIsImageMenuOpen(false);
                       fileInputRef.current?.click();
                     }}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-700 hover:bg-slate-50 text-left font-medium"
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-text-primary hover:bg-surface-muted text-left font-medium cursor-pointer"
                   >
                     <ImageIcon size={14} />
                     <span>Change image</span>
@@ -456,7 +450,7 @@ function NewMealModalSheet({
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-700 hover:bg-slate-50 text-left font-medium"
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-danger hover:bg-danger-light text-left font-medium cursor-pointer"
                   >
                     <X size={14} />
                     <span>Remove Image</span>
@@ -468,28 +462,24 @@ function NewMealModalSheet({
         </div>
 
         {/* Meal Name Input */}
-        <input
-          type="text"
-          value={mealName}
-          onChange={(e) => setMealName(e.target.value)}
-          placeholder="Enter meal name"
-          className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400 mb-6 bg-slate-50/50"
-        />
+        <div className="mb-6">
+          <InputField
+            value={mealName}
+            onChange={(e) => setMealName(e.target.value)}
+            placeholder="Enter meal name"
+          />
+        </div>
 
         {/* Submit Button */}
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          className="w-full"
           disabled={!mealName.trim() || createMealMutation.isPending}
+          pending={createMealMutation.isPending}
+          icon={<Plus size={18} />}
+          label="Create meal"
           onClick={() => void handleCreateMeal()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-40"
-        >
-          {createMealMutation.isPending ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <Plus size={18} />
-          )}
-          <span>Create meal</span>
-        </button>
+        />
       </section>
     </Modal>
   );
@@ -548,8 +538,8 @@ function EditMealModalSheet({
 
   return (
     <Modal isOpen variant="bottom" onClose={onClose} showCloseButton>
-      <section className="p-4 pt-6 text-msTextPrimary flex flex-col font-sans w-full relative">
-        <h2 className="mb-4 text-base font-bold text-slate-900">Edit meal</h2>
+      <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full relative">
+        <h2 className="mb-4 text-base font-bold text-text-primary">Edit meal</h2>
 
         <input
           type="file"
@@ -565,34 +555,34 @@ function EditMealModalSheet({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative flex h-28 w-44 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100 transition-colors"
+              className="relative flex h-28 w-44 items-center justify-center rounded-2xl border border-border bg-surface-muted/70 hover:bg-surface-muted transition-colors cursor-pointer"
             >
-              <ImageIcon size={36} className="text-slate-300 stroke-[1.5]" />
-              <div className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 shadow-2xs">
+              <ImageIcon size={36} className="text-text-muted stroke-[1.5]" />
+              <div className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface border border-border text-text-secondary shadow-2xs">
                 <Plus size={14} />
               </div>
             </button>
           ) : (
-            <div className="relative h-28 w-44 rounded-2xl overflow-hidden border border-slate-100">
+            <div className="relative h-28 w-44 rounded-2xl overflow-hidden border border-border">
               <img src={imagePreviewUrl} alt={mealName} className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => setIsImageMenuOpen(!isImageMenuOpen)}
-                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-xs hover:bg-white"
+                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 text-text-primary shadow-md backdrop-blur-xs hover:bg-surface cursor-pointer"
               >
                 <Pencil size={14} />
               </button>
 
               {/* Image Option Menu Popup */}
               {isImageMenuOpen && (
-                <div className="absolute bottom-10 right-2 z-30 w-36 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl flex flex-col gap-0.5 text-xs">
+                <div className="absolute bottom-10 right-2 z-30 w-36 rounded-xl border border-border bg-surface p-1.5 shadow-xl flex flex-col gap-0.5 text-xs">
                   <button
                     type="button"
                     onClick={() => {
                       setIsImageMenuOpen(false);
                       fileInputRef.current?.click();
                     }}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-700 hover:bg-slate-50 text-left font-medium"
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-text-primary hover:bg-surface-muted text-left font-medium cursor-pointer"
                   >
                     <ImageIcon size={14} />
                     <span>Change image</span>
@@ -600,7 +590,7 @@ function EditMealModalSheet({
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-700 hover:bg-slate-50 text-left font-medium"
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-danger hover:bg-danger-light text-left font-medium cursor-pointer"
                   >
                     <X size={14} />
                     <span>Remove Image</span>
@@ -612,29 +602,26 @@ function EditMealModalSheet({
         </div>
 
         {/* Meal Name Input */}
-        <input
-          type="text"
-          value={mealName}
-          onChange={(e) => setMealName(e.target.value)}
-          placeholder="Enter meal name"
-          className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400 mb-6 bg-slate-50/50"
-        />
+        <div className="mb-6">
+          <InputField
+            value={mealName}
+            onChange={(e) => setMealName(e.target.value)}
+            placeholder="Enter meal name"
+          />
+        </div>
 
         {/* Save Changes Button */}
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          className="w-full"
           disabled={!mealName.trim() || updateMealMutation.isPending}
+          pending={updateMealMutation.isPending}
+          label="Save changes"
           onClick={() => void handleSaveMeal()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-40"
-        >
-          {updateMealMutation.isPending ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <Check size={18} />
-          )}
-          <span>Save changes</span>
-        </button>
+        />
       </section>
     </Modal>
   );
 }
+
+export default Meal;

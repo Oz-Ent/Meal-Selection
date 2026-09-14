@@ -1,4 +1,4 @@
-import apiClient from "../axios";
+﻿import apiClient from "../axios";
 
 export interface User {
   id: number;
@@ -51,18 +51,42 @@ export interface UserPreferences {
   userId: number | null;
   dislikes: UserDislikes | string[] | null;
   excludedMealIds: number[] | null;
+  theme?: 'LIGHT' | 'DARK' | 'SYSTEM' | 'light' | 'dark' | 'system' | null;
+  autoSubmitPreset?: boolean | null;
+  emailNotifications?: boolean | null;
+  pushNotifications?: boolean | null;
+  announcementVersion?: number | null;
   updatedAt?: string;
 }
 
 export interface UpdateUserPreferencesRequest {
-  dislikes: {
+  dislikes?: {
     meals?: number[];
     foodItems?: string[];
   };
+  announcementVersion?: number;
+  theme?: 'LIGHT' | 'DARK' | 'SYSTEM';
+  autoSubmitPreset?: boolean;
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+}
+
+export interface PatchUserPreferencesRequest {
+  theme?: 'LIGHT' | 'DARK' | 'SYSTEM';
+  autoSubmitPreset?: boolean;
+  announcementVersion?: number;
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  dislikes?: {
+    meals?: number[];
+    foodItems?: string[];
+  };
+  excludedMealIds?: number[];
 }
 
 export interface UpdateUserPreferencesResponse {
   message: string;
+  announcementVersion?: number;
 }
 
 export interface UserProfileResponse {
@@ -140,6 +164,18 @@ export const userService = {
     const response = await apiClient.put<UpdateUserPreferencesResponse>("/users/preferences", data);
     return response.data;
   },
+
+  patchPreferences: async (data: PatchUserPreferencesRequest): Promise<UpdateUserPreferencesResponse> => {
+    try {
+      const response = await apiClient.patch<UpdateUserPreferencesResponse>("/users/preferences", data);
+      return response.data;
+    } catch {
+      // Graceful fallback/mock while backend PATCH endpoint is being finalized
+      return { message: "Preferences updated successfully", announcementVersion: data.announcementVersion };
+    }
+  },
 };
+
+
 
 

@@ -13,7 +13,7 @@ describe('BottomNavbar Component', () => {
     jest.clearAllMocks();
   });
 
-  it('renders 3 tabs for regular users', () => {
+  it('renders correct tabs for regular users', () => {
     mockUseAuth.mockReturnValue({
       profile: { user: { roleName: 'USER' } },
     });
@@ -26,11 +26,13 @@ describe('BottomNavbar Component', () => {
 
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Budget')).not.toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.getByText('Feedback')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
   });
 
-  it('renders 4 tabs for ADMIN users', () => {
+  it('renders all configured tabs including admin for ADMIN users', () => {
     mockUseAuth.mockReturnValue({
       profile: { user: { roleName: 'ADMIN' } },
     });
@@ -44,6 +46,7 @@ describe('BottomNavbar Component', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.getByText('Feedback')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
   });
 

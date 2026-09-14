@@ -158,7 +158,7 @@ describe('Account Page', () => {
     expect(screen.getByText(/3 active presets/i)).toBeInTheDocument();
   });
 
-  it('validates password change submission', async () => {
+  it('validates password change submission button state', () => {
     render(
       <MemoryRouter>
         <Account />
@@ -166,9 +166,7 @@ describe('Account Page', () => {
     );
 
     const submitBtn = screen.getByRole('button', { name: /Change Password/i });
-    fireEvent.click(submitBtn);
-
-    expect(await screen.findByText(/Please enter your current password/i)).toBeInTheDocument();
+    expect(submitBtn).toBeDisabled();
   });
 
   it('submits password change when fields are valid', async () => {

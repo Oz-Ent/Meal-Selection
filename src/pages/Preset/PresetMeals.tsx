@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Check,
   CheckCircle2,
   ChevronRight,
   Copy,
   Edit2,
-  Loader2,
-  MoreVertical,
   Plus,
   Trash2,
 } from 'lucide-react';
@@ -17,6 +14,9 @@ import { BottomToast, type ToastType } from '../../components/BottomToast/Bottom
 import { LoadingOverlay } from '../../components/LoadingOverlay/LoadingOverlay';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import PresetIllustration from '../../assets/Preset Illustration.svg';
+import Button from '../../components/Button/Button';
+import Badge from '../../components/Badge/Badge';
+import InputField from '../../components/InputField/InputField';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreatePresetMutation,
@@ -29,6 +29,7 @@ import {
 import { queryKeys } from '../../api/queryKeys';
 import { presetService, type Preset } from '../../api/Services/PresetServices';
 import { menuService } from '../../api/Services/MenuServices';
+import ActionMenu from '../../components/ActionMenu/ActionMenu';
 import { DefaultPresetWarningModal } from './components/DefaultPresetWarningModal';
 import { useAuth } from '../Auth/useAuth/useAuth';
 
@@ -39,7 +40,6 @@ export function PresetMeals() {
   const userId = profile?.user?.id;
 
   const [isSelectMenuModalOpen, setIsSelectMenuModalOpen] = useState(false);
-  const [activeMenuPresetId, setActiveMenuPresetId] = useState<number | null>(null);
 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameInput, setRenameInput] = useState('');
@@ -102,7 +102,6 @@ export function PresetMeals() {
   const handleOpenRename = (preset: Preset) => {
     setPresetToRename(preset);
     setRenameInput(preset.name || '');
-    setActiveMenuPresetId(null);
     setIsRenameModalOpen(true);
   };
 
@@ -152,7 +151,6 @@ export function PresetMeals() {
   };
 
   const handleSetDefault = async (preset: Preset) => {
-    setActiveMenuPresetId(null);
     setLoadingOverlay({ isLoading: true, message: 'Checking preset details...' });
     try {
       const [details, menuDays] = await Promise.all([
@@ -182,7 +180,7 @@ export function PresetMeals() {
         }
       }
 
-      // Check items object fallback (keyed by day name, e.g. { "MONDAY": { dayMealId: 95 } })
+      // Check items object fallback
       const presetRecord = details as { items?: Record<string, { dayMealId?: number }> } | undefined;
       if (
         selectedDayIds.size === 0 &&
@@ -243,7 +241,6 @@ export function PresetMeals() {
   };
 
   const handleDuplicate = async (preset: Preset) => {
-    setActiveMenuPresetId(null);
     setLoadingOverlay({ isLoading: true, message: 'Duplicating preset meal...' });
     try {
       const details = await queryClient.fetchQuery({
@@ -282,7 +279,6 @@ export function PresetMeals() {
   };
 
   const handleDelete = async (preset: Preset) => {
-    setActiveMenuPresetId(null);
     setLoadingOverlay({ isLoading: true, message: 'Deleting preset meal...' });
     try {
       await deletePresetMutation.mutateAsync(preset.id);
@@ -317,7 +313,7 @@ export function PresetMeals() {
             <div className="h-8 w-8">
               <LoadingSpinner />
             </div>
-            <p className="text-sm text-slate-500">Loading presets...</p>
+            <p className="text-sm text-text-secondary">Loading presets...</p>
           </div>
         ) : presets.length === 0 ? (
           <div className="flex flex-col items-center justify-center my-auto py-12 text-center">
@@ -326,7 +322,7 @@ export function PresetMeals() {
               alt="Preset Illustration"
               className="w-56 h-auto max-h-48 object-contain mb-6"
             />
-            <p className="text-sm font-medium text-slate-500 max-w-xs leading-relaxed">
+            <p className="text-sm font-medium text-text-secondary max-w-xs leading-relaxed">
               There are no preset meals available, click on &ldquo;add&rdquo; to create a new preset
               menu.
             </p>
@@ -336,9 +332,6 @@ export function PresetMeals() {
             {presets.map((preset) => {
               const menuObj = menus.find((m) => m.id === preset.menuId);
               const menuLabel = menuObj?.title || `Menu ${preset.menuId}`;
-              const subtitle = preset.isDefault ? `${menuLabel} • Default` : menuLabel;
-              const isMenuOpen = activeMenuPresetId === preset.id;
-
               return (
                 <div key={preset.id} className="relative w-full">
                   <div
@@ -347,74 +340,58 @@ export function PresetMeals() {
                         state: { presetName: preset.name, preset },
                       })
                     }
-                    className="bg-white border border-slate-100 p-4 rounded-2xl shadow-2xs flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+                    className="bg-surface border border-border p-4 rounded-2xl shadow-2xs flex items-center justify-between cursor-pointer hover:bg-surface-muted transition-colors"
                   >
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900">
-                        {preset.name || `Preset Menu ${preset.menuId}`}
-                      </h3>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-text-primary">
+                          {preset.name || `Preset Menu ${preset.menuId}`}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-text-secondary font-medium mt-0.5 flex items-center gap-2">
+                        {menuLabel}
+                        {preset.isDefault && (
+                          <Badge variant="primary" size="xs" label="Default" />
+                        )}
+                      </p>
                     </div>
 
-                    <button
-                      type="button"
-                      aria-label="Preset options"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuPresetId(isMenuOpen ? null : preset.id);
-                      }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-                  </div>
-
-                  {/* Vertical Three-Dot Options Dropdown */}
-                  {isMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-30"
-                        onClick={() => setActiveMenuPresetId(null)}
-                      />
-                      <div className="absolute right-2 top-12 z-40 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 text-xs text-slate-700 font-medium">
-                        <button
-                          type="button"
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ActionMenu triggerAriaLabel="Preset options">
+                        <ActionMenu.Item
+                          icon={<Edit2 size={15} />}
                           onClick={() => handleOpenRename(preset)}
-                          className="flex w-full items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 text-left"
                         >
-                          <Edit2 size={15} className="text-slate-600 shrink-0" />
-                          <span>Rename</span>
-                        </button>
+                          Rename
+                        </ActionMenu.Item>
 
-                        <button
-                          type="button"
+                        <ActionMenu.Item
+                          icon={<CheckCircle2 size={15} />}
+                          divider
                           onClick={() => handleSetDefault(preset)}
-                          className="flex w-full items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 text-left border-t border-slate-100/60"
                         >
-                          <CheckCircle2 size={15} className="text-slate-600 shrink-0" />
-                          <span>Set as default</span>
-                        </button>
+                          Set as default
+                        </ActionMenu.Item>
 
-                        <button
-                          type="button"
+                        <ActionMenu.Item
+                          icon={<Copy size={15} />}
+                          divider
                           onClick={() => handleDuplicate(preset)}
-                          className="flex w-full items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 text-left border-t border-slate-100/60"
                         >
-                          <Copy size={15} className="text-slate-600 shrink-0" />
-                          <span>Duplicate preset meal</span>
-                        </button>
+                          Duplicate preset meal
+                        </ActionMenu.Item>
 
-                        <button
-                          type="button"
+                        <ActionMenu.Item
+                          icon={<Trash2 size={15} />}
+                          variant="danger"
+                          divider
                           onClick={() => handleDelete(preset)}
-                          className="flex w-full items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 text-left text-red-600 border-t border-slate-100/60"
                         >
-                          <Trash2 size={15} className="text-red-600 shrink-0" />
-                          <span>Delete preset meal</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
+                          Delete preset meal
+                        </ActionMenu.Item>
+                      </ActionMenu>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -442,20 +419,22 @@ export function PresetMeals() {
         variant="bottom"
         showCloseButton={true}
       >
-        <div className="p-4 pt-2 flex flex-col text-slate-900 font-sans w-full">
-          {/* Menu Burger Illustration */}
+        <div className="p-4 pt-2 flex flex-col text-text-primary font-sans w-full">
           <div className="flex justify-center mb-2">
             <img
               src={PresetIllustration}
               alt="Select Menu Illustration"
-              className="w-28 h-24 object-contain m-10"
+              className="w-28 h-24 object-contain m-6"
             />
           </div>
 
-          <h2 className="text-base font-bold text-slate-900 mb-3 text-left">Select menu</h2>
+          <h2 className="text-base font-bold text-text-primary mb-3 text-left">Select menu</h2>
 
           {menusQuery.isLoading ? (
-            <div className="py-8 text-center text-sm text-slate-400">Loading menus...</div>
+            <div className="py-8 text-center text-sm text-text-muted flex flex-col items-center gap-2">
+              <LoadingSpinner />
+              <span>Loading menus...</span>
+            </div>
           ) : (
             <div className="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
               {activeMenus.map((menu) => (
@@ -463,15 +442,15 @@ export function PresetMeals() {
                   key={menu.id}
                   type="button"
                   onClick={() => handleSelectMenu(menu.id)}
-                  className="flex items-center justify-between w-full bg-[#f8fafc] border border-slate-100 p-4 rounded-2xl hover:bg-slate-100 text-left transition-colors"
+                  className="flex items-center justify-between w-full bg-surface-muted border border-border p-4 rounded-2xl hover:bg-surface text-left transition-colors cursor-pointer"
                 >
-                  <span className="text-sm font-semibold text-slate-800">{menu.title}</span>
-                  <ChevronRight size={18} className="text-slate-400" />
+                  <span className="text-sm font-semibold text-text-primary">{menu.title}</span>
+                  <ChevronRight size={18} className="text-text-muted" />
                 </button>
               ))}
 
               {activeMenus.length === 0 && (
-                <div className="py-6 text-center text-sm text-slate-500">
+                <div className="py-6 text-center text-sm text-text-muted">
                   No menus available at the moment.
                 </div>
               )}
@@ -487,27 +466,24 @@ export function PresetMeals() {
         variant="bottom"
         showCloseButton={true}
       >
-        <div className="p-4 pt-2 flex flex-col text-slate-900 font-sans w-full">
-          <h2 className="text-base font-bold text-slate-900 mb-4 text-left">Rename preset menu</h2>
+        <div className="p-4 pt-2 flex flex-col text-text-primary font-sans w-full gap-4">
+          <h2 className="text-base font-bold text-text-primary text-left">Rename preset menu</h2>
 
-          <input
-            type="text"
+          <InputField
             value={renameInput}
             onChange={(e) => setRenameInput(e.target.value)}
             placeholder="Enter preset menu name"
-            className="w-full rounded-xl border border-slate-200 p-3.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400 mb-4"
             autoFocus
           />
 
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            className="w-full"
             disabled={!renameInput.trim() || isRenaming}
+            pending={isRenaming}
+            label="Confirm"
             onClick={handleConfirmRename}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#20475b] py-3.5 text-sm font-semibold text-white hover:bg-[#19394b] disabled:bg-[#d0dbdf] disabled:text-white transition-colors"
-          >
-            {isRenaming ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-            <span>Confirm</span>
-          </button>
+          />
         </div>
       </Modal>
 
@@ -528,7 +504,7 @@ export function PresetMeals() {
         isLoading={warningPresetModal.isLoading}
       />
 
-      {/* Global Loading Overlay for Full Screen Actions */}
+      {/* Global Loading Overlay */}
       <LoadingOverlay isLoading={loadingOverlay.isLoading} message={loadingOverlay.message} />
 
       {/* Bottom Toast Banner */}
@@ -541,3 +517,5 @@ export function PresetMeals() {
     </div>
   );
 }
+
+export default PresetMeals;

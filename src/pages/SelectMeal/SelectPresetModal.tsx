@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Check, Loader2, Search } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import Modal from '../../components/Modal/Modal';
 import ApplyPresetEmpty from '../../assets/ApplyPresetEmpty.svg';
 import { usePresetsByUserQuery } from '../../api/useApiQueries';
 import type { Preset } from '../../api/Services/PresetServices';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import SearchBar from '../../components/SearchBar/SearchBar';
 
 export interface SelectPresetModalProps {
   isOpen: boolean;
@@ -57,25 +58,19 @@ export function SelectPresetModal({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} variant="bottom" showCloseButton={true}>
-      <div className="p-4 pt-2 flex flex-col text-slate-900 font-sans w-full">
-        <h2 className="text-base font-bold text-slate-900 mb-3 text-left">Select preset menu</h2>
+      <div className="p-4 pt-2 flex flex-col text-text-primary font-sans w-full">
+        <h2 className="text-base font-bold text-text-primary mb-3 text-left">Select preset menu</h2>
 
         {/* Search Bar */}
-        <div className="relative mb-2 w-full">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search preset menu"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none pr-10 focus:border-slate-400 placeholder:text-slate-400"
-          />
-          <Search
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            size={18}
-          />
-        </div>
+        <SearchBar
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onClear={() => setSearchTerm('')}
+          placeholder="Search preset menu"
+          className="mb-2 w-full"
+        />
 
-        <p className="text-xs text-slate-500 italic mb-4 text-left">
+        <p className="text-xs text-text-secondary italic mb-4 text-left">
           Available preset menus for this week&apos;s menu.
         </p>
 

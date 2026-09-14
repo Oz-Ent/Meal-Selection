@@ -1,3 +1,15 @@
+﻿import {
+  budgetService,
+  expenditureService,
+  type CreateBudgetDto,
+  type UpdateBudgetDto,
+  type CreateExpenditureDto,
+  type UpdateExpenditureDto,
+} from './Services/BudgetServices';
+import {
+  analyticsService,
+} from './Services/AnalyticsServices';
+import type { FoodArrivalPayload } from './Services/MealSelectionServices';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   authService,
@@ -36,7 +48,13 @@ import {
   type CreatePresetRequest,
   type UpdatePresetRequest,
 } from './Services/PresetServices';
-import { userService, type ChangePasswordRequest, type UpdateUserPreferencesRequest, type UpdateUserRequest } from './Services/UserServices';
+import {
+  userService,
+  type ChangePasswordRequest,
+  type PatchUserPreferencesRequest,
+  type UpdateUserPreferencesRequest,
+  type UpdateUserRequest,
+} from './Services/UserServices';
 import {
   weekMenuScheduleService,
   type CreateWeekMenuScheduleRequest,
@@ -501,10 +519,11 @@ export const useDeleteHolidayOverrideMutation = () => {
   });
 };
 
-export const useUserProfileQuery = () =>
+export const useUserProfileQuery = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: queryKeys.userProfile(),
     queryFn: () => userService.getProfile(),
+    enabled: options?.enabled ?? true,
   });
 
 export const useUserLeavesQuery = (userId: number | undefined, options?: { enabled?: boolean }) =>
@@ -525,16 +544,40 @@ export const useUpdateUserProfileMutation = () => {
   });
 };
 
-export const useUserPreferencesQuery = () =>
+export const useUserPreferencesQuery = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: queryKeys.userPreferences(),
     queryFn: () => userService.getPreferences(),
+    enabled: options?.enabled ?? true,
   });
 
 export const useUpdateUserPreferencesMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateUserPreferencesRequest) => userService.updatePreferences(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userPreferences() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile() });
+    },
+  });
+};
+
+export const usePatchUserPreferencesMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: PatchUserPreferencesRequest) => userService.patchPreferences(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userPreferences() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile() });
+    },
+  });
+};
+
+export const useUpdateAnnouncementVersionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (announcementVersion: number) =>
+      userService.patchPreferences({ announcementVersion }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.userPreferences() });
       void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile() });
@@ -571,3 +614,95 @@ export const useBulkDeleteGuestSelectionsMutation = () => {
 
 
 
+
+
+// --- Budgets ---
+export const useBudgetsQuery = (params?: { date?: string; startDate?: string; endDate?: string }) =>
+  useQuery({
+    queryKey: queryKeys.budgets(params),
+    queryFn: () => budgetService.getAll(params),
+  });
+
+export const useActiveBudgetQuery = (date?: string) =>
+  useQuery({
+    queryKey: queryKeys.activeBudget(date),
+    queryFn: () => budgetService.getActive(date),
+  });
+
+export const useCreateBudgetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateBudgetDto) => budgetService.create(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+};
+
+export const useUpdateBudgetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateBudgetDto }) =>
+      budgetService.update(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+};
+
+// --- Expenditures ---
+export const useExpendituresQuery = (params?: { date?: string; startDate?: string; endDate?: string }) =>
+  useQuery({
+    queryKey: queryKeys.expenditures(params),
+    queryFn: () => expenditureService.getAll(params),
+  });
+
+export const useActiveExpenditureQuery = (date?: string) =>
+  useQuery({
+    queryKey: queryKeys.activeExpenditure(date),
+    queryFn: () => expenditureService.getActive(date),
+  });
+
+export const useCreateExpenditureMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateExpenditureDto) => expenditureService.create(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenditures'] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+};
+
+export const useUpdateExpenditureMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateExpenditureDto }) =>
+      expenditureService.update(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenditures'] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+};
+
+// --- Analytics ---
+export const useAnalyticsDashboardQuery = (params?: { date?: string; budgetId?: number }) =>
+  useQuery({
+    queryKey: queryKeys.analyticsDashboard(params),
+    queryFn: () => analyticsService.getDashboard(params),
+  });
+
+// --- Food Arrival & Fulfillment ---
+export const useFoodArrivalMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: FoodArrivalPayload) => mealSelectionService.notifyFoodArrival(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['meal-selections'] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+};

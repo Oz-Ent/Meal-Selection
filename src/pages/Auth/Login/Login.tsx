@@ -48,8 +48,8 @@ function Login() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-linear-to-br from-slate-50 via-slate-100/60 to-slate-200/50">
-      <div className="w-full max-w-md lg:max-w-4xl bg-white rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        {/* Left Branding Showcase (Visible on lg screens) */}
+      <div className="w-full max-w-md lg:max-w-4xl bg-surface rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-border overflow-hidden grid grid-cols-1 lg:grid-cols-2 font-sans">
+        {/* Left Branding Showcase */}
         <div className="hidden lg:flex flex-col justify-between bg-linear-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
           <div className="flex items-center gap-2.5 z-10">
             <img src={AppIcon} alt="Edziban" className="h-8 w-8 object-contain" />
@@ -58,19 +58,19 @@ function Login() {
 
           <div className="my-auto py-8 flex flex-col items-center text-center z-10">
             <img src={bro} alt="Welcome" className="w-64 h-auto max-h-56 object-contain drop-shadow-lg mb-6" />
-            <h2 className="text-2xl font-bold font-['Inter'] leading-snug">
+            <h2 className="text-2xl font-bold leading-snug">
               Delightful Meals,<br />Simplified Daily
             </h2>
-            <p className="mt-3 text-sm text-slate-200 font-['Roboto'] max-w-xs leading-relaxed">
+            <p className="mt-3 text-sm text-slate-200 max-w-xs leading-relaxed">
               Explore custom menus, make your weekly choices in seconds, and track meal schedules seamlessly.
             </p>
           </div>
 
-          <div className="text-xs text-emerald-200/80 font-['Roboto'] z-10">
+          <div className="text-xs text-emerald-200/80 z-10">
             © {new Date().getFullYear()} Edziban Meal Planning System
           </div>
 
-          {/* Subtle decorative background circles */}
+          {/* Decorative background blurs */}
           <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
         </div>
@@ -80,10 +80,10 @@ function Login() {
           <section className="flex flex-col gap-2">
             <div className="lg:hidden flex items-center gap-2 mb-2">
               <img src={AppIcon} alt="Edziban" className="h-7 w-7 object-contain" />
-              <span className="text-base font-bold text-slate-700">Edziban</span>
+              <span className="text-base font-bold text-text-primary">Edziban</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl text-gray-800 font-semibold text-left font-['Inter']">Login</h1>
-            <p className="text-msDescription text-sm sm:text-base font-normal text-left font-['Roboto']">
+            <h1 className="text-2xl sm:text-3xl text-text-primary font-bold text-left">Login</h1>
+            <p className="text-text-secondary text-sm sm:text-base font-normal text-left">
               Log in to choose your weekly meals. Create your ideal menu and make every meal a delight.
             </p>
           </section>
@@ -98,7 +98,7 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            {error && <p className="text-red-500 text-right text-xs">{error}</p>}
+            {error && <p className="text-danger text-right text-xs">{error}</p>}
 
             <AuthLink
               to="/forgot-password"
@@ -111,18 +111,16 @@ function Login() {
           <section className="flex flex-col gap-6 sm:gap-8">
             <Checkbox label="Keep me signed in." checked={keepSignedIn} onChange={setKeepSignedIn} />
 
-            <div className="w-full h-12">
-              <Button
-                label={isLoading ? 'Logging in...' : 'Login'}
-                variant="primary"
-                onClick={handleLogin}
-                disabled={isLoading}
-                className="rounded-xl text-base font-medium font-['Roboto'] w-full shadow-sm hover:shadow transition-all"
-              />
-            </div>
+            <Button
+              label={isLoading ? 'Logging in...' : 'Login'}
+              variant="primary"
+              onClick={handleLogin}
+              disabled={isLoading}
+              className="w-full"
+            />
           </section>
 
-          <p className="text-sm text-gray-600 text-center">
+          <p className="text-sm text-text-secondary text-center">
             Don't have an account?{' '}
             <AuthLink to="/signup" className="text-primary hover:text-primary-hover font-bold hover:underline inline" text="Sign up" onClick={() => {}} />
           </p>
@@ -133,4 +131,3 @@ function Login() {
 }
 
 export default Login;
-

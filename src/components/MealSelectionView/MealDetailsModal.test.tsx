@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import MealDetailsModal from './MealDetailsModal';
 import { useMealDetailsQuery } from '../../api/useApiQueries';
 
@@ -38,6 +38,7 @@ describe('MealDetailsModal Component', () => {
   });
 
   it('renders meal details and ingredients when data is present', () => {
+    const onClose = jest.fn();
     mockUseMealDetailsQuery.mockReturnValue({
       isPending: false,
       isError: false,
@@ -54,7 +55,7 @@ describe('MealDetailsModal Component', () => {
     });
 
     render(
-      <MealDetailsModal isOpen={true} foodCode="BT1" onClose={jest.fn()} />
+      <MealDetailsModal isOpen={true} foodCode="BT1" onClose={onClose} />
     );
 
     expect(screen.getByText('Banku & Tilapia')).toBeInTheDocument();
@@ -62,5 +63,29 @@ describe('MealDetailsModal Component', () => {
     expect(screen.getAllByText('Freshly prepared banku with hot pepper and tilapia').length).toBeGreaterThan(0);
     expect(screen.getByText('Corn Dough')).toBeInTheDocument();
     expect(screen.getByText('Tilapia')).toBeInTheDocument();
+    expect(screen.getByTestId('meal-image-circle')).toBeInTheDocument();
+
+    // Close button works
+    const closeBtn = screen.getByRole('button', { name: /Close modal/i });
+    fireEvent.click(closeBtn);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // Escape key works
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders nothing when isOpen is false', () => {
+    mockUseMealDetailsQuery.mockReturnValue({
+      isPending: false,
+      isError: false,
+      data: null,
+    });
+
+    const { container } = render(
+      <MealDetailsModal isOpen={false} foodCode="BT1" onClose={jest.fn()} />
+    );
+
+    expect(container.firstChild).toBeNull();
   });
 });

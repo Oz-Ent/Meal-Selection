@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../../components/Modal/Modal';
+import Button from '../../../components/Button/Button';
 import { useAuth } from '../../Auth/useAuth/useAuth';
 
 interface LogoutConfirmModalProps {
@@ -30,44 +31,38 @@ export const LogoutConfirmModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="flex flex-col items-center text-center p-2">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 mb-4 border border-rose-100">
+      <div className="flex flex-col items-center text-center p-2 font-sans">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-light text-danger mb-4 border border-danger/20">
           <LogOut className="h-7 w-7" />
         </div>
 
-        <h3 className="text-lg font-bold text-slate-900 mb-1">
+        <h3 className="text-lg font-bold text-text-primary mb-1">
           Sign Out of Account?
         </h3>
-        <p className="text-xs text-slate-500 max-w-xs mb-6 leading-relaxed">
+        <p className="text-xs text-text-secondary max-w-xs mb-6 leading-relaxed">
           You will be logged out of Edziban on this device. You will need to log back in with your credentials.
         </p>
 
         <div className="flex w-full gap-3">
-          <button
-            type="button"
-            onClick={onClose}
+          <Button
+            variant="outline"
+            className="flex-1"
             disabled={isLoggingOut}
-            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            Cancel
-          </button>
+            label="Cancel"
+            onClick={onClose}
+          />
           <button
             type="button"
             onClick={handleConfirmLogout}
             disabled={isLoggingOut}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-danger hover:bg-danger-hover py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             {isLoggingOut ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Signing Out...
-              </>
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent shrink-0" />
             ) : (
-              <>
-                <LogOut className="h-3.5 w-3.5" />
-                Sign Out
-              </>
+              <LogOut className="h-3.5 w-3.5" />
             )}
+            <span>Sign Out</span>
           </button>
         </div>
       </div>

@@ -4,13 +4,17 @@ import {
   Search,
   Check,
   X,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
   Layers,
   Sparkles,
 } from 'lucide-react';
 import Modal from '../../../components/Modal/Modal';
+import Tabs from '../../../components/Tabs/Tabs';
+import Button from '../../../components/Button/Button';
+import Chip from '../../../components/Chip/Chip';
+import SearchChips from '../../../components/SearchChips/SearchChips';
+import EmptyState from '../../../components/EmptyState/EmptyState';
+import InfoBanner from '../../../components/Banner/InfoBanner';
+import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import {
   useFoodLibraryQuery,
   useMealsQuery,
@@ -138,18 +142,18 @@ export const EditPreferencesModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="flex flex-col w-[90vw] sm:w-[560px] md:w-[620px] max-w-full h-[85vh] max-h-[620px] overflow-hidden p-4 sm:p-6 text-slate-800 font-sans">
+      <div className="flex flex-col w-[90vw] sm:w-[560px] md:w-[620px] max-w-full h-[85vh] max-h-[620px] overflow-hidden p-4 sm:p-6 text-text-primary font-sans">
         {/* STATIC HEADER */}
-        <div className="shrink-0 flex items-start justify-between pb-3.5 border-b border-slate-100">
+        <div className="shrink-0 flex items-start justify-between pb-3.5 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-[#00633d] border border-emerald-200/70 shadow-2xs">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-light text-primary border border-primary/20 shadow-2xs">
               <Utensils className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              <h3 className="text-base sm:text-lg font-bold text-text-primary leading-tight">
                 Manage Meal Preferences
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-text-secondary mt-0.5">
                 Select ingredients or dishes to exclude from weekly menus
               </p>
             </div>
@@ -159,7 +163,7 @@ export const EditPreferencesModal = ({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -167,58 +171,49 @@ export const EditPreferencesModal = ({
 
         {/* FEEDBACK BANNERS */}
         {errorMessage && (
-          <div className="shrink-0 mt-3 flex items-start gap-2.5 rounded-xl bg-rose-50 p-3 text-xs text-rose-800 border border-rose-200">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
-            <span>{errorMessage}</span>
+          <div className="shrink-0 mt-3">
+            <InfoBanner variant="danger" description={errorMessage} />
           </div>
         )}
 
         {successMessage && (
-          <div className="shrink-0 mt-3 flex items-start gap-2.5 rounded-xl bg-emerald-50 p-3 text-xs text-[#00633d] border border-emerald-200">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00633d] mt-0.5" />
-            <span>{successMessage}</span>
+          <div className="shrink-0 mt-3">
+            <InfoBanner variant="success" description={successMessage} />
           </div>
         )}
 
         {/* STATIC TABS */}
-        <div className="shrink-0 mt-3 flex rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('ingredients');
+        <div className="shrink-0 mt-3">
+          <Tabs
+            value={activeTab}
+            onChange={(val) => {
+              setActiveTab(val as 'ingredients' | 'meals');
               setSearchTerm('');
             }}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'ingredients'
-                ? 'bg-white text-[#00633d] shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
           >
-            <Layers className="h-3.5 w-3.5" />
-            <span>Ingredients ({selectedFoodCodes.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('meals');
-              setSearchTerm('');
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'meals'
-                ? 'bg-white text-[#00633d] shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Dishes ({selectedMealIds.length})</span>
-          </button>
+            <Tabs.Options>
+              <Tabs.Option
+                value="ingredients"
+                icon={<Layers size={14} />}
+                badge={selectedFoodCodes.length}
+              >
+                Ingredients
+              </Tabs.Option>
+              <Tabs.Option
+                value="meals"
+                icon={<Sparkles size={14} />}
+                badge={selectedMealIds.length}
+              >
+                Dishes
+              </Tabs.Option>
+            </Tabs.Options>
+          </Tabs>
         </div>
 
         {/* STATIC SEARCH & FILTERS */}
         <div className="shrink-0 mt-3 space-y-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
             <input
               type="text"
               value={searchTerm}
@@ -228,13 +223,13 @@ export const EditPreferencesModal = ({
                   ? 'Search ingredients (e.g. Pork, Fish, Egg)...'
                   : 'Search dish name to exclude...'
               }
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#00633d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#00633d]"
+              className="w-full rounded-xl border border-border bg-surface-muted/70 pl-9 pr-8 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -242,33 +237,25 @@ export const EditPreferencesModal = ({
           </div>
 
           {activeTab === 'ingredients' && availableGroups.length > 0 && (
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 max-w-full scrollbar-none">
-              <button
-                type="button"
+            <SearchChips>
+              <Chip
+                label="All"
+                size="sm"
+                variant="filter"
+                selected={selectedGroup === 'ALL'}
                 onClick={() => setSelectedGroup('ALL')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedGroup === 'ALL'
-                    ? 'bg-[#00633d] text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60'
-                }`}
-              >
-                All
-              </button>
+              />
               {availableGroups.map((group) => (
-                <button
+                <Chip
                   key={group}
-                  type="button"
+                  label={group}
+                  size="sm"
+                  variant="filter"
+                  selected={selectedGroup === group}
                   onClick={() => setSelectedGroup(group)}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                    selectedGroup === group
-                      ? 'bg-[#00633d] text-white shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60'
-                  }`}
-                >
-                  {group}
-                </button>
+                />
               ))}
-            </div>
+            </SearchChips>
           )}
         </div>
 
@@ -276,15 +263,15 @@ export const EditPreferencesModal = ({
         <div className="flex-1 min-h-0 mt-3 overflow-y-auto overflow-x-hidden pr-1 space-y-2">
           {activeTab === 'ingredients' ? (
             foodLibraryQuery.isLoading ? (
-              <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin mb-1.5 text-[#00633d]" />
+              <div className="flex flex-col items-center justify-center py-10 text-text-muted gap-2">
+                <LoadingSpinner />
                 <span className="text-xs font-medium">Loading ingredients...</span>
               </div>
             ) : filteredFoodItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200 p-4">
-                <p className="text-xs font-medium text-slate-600">No ingredients found</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Try a different search keyword</p>
-              </div>
+              <EmptyState
+                title="No ingredients found"
+                description="Try a different search keyword"
+              />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 w-full">
                 {filteredFoodItems.map((item) => {
@@ -296,23 +283,23 @@ export const EditPreferencesModal = ({
                       onClick={() => toggleFoodCode(item.foodCode)}
                       className={`flex items-center justify-between gap-2 rounded-xl p-2.5 text-left border transition-all cursor-pointer overflow-hidden ${
                         isSelected
-                          ? 'bg-rose-50 border-rose-300 text-rose-900 shadow-2xs ring-1 ring-rose-200'
-                          : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50/60'
+                          ? 'bg-danger-light border-danger/40 text-danger-dark shadow-2xs ring-1 ring-danger/20'
+                          : 'bg-surface border-border text-text-primary hover:border-border-hover hover:bg-surface-muted/60'
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-bold leading-snug">
                           {item.name}
                         </span>
-                        <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5 truncate">
+                        <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mt-0.5 truncate">
                           {item.foodGroup || item.foodCode}
                         </span>
                       </div>
                       <div
                         className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                           isSelected
-                            ? 'bg-rose-600 border-rose-600 text-white'
-                            : 'border-slate-300 bg-slate-50'
+                            ? 'bg-danger border-danger text-white'
+                            : 'border-border bg-surface-muted'
                         }`}
                       >
                         {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
@@ -323,15 +310,15 @@ export const EditPreferencesModal = ({
               </div>
             )
           ) : mealsQuery.isLoading ? (
-            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin mb-1.5 text-[#00633d]" />
+            <div className="flex flex-col items-center justify-center py-10 text-text-muted gap-2">
+              <LoadingSpinner />
               <span className="text-xs font-medium">Loading dishes...</span>
             </div>
           ) : filteredMeals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200 p-4">
-              <p className="text-xs font-medium text-slate-600">No dishes found</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Try a different search term</p>
-            </div>
+            <EmptyState
+              title="No dishes found"
+              description="Try a different search term"
+            />
           ) : (
             <div className="space-y-1.5 w-full">
               {filteredMeals.map((meal) => {
@@ -343,8 +330,8 @@ export const EditPreferencesModal = ({
                     onClick={() => toggleMealId(meal.id)}
                     className={`w-full flex items-center justify-between gap-3 rounded-xl p-2.5 text-left border transition-all cursor-pointer overflow-hidden ${
                       isSelected
-                        ? 'bg-rose-50 border-rose-300 text-rose-900 shadow-2xs ring-1 ring-rose-200'
-                        : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50/60'
+                        ? 'bg-danger-light border-danger/40 text-danger-dark shadow-2xs ring-1 ring-danger/20'
+                        : 'bg-surface border-border text-text-primary hover:border-border-hover hover:bg-surface-muted/60'
                     }`}
                   >
                     <div className="min-w-0 flex-1">
@@ -352,7 +339,7 @@ export const EditPreferencesModal = ({
                         {meal.name}
                       </span>
                       {meal.description && (
-                        <span className="block truncate text-[11px] text-slate-400 font-normal mt-0.5">
+                        <span className="block truncate text-[11px] text-text-muted font-normal mt-0.5">
                           {meal.description}
                         </span>
                       )}
@@ -360,8 +347,8 @@ export const EditPreferencesModal = ({
                     <div
                       className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                         isSelected
-                          ? 'bg-rose-600 border-rose-600 text-white'
-                          : 'border-slate-300 bg-slate-50'
+                          ? 'bg-danger border-danger text-white'
+                          : 'border-border bg-surface-muted'
                       }`}
                     >
                       {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
@@ -374,37 +361,27 @@ export const EditPreferencesModal = ({
         </div>
 
         {/* STATIC FOOTER */}
-        <div className="shrink-0 mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-          <div className="text-xs text-slate-500 self-start sm:self-auto">
-            <span className="font-bold text-slate-800">{selectedFoodCodes.length}</span> ingredients
-            and <span className="font-bold text-slate-800">{selectedMealIds.length}</span> dishes
+        <div className="shrink-0 mt-3 pt-3 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <div className="text-xs text-text-secondary self-start sm:self-auto">
+            <span className="font-bold text-text-primary">{selectedFoodCodes.length}</span> ingredients
+            and <span className="font-bold text-text-primary">{selectedMealIds.length}</span> dishes
             disliked
           </div>
 
           <div className="flex w-full sm:w-auto gap-2">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              label="Cancel"
+              disabled={updateMutation.isPending}
               onClick={onClose}
+            />
+            <Button
+              variant="primary"
+              label="Save Preferences"
+              pending={updateMutation.isPending}
               disabled={updateMutation.isPending}
-              className="flex-1 sm:flex-none rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
               onClick={handleSave}
-              disabled={updateMutation.isPending}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#00633d] hover:bg-[#005232] px-5 py-2 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Preferences'
-              )}
-            </button>
+            />
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../../components/Button/Button';
 import InputField from '../../../components/InputField/InputField';
 import PasswordField from '../../../components/PasswordField/PasswordField';
+import PasswordValidationChecklist from '../../../components/PasswordField/PasswordValidationChecklist';
 import AuthLink from '../../../components/AuthLink/AuthLink';
 import Checkbox from '../../../components/Checkbox/Checkbox';
 
@@ -76,8 +77,7 @@ function Signup() {
   const [isLoading, setIsLoading] = useState(false);
 
   /*
-   * Validation is always calculated,
-   * but isn't displayed until the user submits once.
+   * Validation is calculated directly
    */
   const formErrors = useMemo(
     () => validate(email, password, token),
@@ -85,7 +85,6 @@ function Signup() {
   );
 
   const visibleErrors = hasSubmitted ? formErrors : {};
-
   const isFormValid = Object.keys(formErrors).length === 0;
 
   const cooldown = Math.max(
@@ -134,7 +133,6 @@ function Signup() {
         ...prev,
         email: emailError,
       }));
-
       return;
     }
 
@@ -212,18 +210,15 @@ function Signup() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-linear-to-br from-slate-50 via-slate-100/60 to-slate-200/50">
-      <div className="w-full max-w-md lg:max-w-4xl bg-white rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-slate-100 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-
+      <div className="w-full max-w-md lg:max-w-4xl bg-surface rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-border overflow-hidden grid grid-cols-1 lg:grid-cols-2 font-sans">
         {/* Branding */}
-        <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
-
+        <div className="hidden lg:flex flex-col justify-between bg-linear-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">
           <div className="flex items-center gap-2.5">
             <img
               src={AppIcon}
               alt="Edziban"
               className="h-8 w-8 object-contain"
             />
-
             <span className="text-lg font-bold">
               Edziban
             </span>
@@ -235,11 +230,9 @@ function Signup() {
               alt="Welcome"
               className="w-64 h-auto max-h-56 object-contain drop-shadow-lg mb-6"
             />
-
             <h2 className="text-2xl font-bold">
               Join Edziban Today
             </h2>
-
             <p className="mt-3 text-sm text-slate-200 max-w-xs leading-relaxed">
               Create your account to start planning your weekly menu,
               customize presets, and enjoy stress-free dining.
@@ -253,7 +246,6 @@ function Signup() {
 
         {/* Form */}
         <div className="flex flex-col justify-center gap-5 p-6 sm:p-10">
-
           {/* Header */}
           <section>
             <div className="lg:hidden flex items-center gap-2 mb-2">
@@ -262,24 +254,22 @@ function Signup() {
                 alt="Edziban"
                 className="h-7 w-7 object-contain"
               />
-
-              <span className="font-bold text-slate-700">
+              <span className="font-bold text-text-primary">
                 Edziban
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl text-gray-800 font-semibold">
+            <h1 className="text-2xl sm:text-3xl text-text-primary font-bold">
               Sign Up
             </h1>
 
-            <p className="text-msDescription text-sm sm:text-base">
+            <p className="text-text-secondary text-sm sm:text-base">
               Sign up and start planning your weekly menu with ease.
             </p>
           </section>
 
           {/* Form Fields */}
           <section className="flex flex-col gap-5">
-
             {/* Email */}
             <InputField
               label="Email"
@@ -312,48 +302,50 @@ function Signup() {
               }
             />
 
+            <PasswordValidationChecklist password={password} />
+
             {/* OTP */}
-          <OtpInput
-            length={6}
-            value={token}
-            hasError={!!visibleErrors.token}
-            errorMessage={visibleErrors.token}
-            handleRequestOTP={handleRequestOtp}
-            isPending={onboardingMutation.isPending}
-            requestLabel="Request OTP"
-            requestCooldown={cooldown}
-            onChange={(value) =>
-              updateField(setToken, value, 'token')
-            }
-          />
-          <p className='text-xs text-slate-400 text-left'>OTP expires in 1 hour after request.</p>
-          {/* API Error */}
-          {errors.api && (
-            <p className="text-red-500 text-xs text-left">
-              {errors.api}
-            </p>
-          )}
+            <OtpInput
+              length={6}
+              value={token}
+              hasError={!!visibleErrors.token}
+              errorMessage={visibleErrors.token}
+              handleRequestOTP={handleRequestOtp}
+              isPending={onboardingMutation.isPending}
+              requestLabel="Request OTP"
+              requestCooldown={cooldown}
+              onChange={(value) =>
+                updateField(setToken, value, 'token')
+              }
+            />
+            <p className="text-xs text-text-muted text-left">OTP expires in 1 hour after request.</p>
+
+            {/* API Error */}
+            {errors.api && (
+              <p className="text-danger text-xs text-left">
+                {errors.api}
+              </p>
+            )}
           </section>
 
           {/* Actions */}
           <section className="flex flex-col gap-5">
-
             <Checkbox
               label="Keep me signed in."
               checked={keepSignedIn}
               onChange={setKeepSignedIn}
             />
 
-          <Button
-            label={isLoading ? 'Signing up...' : 'Sign Up'}
-            variant="primary"
-            onClick={handleSignup}
-            disabled={!isFormValid || isLoading}
-          />
+            <Button
+              label={isLoading ? 'Signing up...' : 'Sign Up'}
+              variant="primary"
+              onClick={handleSignup}
+              disabled={!isFormValid || isLoading}
+            />
           </section>
-          
+
           {/* Login */}
-          <p className="text-sm text-gray-600 text-center">
+          <p className="text-sm text-text-secondary text-center">
             Already have an account?{' '}
             <AuthLink
               to="/login"

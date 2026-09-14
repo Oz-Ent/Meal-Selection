@@ -3,54 +3,257 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
+    /* -------------------------------------------------------
+       Typography
+       ------------------------------------------------------- */
     font-family: 'Inter', Roboto, Poppins, sans-serif;
     line-height: 1.5;
     font-weight: 400;
-
-    color: #111827;
-    background-color: #ffffff;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
-    /* Primary Brand Green Palette */
+    /* -------------------------------------------------------
+       Brand Palette
+       ------------------------------------------------------- */
     --color-primary: #00633d;
     --color-primary-hover: #004e2b;
     --color-primary-light: #edf7f2;
     --color-primary-subtle: #00633d0f;
 
-    /* Secondary Deep Slate Teal Palette */
     --color-secondary: #1e465e;
     --color-secondary-hover: #163649;
     --color-secondary-light: #edf6fa;
     --color-secondary-subtle: #1e465e0f;
 
-    /* Surfaces & Layout */
+    --color-spinner-primary: #00633d;
+    --color-spinner-secondary: #1e465e;
+
+    /* -------------------------------------------------------
+       Backgrounds / Surfaces
+       ------------------------------------------------------- */
     --color-app-bg: #f8fafc;
     --color-surface: #ffffff;
     --color-surface-dark: #232528;
+    --color-surface-elevated: #fafafa;
+    --color-surface-muted: #f1f5f9;
+    --color-surface-disabled: #f8fafc;
 
-    /* Typography */
+    /* -------------------------------------------------------
+       Borders
+       ------------------------------------------------------- */
+    --color-border: #eaeff7;
+    --color-border-subtle: #f1f5f9;
+    --color-border-hover: #cbd5e1;
+
+    /* -------------------------------------------------------
+       Typography & Text
+       ------------------------------------------------------- */
     --color-text-primary: #111827;
     --color-text-secondary: #475569;
     --color-text-muted: #64748b;
+    --color-text-inverse: #ffffff;
 
-    /* Legacy Tokens (Backward Compatible) */
-    --msDeepBlue: #1e465e;
-    --msTextPrimary: #111827;
-    --msListBorder: #f1f5f9;
-    --msSuccessGreen: #00633d;
-    --msWarningRed: #ef4444;
-    --msCardPrimaryText: #0f172a;
-    --msCardSecondaryText: #64748b;
-    --msTextArea: #f8fafc;
-    --msHighlightBlue: #00633d0f;
-    --msDescription: #475569;
+    /* -------------------------------------------------------
+       Feedback / Status
+       ------------------------------------------------------- */
+    --color-success: #00633d;
+    --color-success-light: #e9f6ef;
+    --color-success-dark: #138f58;
+    --color-warning: #f59e0b;
+    --color-warning-light: #fef3c7;
+    --color-warning-dark: #d97706;
+    --color-danger: #ef4444;
+    --color-danger-light: #fee2e2;
+    --color-danger-dark: #b91c1c;
+    --color-info: #2563eb;
+    --color-info-light: #eef4fc;
+    --color-info-dark: #1d4ed8;
+
+    /* -------------------------------------------------------
+       Form Elements
+       ------------------------------------------------------- */
+    --color-input-bg: #ffffff;
+    --color-input-border: #cbd5e1;
+    --color-input-placeholder: #94a3b8;
+    --color-focus-ring: #00633d;
+
+    /* -------------------------------------------------------
+       Meal Selection & Option Tokens
+       ------------------------------------------------------- */
+    --color-meal-hover: #f1f5f9;
+    --color-meal-selected-bg: #edf7f2;
+    --color-meal-selected-border: #00633d;
+    --color-meal-unavailable-bg: #f8fafc;
+    --color-meal-unavailable-text: #475569;
+    --color-meal-holiday-bg: #fef3c7;
+    --color-meal-holiday-border: #fde68a;
+    --color-meal-holiday-text: #92400e;
+
+    /* -------------------------------------------------------
+       Notification Banner Tokens
+       ------------------------------------------------------- */
+    --color-banner-guest-bg: #edf7f2;
+    --color-banner-guest-border: #bbf7d0;
+    --color-banner-guest-text: #00633d;
+    --color-banner-closed-bg: #fee2e2;
+    --color-banner-closed-border: #fecaca;
+    --color-banner-closed-text: #991b1b;
+
+    /* -------------------------------------------------------
+       Spin Wheel Tokens
+       ------------------------------------------------------- */
+    --color-wheel-slice-1: #fafafa;
+    --color-wheel-slice-2: #ffffff;
+    --color-wheel-border: #eaeff7;
+    --color-wheel-stroke: #00000014;
+    --color-wheel-center-border: #ffffff;
+
+    /* -------------------------------------------------------
+       Misc
+       ------------------------------------------------------- */
+    --color-overlay: rgb(15 23 42 / 0.5);
+
+    /* -------------------------------------------------------
+       Legacy Tokens (Backward Compatible)
+       ------------------------------------------------------- */
+    --msPrimary: var(--color-primary);
+    --msSecondary: var(--color-secondary);
+    --msDeepBlue: var(--color-secondary);
+    --msTextPrimary: var(--color-text-primary);
+    --msListBorder: var(--color-border);
+    --msSuccessGreen: var(--color-success);
+    --msWarningRed: var(--color-danger);
+    --msCardPrimaryText: var(--color-text-primary);
+    --msCardSecondaryText: var(--color-text-muted);
+    --msTextArea: var(--color-surface-muted);
+    --msHighlightBlue: var(--color-primary-subtle);
+    --msDescription: var(--color-text-secondary);
+  }
+
+  .dark {
+    /* -------------------------------------------------------
+       Brand Palette
+       ------------------------------------------------------- */
+    --color-primary: #077245;
+    --color-primary-hover: #2dbd7e;
+    --color-primary-light: #123c2c;
+    --color-primary-subtle: rgb(34 160 107 / 0.12);
+
+    --color-secondary: #1e465e;
+    --color-secondary-hover: #286286;
+    --color-secondary-light: #19303e;
+    --color-secondary-subtle: rgb(107 154 181 / 0.12);
+
+    --color-spinner-primary: #22a06b;
+    --color-spinner-secondary: #a7c9dd;
+
+    /* -------------------------------------------------------
+       Backgrounds / Surfaces
+       ------------------------------------------------------- */
+    --color-app-bg: #141414;
+    --color-surface: #1a1a1a;
+    --color-surface-dark: #121212;
+    --color-surface-elevated: #202327;
+    --color-surface-muted: #25282c;
+    --color-surface-disabled: #1c1e22;
+
+    /* -------------------------------------------------------
+       Borders
+       ------------------------------------------------------- */
+    --color-border: #232323;
+    --color-border-subtle: #272b30;
+    --color-border-hover: #3b4148;
+
+    /* -------------------------------------------------------
+       Typography & Text
+       ------------------------------------------------------- */
+    --color-text-primary: #dadada;
+    --color-text-secondary: #99a1aa;
+    --color-text-muted: #94a3b8;
+    --color-text-inverse: #111827;
+
+    /* -------------------------------------------------------
+       Feedback / Status
+       ------------------------------------------------------- */
+    --color-success: #22a06b;
+    --color-success-light: #26b97c33;
+    --color-success-dark: #66e496;
+    --color-warning: #fbbf24;
+    --color-warning-light: #a1791248;
+    --color-warning-dark: #fde047;
+    --color-danger: #f87171;
+    --color-danger-light: #8635357a;
+    --color-danger-dark: #fca5a5;
+    --color-info: #60a5fa;
+    --color-info-light: #2d3747;
+    --color-info-dark: #bfdbfe;
+
+    /* -------------------------------------------------------
+       Form Elements
+       ------------------------------------------------------- */
+    --color-input-bg: #181a1d;
+    --color-input-border: #3b4148;
+    --color-input-placeholder: #64748b;
+    --color-focus-ring: #22a06b;
+
+    /* -------------------------------------------------------
+       Meal Selection & Option Tokens
+       ------------------------------------------------------- */
+    --color-meal-hover: #25282c;
+    --color-meal-selected-bg: #123c2c;
+    --color-meal-selected-border: #22a06b;
+    --color-meal-unavailable-bg: #1c1e22;
+    --color-meal-unavailable-text: #94a3b8;
+    --color-meal-holiday-bg: #3d2f0a;
+    --color-meal-holiday-border: #634b12;
+    --color-meal-holiday-text: #fde68a;
+
+    /* -------------------------------------------------------
+       Notification Banner Tokens
+       ------------------------------------------------------- */
+    --color-banner-guest-bg: #123c2c;
+    --color-banner-guest-border: #1e5a42;
+    --color-banner-guest-text: #66e496;
+    --color-banner-closed-bg: #3c1919;
+    --color-banner-closed-border: #642828;
+    --color-banner-closed-text: #fca5a5;
+
+    /* -------------------------------------------------------
+       Spin Wheel Tokens
+       ------------------------------------------------------- */
+    --color-wheel-slice-1: #202327;
+    --color-wheel-slice-2: #181a1d;
+    --color-wheel-border: #2a2e33;
+    --color-wheel-stroke: #ffffff14;
+    --color-wheel-center-border: #202327;
+
+    /* -------------------------------------------------------
+       Misc
+       ------------------------------------------------------- */
+    --color-overlay: rgb(0 0 0 / 0.65);
+
+    /* -------------------------------------------------------
+       Legacy Tokens (Backward Compatible)
+       ------------------------------------------------------- */
+    --msPrimary: var(--color-primary);
+    --msSecondary: var(--color-secondary);
+    --msDeepBlue: var(--color-secondary);
+    --msTextPrimary: var(--color-text-primary);
+    --msListBorder: var(--color-border);
+    --msSuccessGreen: var(--color-success);
+    --msWarningRed: var(--color-danger);
+    --msCardPrimaryText: var(--color-text-primary);
+    --msCardSecondaryText: var(--color-text-muted);
+    --msTextArea: var(--color-surface-muted);
+    --msHighlightBlue: var(--color-primary-subtle);
+    --msDescription: var(--color-text-secondary);
   }
 
   a {
@@ -67,24 +270,47 @@
   }
 
   body {
-    font-family: 'Inter', Roboto, sans-serif;
+    font-family: 'Inter', Roboto, Poppins, sans-serif;
     margin: 0;
     min-height: 100vh;
     overflow-x: hidden;
     overflow-y: auto;
     background-color: var(--color-app-bg);
+    color: var(--color-text-primary);
   }
 
   h1 {
     line-height: 1.1;
   }
+
+  /* Custom scrollbar styling for webkit & firefox across themes */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-hover) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-hover);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+  }
 }
 
 @theme {
-  --font-sans: 'Inter', Roboto, sans-serif;
+  --font-sans: 'Inter', Roboto, Poppins, sans-serif;
+  --font-display: 'Poppins', sans-serif;
 }
 
 @theme inline {
+  /* Brand */
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
   --color-primary-light: var(--color-primary-light);
@@ -95,14 +321,77 @@
   --color-secondary-light: var(--color-secondary-light);
   --color-secondary-subtle: var(--color-secondary-subtle);
 
+  --color-spinner-primary: var(--color-spinner-primary);
+  --color-spinner-secondary: var(--color-spinner-secondary);
+
+  /* Surfaces & Layout */
   --color-app-bg: var(--color-app-bg);
   --color-surface: var(--color-surface);
   --color-surface-dark: var(--color-surface-dark);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-surface-disabled: var(--color-surface-disabled);
 
+  /* Borders */
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-hover: var(--color-border-hover);
+
+  /* Typography & Text */
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
 
+  /* Feedback / Status */
+  --color-success: var(--color-success);
+  --color-success-light: var(--color-success-light);
+  --color-success-dark: var(--color-success-dark);
+  --color-warning: var(--color-warning);
+  --color-warning-light: var(--color-warning-light);
+  --color-warning-dark: var(--color-warning-dark);
+  --color-danger: var(--color-danger);
+  --color-danger-light: var(--color-danger-light);
+  --color-danger-dark: var(--color-danger-dark);
+  --color-info: var(--color-info);
+  --color-info-light: var(--color-info-light);
+  --color-info-dark: var(--color-info-dark);
+
+  /* Forms */
+  --color-input-bg: var(--color-input-bg);
+  --color-input-border: var(--color-input-border);
+  --color-input-placeholder: var(--color-input-placeholder);
+  --color-focus-ring: var(--color-focus-ring);
+
+  /* Meal Selection & Options */
+  --color-meal-hover: var(--color-meal-hover);
+  --color-meal-selected-bg: var(--color-meal-selected-bg);
+  --color-meal-selected-border: var(--color-meal-selected-border);
+  --color-meal-unavailable-bg: var(--color-meal-unavailable-bg);
+  --color-meal-unavailable-text: var(--color-meal-unavailable-text);
+  --color-meal-holiday-bg: var(--color-meal-holiday-bg);
+  --color-meal-holiday-border: var(--color-meal-holiday-border);
+  --color-meal-holiday-text: var(--color-meal-holiday-text);
+
+  /* Notification Banners */
+  --color-banner-guest-bg: var(--color-banner-guest-bg);
+  --color-banner-guest-border: var(--color-banner-guest-border);
+  --color-banner-guest-text: var(--color-banner-guest-text);
+  --color-banner-closed-bg: var(--color-banner-closed-bg);
+  --color-banner-closed-border: var(--color-banner-closed-border);
+  --color-banner-closed-text: var(--color-banner-closed-text);
+
+  /* Spin Wheel */
+  --color-wheel-slice-1: var(--color-wheel-slice-1);
+  --color-wheel-slice-2: var(--color-wheel-slice-2);
+  --color-wheel-border: var(--color-wheel-border);
+  --color-wheel-stroke: var(--color-wheel-stroke);
+  --color-wheel-center-border: var(--color-wheel-center-border);
+
+  /* Misc */
+  --color-overlay: var(--color-overlay);
+
+  /* Legacy Tokens */
   --color-msPrimary: var(--color-primary);
   --color-msSecondary: var(--color-secondary);
   --color-msDeepBlue: var(--msDeepBlue);
@@ -110,10 +399,10 @@
   --color-msListBorder: var(--msListBorder);
   --color-msSuccessGreen: var(--msSuccessGreen);
   --color-msWarningRed: var(--msWarningRed);
-  --color-msCardPrimaryText: var(--msCardPrimaryText);
-  --color-msCardSecondaryText: var(--msCardSecondaryText);
-  --color-msTextArea: var(--msTextArea);
-  --color-msHighlightBlue: var(--msHighlightBlue);
-  --color-msBoldText: var(--msCardPrimaryText);
-  --color-msDescription: var(--msDescription);
+  --color-msCardPrimaryText: var(--color-text-primary);
+  --color-msCardSecondaryText: var(--color-text-muted);
+  --color-msTextArea: var(--color-surface-muted);
+  --color-msHighlightBlue: var(--color-primary-subtle);
+  --color-msBoldText: var(--color-text-primary);
+  --color-msDescription: var(--color-text-secondary);
 }

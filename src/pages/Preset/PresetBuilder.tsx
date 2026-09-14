@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Check, Loader2 } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
 import { MealSelectionView, type DaySelectionValue } from '../../components/MealSelectionView/MealSelectionView';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import Modal from '../../components/Modal/Modal';
+import Button from '../../components/Button/Button';
+import InputField from '../../components/InputField/InputField';
+import EmptyState from '../../components/EmptyState/EmptyState';
 
 import {
   useCreatePresetMutation,
@@ -86,7 +89,6 @@ export function PresetBuilder() {
   };
 
   const handleCreatePreset = async () => {
-
     const trimmedName = presetNameInput.trim();
     if (!userId || !menuId || !trimmedName) {
       return;
@@ -152,16 +154,17 @@ export function PresetBuilder() {
           <div className="h-8 w-8">
             <LoadingSpinner />
           </div>
-          <p className="text-sm text-slate-500">Loading meals...</p>
+          <p className="text-sm text-text-secondary">Loading meals...</p>
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && menuDays.length === 0 && (
-        <div className="flex flex-col items-center justify-center px-8 pt-20 text-center">
-          <p className="text-sm font-medium text-slate-500 max-w-xs leading-relaxed">
-            No days or meals configured for this menu.
-          </p>
+        <div className="p-8">
+          <EmptyState
+            title="No Meals Configured"
+            description="No days or meals configured for this menu."
+          />
         </div>
       )}
 
@@ -191,27 +194,25 @@ export function PresetBuilder() {
         variant="bottom"
         showCloseButton={true}
       >
-        <div className="p-4 pt-2 flex flex-col text-slate-900 font-sans w-full">
-          <h2 className="text-base font-bold text-slate-900 mb-4 text-left">New preset menu</h2>
+        <div className="p-4 pt-2 flex flex-col text-text-primary font-sans w-full gap-4">
+          <h2 className="text-base font-bold text-text-primary text-left">New preset menu</h2>
 
-          <input
-            type="text"
+          <InputField
             value={presetNameInput}
             onChange={(e) => setPresetNameInput(e.target.value)}
             placeholder="Enter preset menu name"
-            className="w-full rounded-xl border border-slate-200 p-3.5 text-sm outline-none focus:border-slate-400 placeholder:text-slate-400 mb-4"
             autoFocus
           />
 
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            className="w-full"
             disabled={!presetNameInput.trim() || isSaving}
+            pending={isSaving}
+            icon={<Check size={18} />}
+            label="Create preset menu"
             onClick={handleCreatePreset}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 disabled:text-white transition-colors"
-          >
-            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-            <span>Create preset menu</span>
-          </button>
+          />
         </div>
       </Modal>
 
@@ -225,3 +226,5 @@ export function PresetBuilder() {
     </div>
   );
 }
+
+export default PresetBuilder;

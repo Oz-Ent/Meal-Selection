@@ -4,6 +4,7 @@ import Modal from '../Modal/Modal';
 import { type Meal } from '../../api/Services/MealServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
 import SearchBar from '../SearchBar/SearchBar';
+import Button from '../Button/Button';
 
 export interface AllMealsModalSheetProps {
   meals: Meal[];
@@ -35,10 +36,10 @@ export function AllMealsModalSheet({
 
   return (
     <Modal isOpen variant="bottom" onClose={onClose} showCloseButton>
-      <section className="flex flex-col font-sans w-full max-h-[85vh]">
-        <div className="px-4 pt-4 pb-2 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">All meals</h2>
-          <p className="text-xs text-slate-500 mt-0.5 mb-3">Select all meals to add to this weekday.</p>
+      <section className="flex flex-col font-sans w-full max-h-[85vh] text-text-primary bg-surface">
+        <div className="px-4 pt-4 pb-2 border-b border-border">
+          <h2 className="text-base font-bold text-text-primary">All meals</h2>
+          <p className="text-xs text-text-secondary mt-0.5 mb-3">Select all meals to add to this weekday.</p>
           <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -48,9 +49,9 @@ export function AllMealsModalSheet({
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-2 divide-y divide-slate-100">
+        <div className="flex-1 overflow-y-auto px-4 py-2 divide-y divide-border">
           {filteredMeals.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">
+            <div className="py-8 text-center text-xs text-text-muted">
               No meals found matching &quot;{searchTerm}&quot;
             </div>
           ) : (
@@ -62,17 +63,24 @@ export function AllMealsModalSheet({
                   key={meal.id}
                   type="button"
                   onClick={() => toggleMeal(meal.id)}
-                  className={`flex w-full items-center justify-between p-3 rounded-xl text-left transition-colors my-1 ${
-                    isSelected ? 'bg-primary-light' : 'hover:bg-slate-50'
+                  className={`flex w-full items-center justify-between p-3 rounded-xl text-left transition-colors my-1 cursor-pointer ${
+                    isSelected
+                      ? 'bg-primary-light border border-primary/30 text-primary'
+                      : 'hover:bg-surface-muted text-text-primary'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-2">
                     <img
                       src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                       alt={meal.name}
-                      className="h-11 w-11 shrink-0 rounded-xl object-cover bg-slate-100"
+                      onError={(e) => {
+                        if (e.currentTarget.src !== FALLBACK_MEAL_IMAGE_URL) {
+                          e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
+                        }
+                      }}
+                      className="h-11 w-11 shrink-0 rounded-xl object-cover bg-surface-muted border border-border/50"
                     />
-                    <span className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
+                    <span className="text-xs font-semibold leading-snug line-clamp-2">
                       {meal.name}
                     </span>
                   </div>
@@ -84,15 +92,14 @@ export function AllMealsModalSheet({
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-white">
-          <button
-            type="button"
+        <div className="p-4 border-t border-border bg-surface">
+          <Button
+            variant="primary"
+            className="w-full"
+            icon={<Check size={18} />}
+            label="Add"
             onClick={() => onSave(tempIds)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity cursor-pointer"
-          >
-            <Check size={18} />
-            <span>Add</span>
-          </button>
+          />
         </div>
       </section>
     </Modal>
@@ -100,4 +107,3 @@ export function AllMealsModalSheet({
 }
 
 export default AllMealsModalSheet;
-

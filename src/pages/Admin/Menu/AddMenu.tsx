@@ -8,6 +8,7 @@ import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import MenuDayCard from '../../../components/MenuDayCard/MenuDayCard';
 import AllMealsModalSheet from '../../../components/AllMealsModalSheet/AllMealsModalSheet';
+import Button from '../../../components/Button/Button';
 
 import { type Meal } from '../../../api/Services/MealServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
@@ -236,64 +237,53 @@ function PreviewModalSheet({
       onClose={() => !isSubmitting && onClose()}
       showCloseButton={!isSubmitting}
     >
-      <section className="flex flex-col font-sans w-full max-h-[85vh]">
-        <div className="px-4 pt-4 pb-2 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">Preview</h2>
+      <section className="flex flex-col font-sans w-full max-h-[85vh] text-text-primary bg-surface">
+        <div className="px-4 pt-4 pb-2 border-b border-border">
+          <h2 className="text-base font-bold text-text-primary">Preview</h2>
         </div>
 
         {/* Preview List */}
-        <div className="flex-1 divide-y divide-slate-100 overflow-y-auto px-4 py-2">
+        <div className="flex-1 divide-y divide-border overflow-y-auto px-4 py-2">
           {menuDays.map((day) => {
             const isOpen = openDayId === day.id;
-
             const dayMeals = allMeals.filter((meal) => day.mealIds.includes(meal.id));
 
             return (
               <div key={day.id} className="py-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setOpenDayId(isOpen ? null : day.id)
-                  }
-                  className="flex w-full items-center justify-between py-2 text-left"
+                  onClick={() => setOpenDayId(isOpen ? null : day.id)}
+                  className="flex w-full items-center justify-between py-2 text-left cursor-pointer"
                 >
-                  <span className="text-sm font-semibold text-slate-900">{day.title}</span>
+                  <span className="text-sm font-semibold text-text-primary">{day.title}</span>
 
                   {isOpen ? (
-                    <ChevronUp
-                      size={18}
-                      className="text-slate-500"
-                    />
+                    <ChevronUp size={18} className="text-text-secondary" />
                   ) : (
-                    <ChevronDown
-                      size={18}
-                      className="text-slate-500"
-                    />
+                    <ChevronDown size={18} className="text-text-secondary" />
                   )}
                 </button>
 
                 {isOpen && (
                   <div className="flex flex-col gap-2 pb-1 pl-2 pt-2">
                     {dayMeals.length === 0 ? (
-                      <p className="text-xs italic text-slate-400">
+                      <p className="text-xs italic text-text-muted">
                         No meals selected for this day.
                       </p>
                     ) : (
                       dayMeals.map((meal) => (
-                        <div
-                          key={meal.id}
-                          className="flex items-center gap-3"
-                        >
+                        <div key={meal.id} className="flex items-center gap-3">
                           <img
-                            src={
-                              meal.imagePath ||
-                              FALLBACK_MEAL_IMAGE_URL
-                            }
+                            src={meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                             alt={meal.name}
-                            className="h-10 w-10 shrink-0 rounded-xl bg-slate-100 object-cover"
+                            onError={(e) => {
+                              if (e.currentTarget.src !== FALLBACK_MEAL_IMAGE_URL) {
+                                e.currentTarget.src = FALLBACK_MEAL_IMAGE_URL;
+                              }
+                            }}
+                            className="h-10 w-10 shrink-0 rounded-xl bg-surface-muted border border-border/50 object-cover"
                           />
-
-                          <span className="line-clamp-2 text-xs font-semibold text-slate-800">
+                          <span className="line-clamp-2 text-xs font-semibold text-text-primary">
                             {meal.name}
                           </span>
                         </div>
@@ -307,21 +297,16 @@ function PreviewModalSheet({
         </div>
 
         {/* Create Menu Button */}
-        <div className="border-t border-slate-100 bg-white p-4">
-          <button
-            type="button"
+        <div className="border-t border-border bg-surface p-4">
+          <Button
+            variant="primary"
+            className="w-full"
             disabled={isSubmitting}
+            pending={isSubmitting}
+            icon={<Plus size={18} />}
+            label="Create menu"
             onClick={onSubmit}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity hover:bg-primary-hover disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <Plus size={18} />
-            )}
-
-            <span>Create menu</span>
-          </button>
+          />
         </div>
       </section>
     </Modal>

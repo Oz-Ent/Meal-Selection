@@ -45,13 +45,13 @@ export default function Modal({
     <div
       className={`fixed inset-0 z-1000 flex ${
         isCenter
-          ? 'items-center justify-center p-4 bg-black/40 backdrop-blur-xs'
-          : 'items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-xs'
+          ? 'items-center justify-center p-4 bg-overlay backdrop-blur-xs'
+          : 'items-end sm:items-center justify-center p-0 sm:p-4 bg-overlay backdrop-blur-xs'
       }`}
       onClick={onClose}
     >
       <div
-        className={`relative flex flex-col bg-white overflow-hidden ${
+        className={`relative flex flex-col bg-surface text-text-primary border border-border overflow-hidden transition-colors ${
           isCenter
             ? 'w-fit h-fit max-h-[90vh] max-w-2xl min-w-70 sm:min-w-85 rounded-2xl shadow-2xl m-4'
             : 'max-h-[95vh] w-full sm:max-w-xl sm:rounded-2xl sm:shadow-2xl rounded-t-3xl pb-[env(safe-area-inset-bottom)]'
@@ -60,11 +60,11 @@ export default function Modal({
       >
         {showCloseButton && (
           <button
-            className="absolute z-10 right-4 top-3 flex h-6 w-6 items-center justify-center rounded-full text-msDeepBlue transition-colors hover:bg-slate-100 hover:text-slate-800"
+            className="absolute z-10 right-4 top-3 flex h-7 w-7 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
             onClick={onClose}
             aria-label="Close modal"
           >
-            <CloseIcon />
+            <CloseIcon fontSize="small" />
           </button>
         )}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-1.5">{children}</div>

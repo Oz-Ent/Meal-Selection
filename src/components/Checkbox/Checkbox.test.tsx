@@ -50,4 +50,16 @@ describe('Checkbox Component', () => {
         const label = container.querySelector('label');
         expect(label).toHaveClass('custom-class');
     });
+
+    it('renders toggle variant correctly and handles clicks', () => {
+        const onChange = jest.fn();
+        render(<Checkbox label="Auto-submit" variant="toggle" checked={true} onChange={onChange} />);
+        const checkbox = screen.getByRole('checkbox');
+        expect(checkbox).toBeInTheDocument();
+        expect(checkbox).toBeChecked();
+        expect(screen.getByText('Auto-submit')).toBeInTheDocument();
+
+        fireEvent.click(checkbox);
+        expect(onChange).toHaveBeenCalledWith(false);
+    });
 });

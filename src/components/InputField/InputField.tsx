@@ -1,67 +1,101 @@
-import  {  useState, useId, type ChangeEvent } from "react";
+import { useState, useId, type ChangeEvent } from 'react';
 
-interface IInputFieldProps{
-    disabled?: boolean
-    label?: string
-    placeholder?: string
-    type?: string
-    value: string
-    error?: boolean
-    errorMessage?: string
-    onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
-    min?: number
-    max?: number
-    isBorderVisible?: boolean
-    className?: string
-    multiline?: boolean
+export interface IInputFieldProps {
+  id?: string;
+  disabled?: boolean;
+  autoFocus?: boolean;
+  required?: boolean;
+  label?: string;
+  placeholder?: string;
+  type?: string;
+  value: string;
+  error?: boolean;
+  errorMessage?: string;
+  onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  min?: number;
+  max?: number;
+  isBorderVisible?: boolean;
+  className?: string;
+  multiline?: boolean;
 }
 
-export default function InputField({disabled,label,placeholder,type = 'text', value, error, errorMessage, onChange,isBorderVisible = true,className,multiline}:IInputFieldProps){
-    const [focused, setFocused] = useState<boolean>(false)
-    const uniqueId = useId();
-    const isFloating = focused || value.length > 0 || (!!placeholder && placeholder?.length > 0)
-    
-    const inputClasses = `w-full h-full ${!isBorderVisible ? "border-none" : "border rounded-md"} px-3 ${label && "pt-5"} pb-2 outline-none ${className} ${error ? "border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`
+export default function InputField({
+  id,
+  disabled,
+  autoFocus,
+  label,
+  placeholder,
+  type = 'text',
+  value,
+  error,
+  errorMessage,
+  onChange,
+  isBorderVisible = true,
+  className = '',
+  multiline,
+}: IInputFieldProps) {
+  const [focused, setFocused] = useState<boolean>(false);
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const isFloating = focused || Boolean(value && value.length > 0) || Boolean(placeholder && placeholder.length > 0);
 
-    return(
-        <div className="relative h-full">
-            {multiline ? (
-                <textarea
-                    id={uniqueId}
-                    disabled={disabled}
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={onChange}
-                    onFocus={()=>setFocused(true)} 
-                    onBlur={()=>setFocused(false)}
-                    className={`${inputClasses} resize-none`}
-                />
-            ) : (
-                <input 
-                    id={uniqueId}
-                    disabled={disabled}
-                    placeholder={placeholder} 
-                    type={type} 
-                    value={value}
-                    onChange={onChange}
-                    onFocus={()=>setFocused(true)} 
-                    onBlur={()=>setFocused(false)}
-                    className={inputClasses}
-                />
-            )}
-           <label
-            htmlFor={uniqueId}
-            className={`absolute left-3 transition-all pointer-events-none
-            ${
-                isFloating
-                ? "top-1 text-[10px] text-primary"
-                : "top-2 text-gray-400"
-            }
-            `}
-            
+  const borderClass = !isBorderVisible
+    ? 'border-none'
+    : error
+    ? 'border-danger border-red-500'
+    : focused
+    ? 'border-border-hover'
+    : 'border-border';
+
+  const bgClass = disabled ? 'bg-surface-muted cursor-not-allowed text-text-muted' : 'bg-surface text-text-primary';
+
+  const inputClasses = `w-full h-full rounded-xl border ${borderClass} px-3.5 ${label ? 'pt-5 pb-1.5' : 'py-3'} text-sm outline-none focus:outline-none focus:ring-0 transition-colors placeholder:text-text-muted ${bgClass} ${className}`;
+
+  return (
+    <div className={`relative w-full ${disabled ? 'opacity-65' : ''}`}>
+      {multiline ? (
+        <textarea
+          id={inputId}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          placeholder={label ? (isFloating ? placeholder : undefined) : placeholder}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className={`${inputClasses} resize-none`}
+        />
+      ) : (
+        <input
+          id={inputId}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          placeholder={label ? (isFloating ? placeholder : undefined) : placeholder}
+          type={type}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className={inputClasses}
+        />
+      )}
+      {label && (
+        <label
+          htmlFor={inputId}
+          className={`absolute left-3.5 transition-all pointer-events-none select-none ${disabled ? 'text-text-secondary' :''} ${
+            isFloating
+              ? `top-1.5 text-[10px] font-semibold `
+              : 'top-4 text-xs text-text-muted'
+          }`}
         >
-        {label}</label>
-        {error && <p className="text-red-700 text-xs w-full">{errorMessage ?? `Invalid ${label}`}</p>}
-        </div>
-    )
+          {label}
+        </label>
+      )}
+      {error && (
+        <p className="text-danger text-xs mt-1 text-left font-medium">
+          {errorMessage ?? `Invalid ${label || 'input'}`}
+        </p>
+      )}
+    </div>
+  );
 }

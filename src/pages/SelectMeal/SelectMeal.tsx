@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Ban, Check, Loader2, Search, AlertCircle } from 'lucide-react';
+import { ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
+import NotificationBanner from '../../components/NotificationBanner/NotificationBanner';
 import Modal from '../../components/Modal/Modal';
 import { SuccessModal } from './SuccessModal';
 import { SelectPresetModal } from './SelectPresetModal';
@@ -9,7 +10,12 @@ import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { MealSelectionView, type DaySelectionValue, type GuestDaySelection } from '../../components/MealSelectionView/MealSelectionView';
+import SearchBar from '../../components/SearchBar/SearchBar';
 import { navigateBack } from '../../utils/navigation';
+import {
+  ViewUserSelectionsModal,
+  type WeeklySelectionItemDisplay,
+} from '../Admin/SelectionStatus/ViewUserSelectionsModal';
 
 import { useQueryClient } from '@tanstack/react-query';
 // API Services
@@ -41,8 +47,12 @@ import {
 } from '../../utils/dateHelpers';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { isAdminRole } from '../../utils/Enums/Role';
-import { type OverviewMeal } from './MealOverview';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
+
+export interface OverviewMeal {
+  title: string;
+  imageUrl?: string;
+}
 
 export default function SelectMealPage() {
   const navigate = useNavigate();
@@ -147,11 +157,6 @@ export default function SelectMealPage() {
     [weeklyHolidaysQuery.data],
   );
 
-  const menuDaysById = useMemo(
-    () => new Map(menuDays.map((day) => [day.id, day])),
-    [menuDays],
-  );
-
   const menuDayMealsById = useMemo(
     () => new Map(menuDayMeals.map((dayMeal) => [dayMeal.id, dayMeal])),
     [menuDayMeals],
@@ -252,27 +257,83 @@ export default function SelectMealPage() {
     hasInitializedDayIndexRef.current = true;
   }, [menuDays, pastDayIdSet]);
 
-  const selectedMeals = useMemo(() => {
-    return Object.entries(selections).map(([menuDayId, selection]) => {
-      const day = menuDaysById.get(Number(menuDayId));
-      const menuDayMeal =
-        typeof selection === 'number'
-          ? menuDayMealsById.get(selection)
-          : undefined;
+  const confirmModalSelections = useMemo<WeeklySelectionItemDisplay[]>(() => {
+    return menuDays.map((day) => {
+      const dayName = day.day || `Day ${day.id}`;
+      if (isGuest) {
+        const daySel = guestSelections[day.id];
+        if (!daySel || daySel.nonMeal === 'UNAVAILABLE') {
+          return {
+            day: dayName,
+            mealName: 'Unavailable',
+            selectionType: 'UNAVAILABLE',
+            isGuest: true,
+          };
+        }
+        if (daySel.nonMeal === 'HOLIDAY') {
+          return {
+            day: dayName,
+            mealName: 'Holiday',
+            selectionType: 'HOLIDAY',
+            isGuest: true,
+          };
+        }
+        const activeItems = Object.entries(daySel.mealQuantities)
+          .filter(([, qty]) => qty > 0)
+          .map(([dayMealIdStr, qty]) => {
+            const m = menuDayMealsById.get(Number(dayMealIdStr))?.meal;
+            return {
+              mealName: m?.name || 'Meal',
+              quantity: qty,
+              mealImagePath: m?.imagePath || null,
+              calories: m?.calories || null,
+            };
+          });
 
+        const firstMeal = activeItems[0];
+        return {
+          day: dayName,
+          mealName:
+            activeItems.map((i) => `${i.quantity}x ${i.mealName}`).join(', ') || 'No selection',
+          mealImagePath: firstMeal?.mealImagePath,
+          calories: firstMeal?.calories,
+          selectionType: activeItems.length > 0 ? 'MEAL' : undefined,
+          isGuest: true,
+          guestQuantities: activeItems,
+        };
+      }
+
+      const sel = selections[day.id];
+      if (sel === 'UNAVAILABLE') {
+        return {
+          day: dayName,
+          mealName: 'Unavailable',
+          selectionType: 'UNAVAILABLE',
+        };
+      }
+      if (sel === 'HOLIDAY') {
+        return {
+          day: dayName,
+          mealName: 'Holiday',
+          selectionType: 'HOLIDAY',
+        };
+      }
+      if (typeof sel === 'number') {
+        const mealObj = menuDayMealsById.get(sel)?.meal;
+        return {
+          day: dayName,
+          mealName: mealObj?.name || 'Unknown meal',
+          mealImagePath: mealObj?.imagePath,
+          calories: mealObj?.calories,
+          selectionType: 'MEAL',
+        };
+      }
       return {
-        menuDayId: Number(menuDayId),
-        dayName: day?.day ?? 'Unknown day',
-        mealName:
-          selection === 'UNAVAILABLE'
-            ? 'Unavailable'
-            : selection === 'HOLIDAY'
-              ? 'Holiday'
-              : menuDayMeal?.meal.name ?? 'Unknown meal',
-        selection,
+        day: dayName,
+        mealName: 'No selection',
       };
     });
-  }, [selections, menuDaysById, menuDayMealsById]);
+  }, [menuDays, isGuest, guestSelections, selections, menuDayMealsById]);
 
   // Synchronize target users from URL query params
   useEffect(() => {
@@ -982,82 +1043,87 @@ export default function SelectMealPage() {
             isTargetUserBlockedFromSelection ||
             isUserOnFullWeekLeave,
         }}
-      />
-
-      {/* Schedule Closed Notice */}
-      {isScheduleClosed && (
-        <div className="bg-rose-50 border-b border-rose-100 py-2.5 px-4 flex items-center justify-between text-xs text-rose-800">
-          <div className="flex items-center gap-2">
-            <Ban size={16} className="text-rose-600 shrink-0" />
-            <span className="font-medium">
-              Meal selection for this week is currently {weekMenuSchedule?.status ? weekMenuSchedule.status.toLowerCase() : 'closed'}.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* User On Full Week Leave Notice */}
-      {isUserOnFullWeekLeave && (
-        <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
-          <AlertCircle size={16} className="text-amber-600 shrink-0" />
-          <span className="font-semibold">
-            {selectedUsers.length === 1 && selectedUsers[0].id !== currentUserId
-              ? `${selectedUsers[0].name} is on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`
-              : `You are on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`}
-          </span>
-        </div>
-      )}
-
-      {/* Target User Self Selected Notice */}
-      {isTargetUserSelfSelected && isForSomeone && !isGuest && !isUserOnFullWeekLeave && (
-        <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
-          <AlertCircle size={16} className="text-amber-600 shrink-0" />
-          <span className="font-semibold">
-            {selectedUsers[0]?.name || 'Selected user'} has selected their meals for themselves and cannot be edited.
-          </span>
-        </div>
-      )}
-
-      {/* Target User Blocked for Regular Users Notice */}
-      {!isAdminOrHr && !isTargetUserSelfSelected && isTargetUserBlockedFromSelection && isForSomeone && !isGuest && !isUserOnFullWeekLeave && (
-        <div className="bg-amber-50 border-b border-amber-100 py-2.5 px-4 flex items-center gap-2 text-xs text-amber-800">
-          <AlertCircle size={16} className="text-amber-600 shrink-0" />
-          <span className="font-semibold">
-            {selectedUsers[0]?.name || 'Selected user'} already has meal selections made on their behalf.
-          </span>
-        </div>
-      )}
-
-      {isGuest && (
-        <div className="bg-primary-light py-2.5 px-4 flex items-center justify-between text-xs font-semibold text-primary border-b border-slate-100">
-          <span>Selecting for: Guests</span>
-        </div>
-      )}
-
-      {selectedUsers.length > 0 && !isGuest && (
-        <div className="bg-primary-light py-2 px-4 flex items-center justify-between text-xs font-semibold text-primary border-b border-slate-100">
-          <div className="flex items-center gap-2 truncate pr-2">
-            {selectedUsers.length === 1 ? (
-              <span className="truncate">Selecting for: {selectedUsers[0].name}</span>
-            ) : (
-              <span className="truncate">
-                Selecting for: {selectedUsers.length} Users ({selectedUsers.map((u) => u.name).slice(0, 2).join(', ')}
-                {selectedUsers.length > 2 ? ` +${selectedUsers.length - 2} more` : ''})
-              </span>
+        banner={
+          <>
+            {/* Schedule Closed Notice */}
+            {isScheduleClosed && (
+              <NotificationBanner
+                variant="closed"
+                attached
+                title="Meal Selection Closed"
+                description={`Meal selection for this week is currently ${weekMenuSchedule?.status ? weekMenuSchedule.status.toLowerCase() : 'closed'}.`}
+              />
             )}
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setTempModalSelectedUsers(selectedUsers);
-              setIsUserModalOpen(true);
-            }}
-            className="text-xs font-bold text-primary underline hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-          >
-            Change
-          </button>
-        </div>
-      )}
+
+            {/* User On Full Week Leave Notice */}
+            {isUserOnFullWeekLeave && (
+              <NotificationBanner
+                variant="warning"
+                attached
+                title="Approved Leave Active"
+                description={
+                  selectedUsers.length === 1 && selectedUsers[0].id !== currentUserId
+                    ? `${selectedUsers[0].name} is on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`
+                    : `You are on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`
+                }
+              />
+            )}
+
+            {/* Target User Self Selected Notice */}
+            {isTargetUserSelfSelected && isForSomeone && !isGuest && !isUserOnFullWeekLeave && (
+              <NotificationBanner
+                variant="warning"
+                attached
+                description={`${selectedUsers[0]?.name || 'Selected user'} has selected their meals for themselves and cannot be edited.`}
+              />
+            )}
+
+            {/* Target User Blocked for Regular Users Notice */}
+            {!isAdminOrHr && !isTargetUserSelfSelected && isTargetUserBlockedFromSelection && isForSomeone && !isGuest && !isUserOnFullWeekLeave && (
+              <NotificationBanner
+                variant="warning"
+                attached
+                description={`${selectedUsers[0]?.name || 'Selected user'} already has meal selections made on their behalf.`}
+              />
+            )}
+
+            {/* Guest Selection Mode Notice */}
+            {isGuest && (
+              <NotificationBanner
+                variant="guest"
+                attached
+                title="Selecting for: Guests"
+                description="Selecting meals for visiting guests."
+              />
+            )}
+
+            {/* Selecting for Other Users Notice */}
+            {selectedUsers.length > 0 && !isGuest && (
+              <NotificationBanner
+                variant="guest"
+                attached
+                title={
+                  selectedUsers.length === 1
+                    ? `Selecting for: ${selectedUsers[0].name}`
+                    : `Selecting for: ${selectedUsers.length} Users (${selectedUsers.map((u) => u.name).slice(0, 2).join(', ')}${selectedUsers.length > 2 ? ` +${selectedUsers.length - 2} more` : ''})`
+                }
+                action={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempModalSelectedUsers(selectedUsers);
+                      setIsUserModalOpen(true);
+                    }}
+                    className="text-xs font-bold text-primary underline hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                  >
+                    Change
+                  </button>
+                }
+              />
+            )}
+          </>
+        }
+      />
 
       {/* Loading Progress Indicator */}
       {isLoading && (
@@ -1101,11 +1167,6 @@ export default function SelectMealPage() {
           leaveDayIds={leaveDayIds}
           todayDayId={todayDayId}
           isScheduleClosed={isScheduleClosed && !isAdminOrHr}
-          closedMessage={
-            weekMenuSchedule
-              ? `Meal selection for this week is ${weekMenuSchedule.status.toLowerCase()}. You can view your selections below.`
-              : 'Meal selection for this week is closed.'
-          }
           mode={
             isScheduleClosed && !isAdminOrHr
               ? 'view'
@@ -1181,19 +1242,13 @@ export default function SelectMealPage() {
             )}
           </div>
 
-          <div className="relative mb-3 w-full">
-            <input
-              type="text"
-              value={userSearchTerm}
-              onChange={(e) => setUserSearchTerm(e.target.value)}
-              placeholder="Search User"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none pr-10 focus:border-slate-400 placeholder:text-slate-400"
-            />
-            <Search
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-              size={18}
-            />
-          </div>
+          <SearchBar
+            value={userSearchTerm}
+            onChange={(e) => setUserSearchTerm(e.target.value)}
+            onClear={() => setUserSearchTerm('')}
+            placeholder="Search User"
+            className="mb-3 w-full"
+          />
 
           <div className="w-full flex-1 overflow-y-auto max-h-[50vh] divide-y divide-slate-100 pr-1 space-y-1">
             {filteredUsersForModal.map((user) => {
@@ -1248,115 +1303,43 @@ export default function SelectMealPage() {
       </Modal>
 
       {/* Confirm Modal */}
-      <Modal
+      <ViewUserSelectionsModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
-        variant="center"
-      >
-        <div className="p-6 sm:p-7 flex flex-col text-slate-900 w-full max-w-sm sm:max-w-md font-sans">
-          <h3 className="text-xl font-bold mb-2.5 text-slate-900 text-left">Confirm Meals</h3>
-          <p className="text-slate-500 mb-6 text-sm leading-relaxed text-left">
-            {isGuest ? (
-              <>
-                Please confirm the food choices for{' '}
-                <span className="font-semibold text-slate-800">guests</span>{' '}
-                for this week.
-              </>
-            ) : selectedUsers.length > 1 ? (
-              <>
-                Please confirm that you want to set these food choices for{' '}
-                <span className="font-semibold text-slate-800">
-                  {selectedUsers.length} selected users
-                </span>{' '}
-                ({selectedUsers.map((u) => u.name).slice(0, 3).join(', ')}
-                {selectedUsers.length > 3 ? ` +${selectedUsers.length - 3} more` : ''}) for this week.
-              </>
-            ) : selectedUsers.length === 1 ? (
-              <>
-                Please confirm that you are satisfied with the food choices for{' '}
-                <span className="font-semibold text-slate-800">{selectedUsers[0].name}</span> for this week.
-              </>
-            ) : (
-              'Please confirm that you are satisfied with your food choices for this week.'
-            )}
-          </p>
-          <section>
-            {isGuest ? (
-              <div className="flex flex-col gap-2 border-2 rounded-xl border-gray-200 divide-y divide-gray-100 max-h-60 overflow-y-auto p-1">
-                {menuDays.map((day) => {
-                  const daySel = guestSelections[day.id];
-                  const dayName = day.day || `Day ${day.id}`;
-                  if (!daySel) return null;
-                  if (daySel.nonMeal === 'UNAVAILABLE') {
-                    return (
-                      <div key={day.id} className="flex flex-col p-2.5">
-                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>
-                        <span className="text-sm font-medium text-slate-700">Unavailable</span>
-                      </div>
-                    );
-                  }
-                  if (daySel.nonMeal === 'HOLIDAY') {
-                    return (
-                      <div key={day.id} className="flex flex-col p-2.5">
-                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>
-                        <span className="text-sm font-medium text-slate-700">Holiday</span>
-                      </div>
-                    );
-                  }
-                  const activeItems = Object.entries(daySel.mealQuantities).filter(([, qty]) => qty > 0);
-                  return (
-                    <div key={day.id} className="flex flex-col p-2.5">
-                      <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{dayName}</span>
-                      <div className="flex flex-col gap-1 mt-1">
-                        {activeItems.map(([dayMealIdStr, qty]) => {
-                          const mealObj = menuDayMealsById.get(Number(dayMealIdStr))?.meal;
-                          return (
-                            <div key={dayMealIdStr} className="flex items-center justify-between text-sm">
-                              <span className="font-medium text-slate-800">{mealObj?.name || 'Meal'}</span>
-                              <span className="rounded bg-primary-light px-2 py-0.5 text-xs font-bold text-primary border border-primary/20">
-                                Qty: {qty}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 border-2 rounded-md border-gray-200">
-                {selectedMeals.map((item) => (
-                  <div key={item.menuDayId} className="flex flex-col border-b p-2 border-gray-100 last:border-0">
-                    <span className="text-xs text-slate-500">{item.dayName}</span>
-                    <span className="text-base">{item.mealName}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-          <div className="flex items-center gap-3 w-full mt-4">
-            <button
-              type="button"
-              onClick={() => setIsConfirmModalOpen(false)}
-              className="flex-1 py-3 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={submitSelections}
-              className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-colors shadow-2xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isSubmitting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : null}
-              <span>Confirm</span>
-            </button>
-          </div>
-        </div>
-      </Modal>
+        customTitle="Confirm Meals"
+        customSubtitle={
+          isGuest ? (
+            <>
+              Please confirm the food choices for{' '}
+              <span className="font-semibold text-text-primary">guests</span> for this week.
+            </>
+          ) : selectedUsers.length > 1 ? (
+            <>
+              Please confirm that you want to set these food choices for{' '}
+              <span className="font-semibold text-text-primary">
+                {selectedUsers.length} selected users
+              </span>{' '}
+              ({selectedUsers.map((u) => u.name).slice(0, 3).join(', ')}
+              {selectedUsers.length > 3 ? ` +${selectedUsers.length - 3} more` : ''}) for this week.
+            </>
+          ) : selectedUsers.length === 1 ? (
+            <>
+              Please confirm that you are satisfied with the food choices for{' '}
+              <span className="font-semibold text-text-primary">{selectedUsers[0].name}</span> for this week.
+            </>
+          ) : (
+            'Please confirm that you are satisfied with your food choices for this week.'
+          )
+        }
+        directSelections={confirmModalSelections}
+        confirmButton={{
+          label: 'Confirm',
+          onClick: submitSelections,
+          isLoading: isSubmitting,
+          disabled: isSubmitting,
+        }}
+        showCancelButton
+      />
 
       {/* Success Modal */}
       {isConfirmed && (
@@ -1388,3 +1371,4 @@ export default function SelectMealPage() {
     </div>
   );
 }
+

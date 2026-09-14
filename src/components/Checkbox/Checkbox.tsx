@@ -1,26 +1,76 @@
-interface ICheckboxProps {
+export interface ICheckboxProps {
   label?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   className?: string;
+  variant?: 'checkbox' | 'toggle';
+  disabled?: boolean;
 }
 
-export default function Checkbox({ label, checked, onChange, className }: ICheckboxProps) {
+export default function Checkbox({
+  label,
+  checked,
+  onChange,
+  className = '',
+  variant = 'checkbox',
+  disabled = false,
+}: ICheckboxProps) {
+  if (variant === 'toggle') {
+    return (
+      <label
+        className={`inline-flex items-center gap-3 cursor-pointer select-none ${
+          disabled ? 'opacity-50 cursor-not-allowed' : ''
+        } ${className}`}
+      >
+        <div className="relative inline-flex items-center shrink-0">
+          <input
+            type="checkbox"
+            role="checkbox"
+            checked={checked}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.checked)}
+            className="peer sr-only"
+          />
+          <div
+            className={`h-6 w-11 rounded-full transition-colors duration-200 ease-in-out border ${
+              checked
+                ? 'bg-primary border-primary'
+                : 'bg-surface-muted border-border hover:border-border-hover'
+            }`}
+          >
+            <div
+              className={`h-5 w-5 rounded-full hover:scale-105 bg-white shadow-xs transform transition-transform duration-200 ease-in-out mt-[1px] ${
+                checked ? 'translate-x-[21px]' : 'translate-x-[2px]'
+              }`}
+            />
+          </div>
+        </div>
+        {label && <span className="text-sm font-medium text-text-primary">{label}</span>}
+      </label>
+    );
+  }
+
   return (
-    <label className={`flex items-center gap-2 text-sm text-gray-800 cursor-pointer select-none ${className ?? ""}`}>
+    <label
+      className={`inline-flex items-center gap-2 text-sm text-text-primary cursor-pointer select-none ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      } ${className}`}
+    >
       <div className="relative w-4 h-4 shrink-0">
         <input
           type="checkbox"
+          role="checkbox"
           checked={checked}
-          onChange={(e) => onChange(e.target.checked)} 
-          className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
         />
-        {/* Unchecked: white bg + brand border */}
-        <div className="w-4 h-4 bg-white border-2 border-primary rounded-sm peer-checked:hidden" />
-        {/* Checked: white bg + brand border + brand tick */}
-        <div className="hidden w-4 h-4 bg-white border-2 border-primary rounded-sm items-center justify-center peer-checked:flex">
+        {/* Unchecked: surface bg + primary border */}
+        <div className="w-4 h-4 bg-surface border-2 border-primary rounded-xs peer-checked:hidden transition-colors" />
+        {/* Checked: primary bg + primary border + white tick */}
+        <div className="hidden w-4 h-4 bg-primary border-2 border-primary rounded-xs items-center justify-center peer-checked:flex transition-colors">
           <svg
-            className="w-2.5 h-2.5 text-primary"
+            className="w-2.5 h-2.5 text-white"
             viewBox="0 0 12 12"
             fill="none"
             stroke="currentColor"

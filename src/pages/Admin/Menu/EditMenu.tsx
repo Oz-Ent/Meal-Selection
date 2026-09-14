@@ -9,6 +9,7 @@ import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import MenuDayCard from '../../../components/MenuDayCard/MenuDayCard';
 import AllMealsModalSheet from '../../../components/AllMealsModalSheet/AllMealsModalSheet';
+import Button from '../../../components/Button/Button';
 import { navigateBack } from '../../../utils/navigation';
 
 import { type Meal } from '../../../api/Services/MealServices';
@@ -322,17 +323,18 @@ export function EditMenu() {
       >
         <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full">
           <div className="mb-4 flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning-light text-warning shrink-0 border border-warning/20">
               <AlertTriangle size={20} />
             </div>
-            <h2 className="text-base font-bold text-slate-900">Unsaved changes</h2>
+            <h2 className="text-base font-bold text-text-primary">Unsaved changes</h2>
           </div>
-          <p className="mb-6 text-sm text-slate-600 leading-relaxed">
-            You have unsaved changes while editing <strong className="text-slate-900">{menuTitle}</strong>. Would you like to save or discard your changes before leaving?
+          <p className="mb-6 text-sm text-text-secondary leading-relaxed">
+            You have unsaved changes while editing <strong className="text-text-primary">{menuTitle}</strong>. Would you like to save or discard your changes before leaving?
           </p>
           <div className="flex gap-3">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              className="flex-1"
               disabled={isSaving}
               onClick={() => {
                 setIsUnsavedModalOpen(false);
@@ -340,23 +342,17 @@ export function EditMenu() {
                 setIsInitialized(false);
                 navigateBack(navigate, '/admin/menu');
               }}
-              className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
-            >
-              Discard
-            </button>
-            <button
-              type="button"
+              label="Discard"
+            />
+            <Button
+              variant="primary"
+              className="flex-1"
               disabled={isSaving}
+              pending={isSaving}
+              icon={<Check size={18} />}
+              label="Save & Exit"
               onClick={() => void handleSaveMenu(true)}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover py-3 text-sm font-semibold text-white shadow-xs transition-opacity disabled:opacity-50"
-            >
-              {isSaving ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Check size={18} />
-              )}
-              <span>Save & Exit</span>
-            </button>
+            />
           </div>
         </section>
       </Modal>
