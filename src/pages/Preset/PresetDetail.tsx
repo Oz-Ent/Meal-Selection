@@ -5,6 +5,7 @@ import { NavBar } from '../../components/NavBar/NavBar';
 import { MealSelectionView, type DaySelectionValue } from '../../components/MealSelectionView/MealSelectionView';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import EmptyState from '../../components/EmptyState/EmptyState';
 import { navigateBack } from '../../utils/navigation';
 
 import {
@@ -46,7 +47,7 @@ export function PresetDetail() {
   const menuDays: MenuDay[] = useMemo(() => menuDaysQuery.data ?? [], [menuDaysQuery.data]);
   const menuDayMeals = menuDayMealsQuery.data ?? [];
 
-  // Handle toast from navigation state (e.g. from preset creation)
+  // Handle toast from navigation state
   useEffect(() => {
     if (location.state && typeof location.state.toastMessage === 'string') {
       setToast({
@@ -54,12 +55,11 @@ export function PresetDetail() {
         type: 'success',
         message: location.state.toastMessage,
       });
-      // Clear location state
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  // Populate selections from preset details when preset data or menuDays are loaded
+  // Populate selections from preset details
   useEffect(() => {
     if (!preset) return;
 
@@ -81,7 +81,7 @@ export function PresetDetail() {
       }
     }
 
-    // 2. Fallback: check items object (keyed by day name)
+    // 2. Fallback: check items object
     const presetRecord = preset as { items?: Record<string, { dayMealId?: number }> } | undefined;
     if (
       Object.keys(initialMap).length === 0 &&
@@ -217,16 +217,17 @@ export function PresetDetail() {
           <div className="h-8 w-8">
             <LoadingSpinner />
           </div>
-          <p className="text-sm text-slate-500">Loading preset details...</p>
+          <p className="text-sm text-text-secondary">Loading preset details...</p>
         </div>
       )}
 
       {/* Empty / Error State */}
       {!isLoading && !preset && (
-        <div className="flex flex-col items-center justify-center px-8 pt-20 text-center">
-          <p className="text-sm font-medium text-slate-500 max-w-xs leading-relaxed">
-            Preset meal not found or could not be loaded.
-          </p>
+        <div className="p-8">
+          <EmptyState
+            title="Preset Not Found"
+            description="Preset meal not found or could not be loaded."
+          />
         </div>
       )}
 
@@ -259,3 +260,5 @@ export function PresetDetail() {
     </div>
   );
 }
+
+export default PresetDetail;

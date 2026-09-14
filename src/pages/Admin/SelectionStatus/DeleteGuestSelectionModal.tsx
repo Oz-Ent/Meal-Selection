@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Trash2, Minus, Plus, AlertTriangle, Loader2 } from 'lucide-react';
+import { Trash2, Minus, Plus, AlertTriangle } from 'lucide-react';
 import Modal from '../../../components/Modal/Modal';
+import Button from '../../../components/Button/Button';
 import type { WeeklyGuestSelectionItem } from '../../../api/Services/MealSelectionServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 
@@ -64,38 +65,38 @@ export function DeleteGuestSelectionModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} variant="center" showCloseButton>
-      <div className="p-5 sm:p-6 text-slate-900 flex flex-col items-center text-center">
-        <div className="mb-3.5 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 shadow-2xs">
+      <div className="p-5 sm:p-6 text-text-primary flex flex-col items-center text-center font-sans">
+        <div className="mb-3.5 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-light text-danger shadow-2xs">
           <Trash2 size={26} />
         </div>
 
-        <h3 className="text-lg font-bold text-slate-900">
+        <h3 className="text-lg font-bold text-text-primary">
           {isSinglePortion ? 'Delete Guest Selection' : 'Remove Guest Selections'}
         </h3>
-        <p className="mt-1 text-xs text-slate-500 max-w-sm">
+        <p className="mt-1 text-xs text-text-secondary max-w-sm">
           {isSinglePortion
             ? `Are you sure you want to remove the guest selection for ${mealName} on ${dayName}?`
             : `Select how many guest portions you would like to remove for ${mealName} on ${dayName}.`}
         </p>
 
         {/* Item Summary Card */}
-        <div className="mt-4 w-full rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 flex items-center gap-3 text-left">
-          <span className="w-12 text-xs font-bold text-slate-700 uppercase shrink-0 text-center">
+        <div className="mt-4 w-full rounded-2xl border border-border bg-surface-muted/70 p-3.5 flex items-center gap-3 text-left">
+          <span className="w-12 text-xs font-bold text-text-primary uppercase shrink-0 text-center">
             {dayName.slice(0, 3)}
           </span>
           {guestItem.selectionType === 'MEAL' && (
             <img
               src={imagePath}
               alt={mealName}
-              className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100"
+              className="h-10 w-10 shrink-0 rounded-lg object-cover bg-surface border border-border/50"
             />
           )}
           <div className="min-w-0 flex-1">
-            <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+            <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate">
               {mealName}
             </h4>
             {createdByName && (
-              <span className="text-[11px] text-slate-400 block truncate">
+              <span className="text-[11px] text-text-muted block truncate">
                 Requested by: {createdByName}
               </span>
             )}
@@ -105,29 +106,29 @@ export function DeleteGuestSelectionModal({
           </span>
         </div>
 
-        {/* Portion Selector (only if multi-portion) */}
+        {/* Portion Selector */}
         {!isSinglePortion ? (
-          <div className="mt-4 w-full rounded-2xl border border-slate-100 bg-white p-4 flex flex-col gap-3 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+          <div className="mt-4 w-full rounded-2xl border border-border bg-surface p-4 flex flex-col gap-3 shadow-2xs">
+            <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
               <span>Total Available Portions:</span>
-              <span className="font-bold text-slate-900 text-sm">{maxCount}</span>
+              <span className="font-bold text-text-primary text-sm">{maxCount}</span>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs font-semibold text-slate-700">Portions to delete:</span>
-              
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-xs font-semibold text-text-secondary">Portions to delete:</span>
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleDecrement}
                   disabled={deleteCount <= 1 || isDeleting}
                   aria-label="Decrease portions to delete"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 cursor-pointer shadow-2xs transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-text-primary hover:bg-surface-muted disabled:opacity-40 cursor-pointer shadow-2xs transition-colors"
                 >
                   <Minus size={14} />
                 </button>
 
-                <span className="w-8 text-center text-base font-bold text-slate-900">
+                <span className="w-8 text-center text-base font-bold text-text-primary">
                   {deleteCount}
                 </span>
 
@@ -136,7 +137,7 @@ export function DeleteGuestSelectionModal({
                   onClick={handleIncrement}
                   disabled={deleteCount >= maxCount || isDeleting}
                   aria-label="Increase portions to delete"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 cursor-pointer shadow-2xs transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-text-primary hover:bg-surface-muted disabled:opacity-40 cursor-pointer shadow-2xs transition-colors"
                 >
                   <Plus size={14} />
                 </button>
@@ -148,7 +149,7 @@ export function DeleteGuestSelectionModal({
                 <button
                   type="button"
                   onClick={handleSelectAll}
-                  className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                  className="text-[11px] font-semibold text-danger hover:underline cursor-pointer"
                 >
                   Remove all ({maxCount})
                 </button>
@@ -156,38 +157,37 @@ export function DeleteGuestSelectionModal({
             )}
 
             {deleteCount === maxCount && (
-              <div className="flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 rounded-lg p-2 mt-1 text-left">
-                <AlertTriangle size={13} className="shrink-0 text-amber-600" />
+              <div className="flex items-center gap-1.5 text-[11px] text-warning-dark bg-warning-light rounded-lg p-2 mt-1 text-left">
+                <AlertTriangle size={13} className="shrink-0 text-warning" />
                 <span>This will completely delete this guest selection entry.</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="mt-4 w-full flex items-center gap-2 text-xs text-amber-800 bg-amber-50 rounded-xl p-3 text-left border border-amber-100/80">
-            <AlertTriangle size={16} className="shrink-0 text-amber-600" />
+          <div className="mt-4 w-full flex items-center gap-2 text-xs text-warning-dark bg-warning-light rounded-xl p-3 text-left border border-warning/20">
+            <AlertTriangle size={16} className="shrink-0 text-warning" />
             <span>This action cannot be undone.</span>
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="mt-6 flex w-full gap-2.5">
-          <button
-            type="button"
-            onClick={onClose}
+          <Button
+            variant="outline"
+            label="Cancel"
             disabled={isDeleting}
-            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50"
-          >
-            Cancel
-          </button>
+            className="flex-1"
+            onClick={onClose}
+          />
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isDeleting}
-            className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 rounded-xl bg-danger hover:bg-danger-hover py-2.5 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isDeleting ? (
               <>
-                <Loader2 size={15} className="animate-spin" />
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 <span>Deleting...</span>
               </>
             ) : (
@@ -199,3 +199,5 @@ export function DeleteGuestSelectionModal({
     </Modal>
   );
 }
+
+export default DeleteGuestSelectionModal;

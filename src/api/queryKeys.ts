@@ -1,4 +1,4 @@
-export const queryKeys = {
+﻿export const queryKeys = {
   meals: ['meals'] as const,
   mealDetails:(foodCode: string)=>['meal-details', foodCode] as const,
   foodLibrary: ['food-library'] as const,
@@ -27,4 +27,9 @@ export const queryKeys = {
   weeklyHistory: (params?: unknown) => ['meal-selections', 'history', params] as const,
   userWeeklyHistory: (userId?: number, params?: unknown) =>
     ['meal-selections', 'history', 'by-user', userId, params] as const,
+  budgets: (params?: unknown) => ['budgets', params] as const,
+  activeBudget: (date?: string) => ['budgets', 'active', date] as const,
+  expenditures: (params?: unknown) => ['expenditures', params] as const,
+  activeExpenditure: (date?: string) => ['expenditures', 'active', date] as const,
+  analyticsDashboard: (params?: unknown) => ['analytics', 'dashboard', params] as const,
 };

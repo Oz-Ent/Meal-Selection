@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import {
   Ban,
   ChevronLeft,
@@ -11,6 +11,7 @@ import {
   UserRoundCheck,
   Check,
   X,
+  Megaphone,
 } from 'lucide-react';
 
 import Modal from '../../../components/Modal/Modal';
@@ -18,8 +19,12 @@ import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import { SearchBar } from '../../../components/SearchBar/SearchBar';
+import Button from '../../../components/Button/Button';
+import Badge from '../../../components/Badge/Badge';
+import EmptyState from '../../../components/EmptyState/EmptyState';
+import InfoBanner from '../../../components/Banner/InfoBanner';
+import AnnounceFoodArrivalModal, { type ArrivalSelectionItem } from './Modals/AnnounceFoodArrivalModal';
 
-import EmptyFoodAssignmentSvg from '../../../assets/admin/EmptyFoodAssignment.svg';
 import MenuFood from '../../../assets/admin/MenuFood.webp';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../../helpers/mealDefaults';
 import { getISOWeekAndYear } from '../../../utils/dateHelpers';
@@ -67,6 +72,7 @@ export function SelectionActivity() {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
   const [openKebabMealId, setOpenKebabMealId] = useState<number | null>(null);
   const [changingMeal, setChangingMeal] = useState<MenuDayMeal | null>(null);
   const [selectedReplacementDayMealId, setSelectedReplacementDayMealId] = useState<number | null>(
@@ -128,10 +134,6 @@ export function SelectionActivity() {
     currentDayReport?.holiday?.description ||
     activeHolidayFromList?.description ||
     'This day is recognized as a holiday. No meal delivery is scheduled.';
-  const isCompanyHoliday =
-    currentDayReport?.holiday?.isCompany ||
-    activeHolidayFromList?.isCompany ||
-    activeHolidayFromList?.source === 'COMPANY';
 
   const unavailableReportItem = useMemo(() => {
     if (!currentDayReport?.response) return null;
@@ -166,9 +168,8 @@ export function SelectionActivity() {
       ? matchingUnavailableUsers
       : unavailableUsers;
 
-  // Filter meals for the current day to only those with selections (> 0), and then apply search filter (by meal name OR assigned user names)
+  // Filter meals for the current day
   const filteredCurrentDayMeals = useMemo(() => {
-    // Only show meals that have at least 1 selection under them
     const mealsWithSelections = currentDayMeals.filter((menuMeal) => {
       const mealReportItem = currentDayReport?.response.find(
         (item) =>
@@ -182,10 +183,8 @@ export function SelectionActivity() {
     if (!q) return mealsWithSelections;
 
     return mealsWithSelections.filter((menuMeal) => {
-      // 1. Meal name match
       if (menuMeal.meal.name.toLowerCase().includes(q)) return true;
 
-      // 2. Assigned user match in report (only createdFor / recipient name, NOT createdByName)
       const mealReportItem = currentDayReport?.response.find(
         (item) =>
           item.id === menuMeal.meal.id ||
@@ -199,7 +198,6 @@ export function SelectionActivity() {
   const availableReplacementMeals = useMemo(() => {
     if (!changingMeal || !currentDay) return [];
     const dayMeals = mealsQuery.data ?? [];
-    // Same-day alternative menu meals that are active and not the current one
     const sameDayAlternatives = dayMeals.filter(
       (meal) =>
         meal.menuDayId === currentDay.id &&
@@ -211,7 +209,6 @@ export function SelectionActivity() {
       return sameDayAlternatives;
     }
 
-    // Fallback: map other active meals in the menu or master library
     return dayMeals.filter((meal) => meal.isActive && meal.id !== changingMeal.id);
   }, [changingMeal, currentDay, mealsQuery.data]);
 
@@ -228,6 +225,24 @@ export function SelectionActivity() {
       prev.includes(mealId) ? prev.filter((id) => id !== mealId) : [...prev, mealId],
     );
   };
+
+  const currentDaySelections = useMemo(() => {
+    if (!currentDayReport?.response) return [];
+    const list: ArrivalSelectionItem[] = [];
+    currentDayReport.response.forEach((meal) => {
+      meal.users.forEach((user) => {
+        if (user.id) {
+          list.push({
+            id: user.id,
+            userName: getRecipientDisplayName(user),
+            mealName: meal.name,
+            isGuest: isGuestUser(user),
+          });
+        }
+      });
+    });
+    return list;
+  }, [currentDayReport]);
 
   const executeExport = (selectedDay: string) => {
     if (Object.keys(weeklyReport).length === 0) {
@@ -301,21 +316,17 @@ export function SelectionActivity() {
           <div className="h-8 w-8">
             <LoadingSpinner />
           </div>
-          <p className="text-sm text-slate-500">Loading food assignments...</p>
+          <p className="text-sm text-text-secondary">Loading food assignments...</p>
         </div>
       )}
 
       {/* EMPTY STATE */}
       {!isLoading && menuDays.length === 0 && (
-        <div className="flex flex-col items-center justify-center px-8 pt-20 text-center">
-          <img
-            src={EmptyFoodAssignmentSvg}
-            alt="No food assignments"
-            className="w-56 h-auto max-h-48 object-contain mb-6"
+        <div className="px-8 pt-20">
+          <EmptyState
+            title="No Food Assignments"
+            description="There are no food assignments available for this week."
           />
-          <p className="text-sm font-medium text-slate-600 leading-relaxed max-w-64">
-            There are no food assignments available for this week.
-          </p>
         </div>
       )}
 
@@ -332,35 +343,28 @@ export function SelectionActivity() {
 
           {/* Active Holiday Information Banner */}
           {isHoliday && (
-            <div className="mb-4 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200/90 p-4 text-xs text-amber-900 shadow-2xs">
-              <Sparkles size={20} className="text-amber-600 shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-slate-900">{holidayTitle}</span>
-                  <span className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wide">
-                    {isCompanyHoliday ? 'Company Holiday' : 'Holiday'}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
-                  {holidayDescription}
-                </p>
-              </div>
+            <div className="mb-4">
+              <InfoBanner
+                variant="warning"
+                icon={<Sparkles size={18} className="text-warning shrink-0" />}
+                title={holidayTitle}
+                description={holidayDescription}
+              />
             </div>
           )}
 
-          <div className="mb-4 flex items-center justify-between pb-2 border-b border-slate-100">
-            <span className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wide">
+          <div className="mb-4 flex items-center justify-between pb-2 border-b border-border">
+            <span className="text-xs sm:text-sm font-bold text-text-primary uppercase tracking-wide">
               {currentDayName} Menu
             </span>
             {isHoliday ? (
-              <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full flex items-center gap-1">
-                <Sparkles size={12} className="text-amber-600" />
-                <span>Holiday</span>
-              </span>
+              <Badge variant="warning" size="xs" label="Holiday" />
             ) : (
-              <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">
-                {currentDayReport ? `${currentDayReport.total} selections` : `${currentDayMeals.length} dishes`}
-              </span>
+              <Badge
+                variant="neutral"
+                size="xs"
+                label={currentDayReport ? `${currentDayReport.total} selections` : `${currentDayMeals.length} dishes`}
+              />
             )}
           </div>
 
@@ -378,11 +382,9 @@ export function SelectionActivity() {
                 : [];
               const hasMatchingUser = matchingUsers.length > 0;
 
-              // Auto expand when searching for a user that selected this meal
               const isExpanded =
                 expandedMealIds.includes(menuMeal.id) || (Boolean(trimmedQuery) && hasMatchingUser);
 
-              // When searching for a user, display matching users directly under the meal
               const displayUsers =
                 Boolean(trimmedQuery) && hasMatchingUser && !menuMeal.meal.name.toLowerCase().includes(trimmedQuery)
                   ? matchingUsers
@@ -391,7 +393,7 @@ export function SelectionActivity() {
               return (
                 <div
                   key={menuMeal.id}
-                  className="relative rounded-3xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xs transition-all"
+                  className="relative rounded-3xl border border-border bg-surface p-4 sm:p-5 shadow-2xs transition-all"
                 >
                   <div
                     className="flex items-center justify-between cursor-pointer"
@@ -401,14 +403,14 @@ export function SelectionActivity() {
                       <img
                         src={menuMeal.meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                         alt={menuMeal.meal.name}
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover bg-slate-100"
+                        className="h-12 w-12 shrink-0 rounded-xl object-cover bg-surface-muted border border-border/50"
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
+                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary leading-snug line-clamp-2">
                           {menuMeal.meal.name}
                         </h3>
                         {menuMeal.meal.calories && (
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-text-muted block mt-0.5">
                             {menuMeal.meal.calories} kcal
                           </span>
                         )}
@@ -419,13 +421,13 @@ export function SelectionActivity() {
                       className="flex items-center gap-2 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Selection count badge */}
-                      <div className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1 text-xs font-semibold text-white">
-                        <span>{selectionCount}</span>
-                        <UserRoundCheck size={13} />
-                      </div>
+                      <Badge
+                        variant="secondary"
+                        size="xs"
+                        icon={<UserRoundCheck size={13} />}
+                        label={selectionCount}
+                      />
 
-                      {/* Kebab menu trigger button */}
                       <button
                         type="button"
                         aria-label="More options"
@@ -433,7 +435,7 @@ export function SelectionActivity() {
                           e.stopPropagation();
                           setOpenKebabMealId(openKebabMealId === menuMeal.id ? null : menuMeal.id);
                         }}
-                        className="p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+                        className="p-1.5 text-text-secondary hover:text-text-primary rounded-lg hover:bg-surface-muted transition-colors cursor-pointer"
                       >
                         <MoreVertical size={18} />
                       </button>
@@ -451,7 +453,7 @@ export function SelectionActivity() {
                         }}
                       />
                       <div
-                        className="absolute right-3 top-12 z-40 w-44 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl flex flex-col gap-0.5"
+                        className="absolute right-3 top-12 z-40 w-44 rounded-xl border border-border bg-surface p-1.5 shadow-xl flex flex-col gap-0.5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -462,9 +464,9 @@ export function SelectionActivity() {
                             setSelectedReplacementDayMealId(null);
                             setMealSearchQuery('');
                           }}
-                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left"
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-text-primary hover:bg-surface-muted text-left cursor-pointer"
                         >
-                          <RefreshCw size={15} className="text-slate-500" />
+                          <RefreshCw size={15} className="text-text-secondary" />
                           <span>Change meal</span>
                         </button>
                       </div>
@@ -473,8 +475,8 @@ export function SelectionActivity() {
 
                   {/* Expandable assigned users list */}
                   {isExpanded && (
-                    <div className="mt-3 border-t border-slate-100 pt-3">
-                      <p className="mb-1.5 text-xs font-semibold text-slate-600">
+                    <div className="mt-3 border-t border-border pt-3">
+                      <p className="mb-1.5 text-xs font-semibold text-text-secondary">
                         Assigned Recipients {displayUsers.length > 0 && `(${displayUsers.length})`}:
                       </p>
                       {displayUsers.length > 0 ? (
@@ -487,28 +489,26 @@ export function SelectionActivity() {
                             return (
                               <div
                                 key={`${user.id ?? 'guest'}-${index}`}
-                                className="flex items-center justify-between text-xs text-slate-600"
+                                className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-surface-muted/60 text-text-secondary"
                               >
                                 <span
                                   className={
                                     isUserMatch
                                       ? 'font-bold text-primary'
-                                      : ''
+                                      : 'font-medium text-text-primary'
                                   }
                                 >
                                   {index + 1}. {displayName}
                                 </span>
                                 {!isGuest && user.quantity > 1 && (
-                                  <span className="font-semibold text-slate-700">
-                                    qty: {user.quantity}
-                                  </span>
+                                  <Badge variant="neutral" size="xs" label={`qty: ${user.quantity}`} />
                                 )}
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <p className="text-xs text-slate-400 italic">No selections yet for this meal.</p>
+                        <p className="text-xs text-text-muted italic">No selections yet for this meal.</p>
                       )}
                     </div>
                   )}
@@ -518,22 +518,20 @@ export function SelectionActivity() {
 
             {/* Unavailable Selections Card */}
             {showUnavailable && unavailableReportItem && (
-              <div
-                className="relative rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs transition-all"
-              >
+              <div className="relative rounded-3xl border border-border bg-surface p-4 sm:p-5 shadow-2xs transition-all">
                 <div
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => toggleMealExpanded(-1)}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                      <Ban size={22} className="text-slate-500" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-secondary border border-border/50">
+                      <Ban size={22} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug">
+                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary leading-snug">
                         Unavailable
                       </h3>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-text-muted block mt-0.5">
                         Opted out of lunch delivery
                       </span>
                     </div>
@@ -543,18 +541,19 @@ export function SelectionActivity() {
                     className="flex items-center gap-2 shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Selection count badge */}
-                    <div className="flex items-center gap-1 rounded-lg bg-slate-600 px-2 py-1 text-xs font-semibold text-white">
-                      <span>{unavailableReportItem.count}</span>
-                      <UserRoundCheck size={13} />
-                    </div>
+                    <Badge
+                      variant="neutral"
+                      size="xs"
+                      icon={<UserRoundCheck size={13} />}
+                      label={unavailableReportItem.count}
+                    />
                   </div>
                 </div>
 
                 {/* Expandable unavailable recipients list */}
                 {isUnavailableExpanded && (
-                  <div className="mt-3 border-t border-slate-100 pt-3">
-                    <p className="mb-1.5 text-xs font-semibold text-slate-600">
+                  <div className="mt-3 border-t border-border pt-3">
+                    <p className="mb-1.5 text-xs font-semibold text-text-secondary">
                       Unavailable Recipients {displayUnavailableUsers.length > 0 && `(${displayUnavailableUsers.length})`}:
                     </p>
                     {displayUnavailableUsers.length > 0 ? (
@@ -567,7 +566,7 @@ export function SelectionActivity() {
                           return (
                             <div
                               key={`${user.id ?? 'guest'}-${index}`}
-                              className="flex items-center justify-between text-xs text-slate-600"
+                              className="flex items-center justify-between text-xs text-text-secondary"
                             >
                               <span
                                 className={
@@ -579,7 +578,7 @@ export function SelectionActivity() {
                                 {index + 1}. {displayName}
                               </span>
                               {!isGuest && user.quantity > 1 && (
-                                <span className="font-semibold text-slate-700">
+                                <span className="font-semibold text-text-primary">
                                   qty: {user.quantity}
                                 </span>
                               )}
@@ -588,7 +587,7 @@ export function SelectionActivity() {
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400 italic">No unavailable users for this day.</p>
+                      <p className="text-xs text-text-muted italic">No unavailable users for this day.</p>
                     )}
                   </div>
                 )}
@@ -597,10 +596,10 @@ export function SelectionActivity() {
 
             {/* Empty state when search yields no matching meals or users */}
             {filteredCurrentDayMeals.length === 0 && !showUnavailable && searchQuery && (
-              <div className="p-8 text-center text-slate-500 text-xs sm:text-sm bg-white rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                <Search size={24} className="text-slate-400" />
-                <p className="font-semibold text-slate-800">No results found for "{searchQuery}"</p>
-                <p className="text-slate-400 text-xs">Try searching for a different meal or user name</p>
+              <div className="p-8 text-center text-text-secondary text-xs sm:text-sm bg-surface rounded-2xl border border-border flex flex-col items-center gap-2">
+                <Search size={24} className="text-text-muted" />
+                <p className="font-semibold text-text-primary">No results found for "{searchQuery}"</p>
+                <p className="text-text-muted text-xs">Try searching for a different meal or user name</p>
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
@@ -613,7 +612,7 @@ export function SelectionActivity() {
 
             {/* Empty state when day has no meals */}
             {filteredCurrentDayMeals.length === 0 && !showUnavailable && !searchQuery && (
-              <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-100">
+              <div className="p-8 text-center text-text-muted text-sm bg-surface rounded-2xl border border-border">
                 {isHoliday
                   ? `No meal delivery needed for ${currentDayName} (Holiday).`
                   : `No meals assigned for ${currentDayName}.`}
@@ -623,17 +622,17 @@ export function SelectionActivity() {
         </main>
       )}
 
-      {/* FLOATING BOTTOM CONTROL BAR: DAY NAVIGATION & EXPORT BUTTON */}
+      {/* FLOATING BOTTOM CONTROL BAR */}
       {!isLoading && menuDays.length > 0 && (
         <footer className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md px-4 flex items-center gap-2 z-20">
           {/* Pill 1: Day Navigation */}
-          <div className="flex-1 flex items-center justify-between bg-white rounded-2xl border border-slate-100 px-3 py-2 shadow-md shadow-slate-200/50 text-xs font-bold text-slate-800">
+          <div className="flex-1 flex items-center justify-between bg-surface rounded-2xl border border-border px-3 py-2 shadow-md text-xs font-bold text-text-primary">
             <button
               type="button"
               aria-label="Previous day navigation"
               disabled={currentDayIndex === 0}
               onClick={() => setCurrentDayIndex((prev) => Math.max(0, prev - 1))}
-              className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-text-secondary disabled:opacity-25 hover:bg-surface-muted rounded-lg transition-colors cursor-pointer"
             >
               <ChevronLeft size={18} />
             </button>
@@ -645,18 +644,28 @@ export function SelectionActivity() {
               aria-label="Next day navigation"
               disabled={currentDayIndex === menuDays.length - 1}
               onClick={() => setCurrentDayIndex((prev) => Math.min(menuDays.length - 1, prev + 1))}
-              className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-text-secondary disabled:opacity-25 hover:bg-surface-muted rounded-lg transition-colors cursor-pointer"
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
-          {/* Pill 2: Export Button (Opens Export Modal) */}
+          {/* Pill 2: Announce Arrival Button */}
+          <button
+            type="button"
+            aria-label="Announce Food Arrival"
+            onClick={() => setIsArrivalModalOpen(true)}
+            className="h-11 px-3.5 shrink-0 flex items-center gap-1.5 bg-primary rounded-2xl border border-primary text-white shadow-md hover:bg-primary-hover active:scale-95 transition-transform text-xs font-semibold cursor-pointer"
+          >
+            <Megaphone size={16} />
+          </button>
+
+          {/* Pill 2: Export Button */}
           <button
             type="button"
             aria-label="Export report"
             onClick={() => setIsExportModalOpen(true)}
-            className="h-11 px-4 shrink-0 flex items-center gap-1.5 bg-white rounded-2xl border border-slate-100 shadow-md shadow-slate-200/50 text-slate-700 hover:text-slate-900 active:scale-95 transition-transform text-xs font-semibold cursor-pointer"
+            className="h-11 px-4 shrink-0 flex items-center gap-1.5 bg-surface rounded-2xl border border-border shadow-md text-text-primary hover:text-primary active:scale-95 transition-transform text-xs font-semibold cursor-pointer"
           >
             <Download size={16} />
             <span>Export</span>
@@ -671,18 +680,16 @@ export function SelectionActivity() {
         variant="bottom"
         showCloseButton={false}
       >
-        <div className="relative flex flex-col p-4 pt-3 pb-6 w-full font-sans">
-          {/* Top-Right Circular Close Button */}
+        <div className="relative flex flex-col p-4 pt-3 pb-6 w-full font-sans text-text-primary">
           <button
             type="button"
             onClick={() => setIsExportModalOpen(false)}
             aria-label="Close modal"
-            className="absolute right-3 top-2 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="absolute right-3 top-2 flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:text-text-primary hover:bg-surface-muted transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
 
-          {/* Burger Illustration */}
           <div className="flex justify-center my-3">
             <img
               src={MenuFood}
@@ -691,33 +698,48 @@ export function SelectionActivity() {
             />
           </div>
 
-          {/* Title */}
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-3 text-left">
+          <h2 className="text-base sm:text-lg font-bold text-text-primary mb-3 text-left">
             Export food assignment
           </h2>
 
-          {/* Export Options */}
           <div className="flex flex-col gap-2.5 w-full">
             <button
               type="button"
               onClick={handleExportDay}
-              className="flex w-full items-center justify-between p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
+              className="flex w-full items-center justify-between p-4 rounded-2xl border border-border bg-surface hover:bg-surface-muted text-text-primary text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
             >
               <span>For {currentDayName.toLowerCase()}</span>
-              <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <ChevronRight size={18} className="text-text-muted group-hover:text-text-primary transition-colors" />
             </button>
 
             <button
               type="button"
               onClick={handleExportWeek}
-              className="flex w-full items-center justify-between p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
+              className="flex w-full items-center justify-between p-4 rounded-2xl border border-border bg-surface hover:bg-surface-muted text-text-primary text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
             >
               <span>For the week</span>
-              <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <ChevronRight size={18} className="text-text-muted group-hover:text-text-primary transition-colors" />
             </button>
           </div>
         </div>
       </Modal>
+
+      {/* ANNOUNCE FOOD ARRIVAL MODAL */}
+      <AnnounceFoodArrivalModal
+        isOpen={isArrivalModalOpen}
+        onClose={() => setIsArrivalModalOpen(false)}
+        dayName={currentDayName}
+        menuDayId={currentDay?.id}
+        weekMenuScheduleId={scheduleQuery.data?.id}
+        selections={currentDaySelections}
+        onSuccess={(result) => {
+          showToast(
+            'success',
+            'Food arrival announced: ' + result.fulfilledCount + ' meals fulfilled' + (result.unfulfilledCount > 0 ? (', ' + result.unfulfilledCount + ' marked unfulfilled') : '') + '.'
+          );
+        }}
+        onError={(msg) => showToast('error', msg)}
+      />
 
       {/* CHANGE MEAL MODAL */}
       {changingMeal && (
@@ -728,11 +750,11 @@ export function SelectionActivity() {
           showCloseButton={!replaceMealMutation.isPending}
         >
           <section className="p-4 pt-6 text-text-primary flex flex-col font-sans w-full">
-            <h2 className="mb-2 text-base font-bold text-slate-900">Change meal</h2>
-            <p className="mb-4 text-xs text-slate-500">
+            <h2 className="mb-2 text-base font-bold text-text-primary">Change meal</h2>
+            <p className="mb-4 text-xs text-text-secondary">
               Select a replacement dish for{' '}
-              <span className="font-semibold text-slate-700">{changingMeal.meal.name}</span> on{' '}
-              <span className="font-semibold text-slate-700">{currentDayName}</span>.
+              <span className="font-semibold text-text-primary">{changingMeal.meal.name}</span> on{' '}
+              <span className="font-semibold text-text-primary">{currentDayName}</span>.
             </p>
 
             {/* Search Input */}
@@ -742,16 +764,16 @@ export function SelectionActivity() {
                 value={mealSearchQuery}
                 onChange={(e) => setMealSearchQuery(e.target.value)}
                 placeholder="Search replacement meal"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xs outline-none pr-10 focus:border-slate-400 placeholder:text-slate-400 bg-slate-50/50"
+                className="w-full rounded-xl border border-border px-4 py-3 text-xs outline-none pr-10 focus:border-primary placeholder:text-text-muted bg-surface-muted"
               />
               <Search
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted"
                 size={16}
               />
             </div>
 
             {/* Replacement Meal Options List */}
-            <div className="max-h-60 overflow-y-auto space-y-2 mb-5 pr-1 divide-y divide-slate-100">
+            <div className="max-h-60 overflow-y-auto space-y-2 mb-5 pr-1 divide-y divide-border">
               {filteredReplacementMeals.map((item) => {
                 const isSelected = selectedReplacementDayMealId === item.id;
                 return (
@@ -759,26 +781,26 @@ export function SelectionActivity() {
                     key={item.id}
                     type="button"
                     onClick={() => setSelectedReplacementDayMealId(item.id)}
-                    className={`flex w-full items-center justify-between p-2.5 rounded-xl text-left transition-colors ${
-                      isSelected ? 'bg-primary-light border border-primary/30' : 'hover:bg-slate-50'
+                    className={`flex w-full items-center justify-between p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                      isSelected ? 'bg-primary-light border border-primary/30' : 'hover:bg-surface-muted'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
                       <img
                         src={item.meal.imagePath || FALLBACK_MEAL_IMAGE_URL}
                         alt={item.meal.name}
-                        className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100"
+                        className="h-10 w-10 shrink-0 rounded-lg object-cover bg-surface border border-border/50"
                       />
                       <div className="min-w-0 flex-1">
                         <p
                           className={`text-xs leading-snug line-clamp-1 ${
-                            isSelected ? 'font-semibold text-primary' : 'font-medium text-slate-800'
+                            isSelected ? 'font-semibold text-primary' : 'font-medium text-text-primary'
                           }`}
                         >
                           {item.meal.name}
                         </p>
                         {item.meal.calories && (
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-text-muted">
                             {item.meal.calories} kcal
                           </span>
                         )}
@@ -789,7 +811,7 @@ export function SelectionActivity() {
                       className={`h-5 w-5 rounded-full border flex items-center justify-center shrink-0 ${
                         isSelected
                           ? 'border-primary bg-primary text-white'
-                          : 'border-slate-300 bg-white'
+                          : 'border-border bg-surface'
                       }`}
                     >
                       {isSelected && <Check size={12} strokeWidth={3} />}
@@ -799,26 +821,22 @@ export function SelectionActivity() {
               })}
 
               {filteredReplacementMeals.length === 0 && (
-                <p className="py-6 text-center text-xs text-slate-400">
+                <p className="py-6 text-center text-xs text-text-muted">
                   No alternative meals available.
                 </p>
               )}
             </div>
 
             {/* Confirm Replacement Button */}
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              className="w-full"
               disabled={!selectedReplacementDayMealId || replaceMealMutation.isPending}
+              pending={replaceMealMutation.isPending}
+              icon={<Check size={18} />}
+              label="Save changes"
               onClick={() => void handleConfirmChangeMeal()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-white shadow-xs transition-opacity hover:bg-primary-hover disabled:opacity-40"
-            >
-              {replaceMealMutation.isPending ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Check size={18} />
-              )}
-              <span>Save changes</span>
-            </button>
+            />
           </section>
         </Modal>
       )}
@@ -833,3 +851,7 @@ export function SelectionActivity() {
     </div>
   );
 }
+
+export default SelectionActivity;
+
+

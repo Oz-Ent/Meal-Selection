@@ -29,7 +29,7 @@ describe('InputField Component', () => {
         if (input) {
             fireEvent.focus(input);
             const label = screen.getByText('My Label');
-            expect(label).toHaveClass('text-primary'); // Float active
+            expect(label).toHaveClass('top-1.5'); // Float active
             fireEvent.blur(input);
         }
     });

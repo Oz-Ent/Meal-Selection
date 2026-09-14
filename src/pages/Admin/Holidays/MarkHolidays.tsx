@@ -3,12 +3,10 @@ import {
   Ban,
   Calendar,
   CalendarDays,
-  Check,
   ChevronLeft,
   ChevronRight,
   Clock,
   Edit2,
-  Loader2,
   Palmtree,
   Plus,
   RotateCcw,
@@ -20,6 +18,13 @@ import Modal from '../../../components/Modal/Modal';
 import { NavBar } from '../../../components/NavBar/NavBar';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
+import Badge from '../../../components/Badge/Badge';
+import Button from '../../../components/Button/Button';
+import Tabs from '../../../components/Tabs/Tabs';
+import InputField from '../../../components/InputField/InputField';
+import Checkbox from '../../../components/Checkbox/Checkbox';
+import EmptyState from '../../../components/EmptyState/EmptyState';
+import NotificationBanner from '../../../components/NotificationBanner/NotificationBanner';
 
 import {
   useCreateHolidayMutation,
@@ -36,7 +41,7 @@ import { getISOWeekAndYear } from '../../../utils/dateHelpers';
 export function MarkHolidays() {
   const currentYear = new Date().getFullYear();
   const currentWeekInfo = useMemo(() => getISOWeekAndYear(), []);
-  
+
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedWeek, setSelectedWeek] = useState<number>(currentWeekInfo.week);
   const [activeTab, setActiveTab] = useState<'all' | 'company' | 'public' | 'week'>('all');
@@ -50,25 +55,14 @@ export function MarkHolidays() {
   const [deleteConfirmHoliday, setDeleteConfirmHoliday] = useState<HolidayItem | null>(null);
 
   // Form states
-  const [companyFormData, setCompanyFormData] = useState<{
-    title: string;
-    startDate: string;
-    endDate: string;
-    description: string;
-  }>({
+  const [companyFormData, setCompanyFormData] = useState({
     title: '',
     startDate: new Date().toISOString().split('T')[0]!,
     endDate: '',
     description: '',
   });
 
-  const [adjustFormData, setAdjustFormData] = useState<{
-    originalDate: string;
-    title: string;
-    isIgnored: boolean;
-    adjustedDate: string;
-    notes: string;
-  }>({
+  const [adjustFormData, setAdjustFormData] = useState({
     originalDate: '',
     title: '',
     isIgnored: false,
@@ -113,7 +107,7 @@ export function MarkHolidays() {
       .replace(/\s+/g, ' ')
       .trim();
 
-  // Deduplicate public holidays: remove holidays with same name on same date, keep ones with different names
+  // Deduplicate public holidays
   const publicHolidays = useMemo(() => {
     const map = new Map<string, HolidayItem>();
     for (const item of rawPublicHolidays) {
@@ -126,7 +120,7 @@ export function MarkHolidays() {
     return Array.from(map.values());
   }, [rawPublicHolidays]);
 
-  // Deduplicate weekly holidays: remove holidays with same name on same date
+  // Deduplicate weekly holidays
   const weeklyEffectiveHolidays = useMemo(() => {
     const map = new Map<string, HolidayItem>();
     for (const item of rawWeeklyHolidays) {
@@ -138,7 +132,7 @@ export function MarkHolidays() {
     return Array.from(map.values());
   }, [rawWeeklyHolidays]);
 
-  // Group company holidays by unique id or date + normalized title to avoid multi-day duplicate cards in list view
+  // Group company holidays
   const uniqueCompanyHolidays = useMemo(() => {
     const companyHolidays = holidaysQuery.data?.companyHolidays ?? [];
     const map = new Map<string, HolidayItem>();
@@ -160,7 +154,7 @@ export function MarkHolidays() {
     return `${year}-${month}-${day}`;
   }, []);
 
-  // Filter holidays based on toggle scope (Upcoming vs All Year)
+  // Filter holidays based on toggle scope
   const displayedPublicHolidays = useMemo(() => {
     if (filterScope === 'all') return publicHolidays;
     return publicHolidays.filter((item) => {
@@ -336,120 +330,87 @@ export function MarkHolidays() {
           {/* Left Controls: Year selector & Scope Toggle */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Year selector pill */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-2xs">
+            <div className="flex items-center gap-1.5 bg-surface border border-border rounded-xl px-2.5 py-1.5 shadow-2xs">
               <button
                 type="button"
                 aria-label="Previous Year"
                 onClick={() => setSelectedYear((prev) => prev - 1)}
-                className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
+                className="p-1 text-text-secondary hover:text-text-primary rounded transition-colors cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="text-xs font-bold text-slate-800 px-1">{selectedYear}</span>
+              <span className="text-xs font-bold text-text-primary px-1">{selectedYear}</span>
               <button
                 type="button"
                 aria-label="Next Year"
                 onClick={() => setSelectedYear((prev) => prev + 1)}
-                className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors cursor-pointer"
+                className="p-1 text-text-secondary hover:text-text-primary rounded transition-colors cursor-pointer"
               >
                 <ChevronRight size={16} />
               </button>
             </div>
 
             {/* Upcoming vs All Year Toggle */}
-            <div
-              role="group"
-              aria-label="Filter holidays by date range"
-              className="flex items-center bg-slate-100/90 border border-slate-200/80 p-0.5 rounded-xl shadow-2xs text-xs font-medium text-slate-600"
+            <Tabs
+              value={filterScope}
+              onChange={(val) => setFilterScope(val as 'upcoming' | 'all')}
+              className="w-auto"
             >
-              <button
-                type="button"
-                aria-pressed={filterScope === 'upcoming'}
-                onClick={() => setFilterScope('upcoming')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  filterScope === 'upcoming'
-                    ? 'bg-white font-bold text-primary shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Sparkles size={13} className={filterScope === 'upcoming' ? 'text-primary' : 'text-slate-400'} />
-                <span>Upcoming</span>
-              </button>
-              <button
-                type="button"
-                aria-pressed={filterScope === 'all'}
-                onClick={() => setFilterScope('all')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  filterScope === 'all'
-                    ? 'bg-white font-bold text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <CalendarDays size={13} className={filterScope === 'all' ? 'text-slate-700' : 'text-slate-400'} />
-                <span>All {selectedYear}</span>
-              </button>
-            </div>
+              <Tabs.Options>
+                <Tabs.Option value="upcoming" icon={<Sparkles size={13} />}>
+                  Upcoming
+                </Tabs.Option>
+                <Tabs.Option value="all" icon={<CalendarDays size={13} />}>
+                  All {selectedYear}
+                </Tabs.Option>
+              </Tabs.Options>
+            </Tabs>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              icon={<Plus size={16} />}
+              label="Mark Company Holiday"
               onClick={openAddCompanyModal}
-              className="flex items-center gap-1.5 rounded-xl bg-secondary px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-secondary-hover active:scale-95 transition-all cursor-pointer"
-            >
-              <Plus size={16} />
-              <span>Mark Company Holiday</span>
-            </button>
+            />
           </div>
         </div>
 
         {/* Tab Filters */}
-        <div className="flex items-center rounded-xl bg-slate-100 p-1 text-xs font-medium text-slate-600 mb-4 max-w-xl">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
-              activeTab === 'all'
-                ? 'bg-white font-bold text-slate-900 shadow-2xs'
-                : 'hover:text-slate-900'
-            }`}
+        <div className="mb-4 max-w-xl">
+          <Tabs
+            value={activeTab}
+            onChange={(val) => setActiveTab(val as 'all' | 'company' | 'public' | 'week')}
           >
-            All ({displayedCompanyHolidays.length + displayedPublicHolidays.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('week')}
-            className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
-              activeTab === 'week'
-                ? 'bg-white font-bold text-secondary shadow-2xs'
-                : 'hover:text-slate-900'
-            }`}
-          >
-            Selection Week ({weeklyEffectiveHolidays.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('public')}
-            className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
-              activeTab === 'public'
-                ? 'bg-white font-bold text-slate-900 shadow-2xs'
-                : 'hover:text-slate-900'
-            }`}
-          >
-            Public ({displayedPublicHolidays.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('company')}
-            className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
-              activeTab === 'company'
-                ? 'bg-white font-bold text-slate-900 shadow-2xs'
-                : 'hover:text-slate-900'
-            }`}
-          >
-            Company ({displayedCompanyHolidays.length})
-          </button>
+            <Tabs.Options>
+              <Tabs.Option
+                value="all"
+                badge={`(${displayedCompanyHolidays.length + displayedPublicHolidays.length})`}
+              >
+                All
+              </Tabs.Option>
+              <Tabs.Option
+                value="week"
+                badge={`(${weeklyEffectiveHolidays.length})`}
+              >
+                Selection Week
+              </Tabs.Option>
+              <Tabs.Option
+                value="public"
+                badge={`(${displayedPublicHolidays.length})`}
+              >
+                Public
+              </Tabs.Option>
+              <Tabs.Option
+                value="company"
+                badge={`(${displayedCompanyHolidays.length})`}
+              >
+                Company
+              </Tabs.Option>
+            </Tabs.Options>
+          </Tabs>
         </div>
       </section>
 
@@ -458,40 +419,40 @@ export function MarkHolidays() {
         {isLoading && (
           <div className="flex min-h-56 flex-col items-center justify-center gap-3">
             <LoadingSpinner />
-            <p className="text-xs text-slate-500">Synchronizing holiday feeds...</p>
+            <p className="text-xs text-text-secondary">Synchronizing holiday feeds...</p>
           </div>
         )}
 
         {!isLoading && (
           <>
-            {/* WEEKLY SELECTION HOLIDAYS INSPECTION & ADJUSTMENT TAB */}
+            {/* WEEKLY SELECTION HOLIDAYS TAB */}
             {activeTab === 'week' && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                       <Clock size={14} className="text-secondary" />
                       <span>Meal Selection Week {selectedWeek}, {selectedYear}</span>
                     </h2>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-text-secondary">
                       View and adjust holidays that take effect during the scheduled meal selection week.
                     </p>
                   </div>
 
                   {/* Week Navigator */}
-                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-2 py-1 text-xs">
+                  <div className="flex items-center gap-1 bg-surface border border-border rounded-xl px-2 py-1 text-xs">
                     <button
                       type="button"
                       onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
-                      className="p-1 text-slate-500 hover:text-slate-900"
+                      className="p-1 text-text-secondary hover:text-text-primary cursor-pointer"
                     >
                       <ChevronLeft size={14} />
                     </button>
-                    <span className="font-bold px-2">Week {selectedWeek}</span>
+                    <span className="font-bold px-2 text-text-primary">Week {selectedWeek}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedWeek((w) => Math.min(52, w + 1))}
-                      className="p-1 text-slate-500 hover:text-slate-900"
+                      className="p-1 text-text-secondary hover:text-text-primary cursor-pointer"
                     >
                       <ChevronRight size={14} />
                     </button>
@@ -499,48 +460,44 @@ export function MarkHolidays() {
                 </div>
 
                 {weeklyEffectiveHolidays.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center">
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2">
-                      <Check size={20} />
-                    </div>
-                    <p className="text-sm font-bold text-slate-800">Normal Working Week</p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                      No public or company holidays active for Week {selectedWeek}. All weekdays are open for meal selection.
-                    </p>
-                  </div>
+                  <EmptyState
+                    title="Normal Working Week"
+                    description={`No public or company holidays active for Week ${selectedWeek}. All weekdays are open for meal selection.`}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {weeklyEffectiveHolidays.map((holiday, idx) => (
                       <div
                         key={`${holiday.date}-${idx}`}
-                        className="rounded-3xl border border-amber-200/80 bg-amber-50/70 p-4 shadow-2xs flex items-center justify-between gap-3"
+                        className="rounded-3xl border border-warning/30 bg-warning-light/40 p-4 shadow-2xs flex items-center justify-between gap-3"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-sm font-bold text-amber-950">{holiday.title}</h3>
-                            <span className="rounded-md bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold text-amber-900">
-                              {holiday.source === 'COMPANY' ? 'Company Holiday' : 'Public Holiday'}
-                            </span>
+                            <h3 className="text-sm font-bold text-text-primary">{holiday.title}</h3>
+                            <Badge
+                              variant={holiday.source === 'COMPANY' ? 'primary' : 'warning'}
+                              size="xs"
+                              label={holiday.source === 'COMPANY' ? 'Company Holiday' : 'Public Holiday'}
+                            />
                           </div>
-                          <p className="text-xs text-amber-800 mt-1 flex items-center gap-1.5 font-medium">
-                            <Calendar size={13} className="text-amber-700" />
+                          <p className="text-xs text-warning-dark mt-1 flex items-center gap-1.5 font-medium">
+                            <Calendar size={13} className="text-warning" />
                             <span>
                               {holiday.date} ({holiday.dayName})
                             </span>
                           </p>
-                          <p className="text-[11px] text-amber-700 mt-1">
+                          <p className="text-[11px] text-text-secondary mt-1">
                             Selection for this day automatically defaults to Holiday and locks menu meals.
                           </p>
                         </div>
 
                         {holiday.source !== 'COMPANY' && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            label="Override to Work Day"
                             onClick={() => handleToggleWorkingDay(holiday)}
-                            className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-100/60 shadow-2xs transition-all cursor-pointer"
-                          >
-                            Override to Work Day
-                          </button>
+                          />
                         )}
                       </div>
                     ))}
@@ -553,51 +510,38 @@ export function MarkHolidays() {
             {(activeTab === 'all' || activeTab === 'public') && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                     <Sparkles size={14} className="text-amber-600" />
                     <span>Statutory & Global Public Holidays (Ghana)</span>
                   </h2>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-text-muted">
                     {displayedPublicHolidays.length} {filterScope === 'upcoming' ? 'upcoming' : 'official'} {displayedPublicHolidays.length === 1 ? 'day' : 'days'}
                   </span>
                 </div>
 
-                <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3.5 text-xs text-amber-900 leading-relaxed flex items-start gap-2.5">
-                  <Sparkles size={18} className="text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold text-slate-900">Live API & Google Calendar Synchronized</p>
-                    <p className="text-slate-600 mt-0.5 text-[11px]">
-                      Holidays are fetched real-time from Nager.Date & Google Calendar feeds with statutory weekend roll-over support. You can override any statutory holiday below if your company operates on that day.
-                    </p>
-                  </div>
-                </div>
+                <NotificationBanner
+                  variant="warning"
+                  icon={<Sparkles size={18} className="text-warning shrink-0 mt-0.5" />}
+                  title="Live API & Google Calendar Synchronized"
+                  description="Holidays are fetched real-time from Nager.Date & Google Calendar feeds with statutory weekend roll-over support. You can override any statutory holiday below if your company operates on that day."
+                />
 
                 {displayedPublicHolidays.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center">
-                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-2">
-                      <Sparkles size={20} />
-                    </div>
-                    <p className="text-sm font-bold text-slate-800">
-                      {filterScope === 'upcoming'
+                  <EmptyState
+                    title={
+                      filterScope === 'upcoming'
                         ? `No Upcoming Public Holidays in ${selectedYear}`
-                        : `No Public Holidays Found for ${selectedYear}`}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                      {filterScope === 'upcoming'
+                        : `No Public Holidays Found for ${selectedYear}`
+                    }
+                    description={
+                      filterScope === 'upcoming'
                         ? `All public holidays for ${selectedYear} have passed, or none are scheduled.`
-                        : `No official public holidays recorded for ${selectedYear}.`}
-                    </p>
-                    {filterScope === 'upcoming' && publicHolidays.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setFilterScope('all')}
-                        className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-2xs"
-                      >
-                        <CalendarDays size={13} />
-                        <span>View All {selectedYear} Holidays ({publicHolidays.length})</span>
-                      </button>
-                    )}
-                  </div>
+                        : `No official public holidays recorded for ${selectedYear}.`
+                    }
+                    buttonLabel={filterScope === 'upcoming' && publicHolidays.length > 0 ? `View All ${selectedYear} Holidays (${publicHolidays.length})` : undefined}
+                    buttonIcon={<CalendarDays size={13} />}
+                    buttonAction={() => setFilterScope('all')}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {displayedPublicHolidays.map((item, idx) => {
@@ -612,8 +556,8 @@ export function MarkHolidays() {
                           key={`${item.date}-${idx}`}
                           className={`rounded-3xl border p-4 shadow-2xs flex flex-col justify-between gap-3 transition-all ${
                             isIgnored
-                              ? 'bg-slate-50/80 border-slate-200 text-slate-500'
-                              : 'bg-white border-slate-100 hover:shadow-md hover:border-slate-200'
+                              ? 'bg-surface-muted border-border text-text-muted'
+                              : 'bg-surface border-border hover:shadow-md hover:border-border-hover'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -621,43 +565,43 @@ export function MarkHolidays() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <h3
                                   className={`text-sm font-bold ${
-                                    isIgnored ? 'line-through text-slate-500' : 'text-slate-900'
+                                    isIgnored ? 'line-through text-text-muted' : 'text-text-primary'
                                   }`}
                                 >
                                   {item.title}
                                 </h3>
 
                                 {isIgnored ? (
-                                  <span className="rounded-md bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                                    Overridden: Working Day
-                                  </span>
+                                  <Badge
+                                    variant="neutral"
+                                    size="xs"
+                                    label="Overridden: Working Day"
+                                  />
                                 ) : isAdjusted ? (
-                                  <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
-                                    Adjusted Date
-                                  </span>
+                                  <Badge
+                                    variant="info"
+                                    size="xs"
+                                    label="Adjusted Date"
+                                  />
                                 ) : (
-                                  <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
-                                    Public Holiday
-                                  </span>
+                                  <Badge
+                                    variant="warning"
+                                    size="xs"
+                                    label="Public Holiday"
+                                  />
                                 )}
 
                                 {isToday ? (
-                                  <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                                    Today
-                                  </span>
+                                  <Badge variant="success" size="xs" label="Today" />
                                 ) : isPast ? (
-                                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                                    Past
-                                  </span>
+                                  <Badge variant="neutral" size="xs" label="Past" />
                                 ) : (
-                                  <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                                    Upcoming
-                                  </span>
+                                  <Badge variant="success" size="xs" label="Upcoming" />
                                 )}
                               </div>
 
-                              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                                <Calendar size={13} className="text-slate-400" />
+                              <p className="text-xs text-text-secondary mt-1 flex items-center gap-1.5">
+                                <Calendar size={13} className="text-text-muted" />
                                 <span>
                                   {item.date} ({item.dayName.toLowerCase()})
                                 </span>
@@ -666,36 +610,30 @@ export function MarkHolidays() {
                           </div>
 
                           {/* Actions for Public Holiday */}
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-2 flex-wrap">
-                            <button
-                              type="button"
+                          <div className="flex items-center justify-between pt-2 border-t border-border gap-2 flex-wrap">
+                            <Button
+                              variant={isIgnored ? 'primary' : 'outline'}
+                              size="sm"
+                              icon={<Ban size={13} />}
+                              label={isIgnored ? 'Re-enable Holiday' : 'Mark as Working Day'}
                               onClick={() => handleToggleWorkingDay(item)}
-                              className={`px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
-                                isIgnored
-                                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                              }`}
-                            >
-                              <Ban size={13} />
-                              <span>{isIgnored ? 'Re-enable Holiday' : 'Mark as Working Day'}</span>
-                            </button>
+                            />
 
                             <div className="flex items-center gap-1">
-                              <button
-                                type="button"
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                icon={<Edit2 size={13} />}
+                                label="Adjust"
                                 onClick={() => openAdjustModal(item)}
-                                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1 cursor-pointer"
-                              >
-                                <Edit2 size={13} />
-                                <span>Adjust</span>
-                              </button>
+                              />
 
                               {item.isOverridden && (
                                 <button
                                   type="button"
                                   aria-label="Reset Override"
                                   onClick={() => handleResetOverride(item)}
-                                  className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 text-warning-dark hover:bg-warning-light rounded-lg transition-colors cursor-pointer"
                                   title="Reset to statutory default"
                                 >
                                   <RotateCcw size={15} />
@@ -715,51 +653,32 @@ export function MarkHolidays() {
             {(activeTab === 'all' || activeTab === 'company') && (
               <section className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                     <Palmtree size={14} className="text-primary" />
                     <span>Company-Specific Holidays</span>
                   </h2>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-text-muted">
                     {displayedCompanyHolidays.length} {filterScope === 'upcoming' ? 'upcoming' : 'configured'}
                   </span>
                 </div>
 
                 {displayedCompanyHolidays.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
-                      <Palmtree size={20} />
-                    </div>
-                    <p className="text-sm font-bold text-slate-800">
-                      {filterScope === 'upcoming'
+                  <EmptyState
+                    icon={<Palmtree size={20} />}
+                    title={
+                      filterScope === 'upcoming'
                         ? `No Upcoming Company Holidays in ${selectedYear}`
-                        : `No Custom Company Holidays for ${selectedYear}`}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                      {filterScope === 'upcoming'
+                        : `No Custom Company Holidays for ${selectedYear}`
+                    }
+                    description={
+                      filterScope === 'upcoming'
                         ? `No upcoming company closures scheduled for the remainder of ${selectedYear}.`
-                        : `No custom company holidays configured for ${selectedYear}.`}
-                    </p>
-                    <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
-                      {filterScope === 'upcoming' && uniqueCompanyHolidays.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setFilterScope('all')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-2xs"
-                        >
-                          <CalendarDays size={13} />
-                          <span>View All ({uniqueCompanyHolidays.length})</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={openAddCompanyModal}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-xs font-semibold text-white hover:bg-primary-hover transition-all cursor-pointer shadow-2xs"
-                      >
-                        <Plus size={13} />
-                        <span>Mark Company Holiday</span>
-                      </button>
-                    </div>
-                  </div>
+                        : `No custom company holidays configured for ${selectedYear}.`
+                    }
+                    buttonLabel="Mark Company Holiday"
+                    buttonIcon={<Plus size={13} />}
+                    buttonAction={openAddCompanyModal}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {displayedCompanyHolidays.map((item) => {
@@ -770,36 +689,32 @@ export function MarkHolidays() {
                       return (
                         <div
                           key={item.id}
-                          className="rounded-3xl border border-slate-100 bg-white p-4 shadow-2xs flex items-center justify-between gap-3 hover:shadow-md hover:border-slate-200 transition-all"
+                          className="rounded-3xl border border-border bg-surface p-4 shadow-2xs flex items-center justify-between gap-3 hover:shadow-md hover:border-border-hover transition-all"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
-                              <span className="rounded-md bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
-                                Company
-                              </span>
+                              <h3 className="text-sm font-bold text-text-primary">{item.title}</h3>
+                              <Badge
+                                variant="primary"
+                                size="xs"
+                                label="Company"
+                              />
                               {isToday ? (
-                                <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                                  Active Today
-                                </span>
+                                <Badge variant="success" size="xs" label="Active Today" />
                               ) : isPast ? (
-                                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                                  Past
-                                </span>
+                                <Badge variant="neutral" size="xs" label="Past" />
                               ) : (
-                                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                                  Upcoming
-                                </span>
+                                <Badge variant="success" size="xs" label="Upcoming" />
                               )}
                             </div>
-                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                              <CalendarDays size={13} className="text-slate-400" />
+                            <p className="text-xs text-text-secondary mt-1 flex items-center gap-1">
+                              <CalendarDays size={13} className="text-text-muted" />
                               <span>
                                 {item.date} {item.endDate ? `to ${item.endDate}` : ''}
                               </span>
                             </p>
                             {item.description && (
-                              <p className="text-xs text-slate-400 mt-1 line-clamp-1">
+                              <p className="text-xs text-text-muted mt-1 line-clamp-1">
                                 {item.description}
                               </p>
                             )}
@@ -810,7 +725,7 @@ export function MarkHolidays() {
                               type="button"
                               aria-label="Edit Holiday"
                               onClick={() => openEditCompanyModal(item)}
-                              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-muted rounded-lg transition-colors cursor-pointer"
                             >
                               <Edit2 size={16} />
                             </button>
@@ -818,7 +733,7 @@ export function MarkHolidays() {
                               type="button"
                               aria-label="Delete Holiday"
                               onClick={() => setDeleteConfirmHoliday(item)}
-                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-danger hover:text-danger-dark hover:bg-danger-light rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -842,70 +757,61 @@ export function MarkHolidays() {
           variant="bottom"
           showCloseButton={!isSaving}
         >
-          <form onSubmit={handleSaveCompanyHoliday} className="p-4 pt-6 text-slate-900 font-sans w-full flex flex-col">
-            <h2 className="text-base font-bold text-slate-900 mb-1">
+          <form onSubmit={handleSaveCompanyHoliday} className="p-4 pt-6 text-text-primary font-sans w-full flex flex-col">
+            <h2 className="text-base font-bold text-text-primary mb-1">
               {editingHoliday ? 'Edit Company Holiday' : 'Mark Company Holiday'}
             </h2>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-text-secondary mb-4">
               Schedule a special company closure or team day off. Meal selections automatically lock for this date.
             </p>
 
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Holiday Title *</label>
-                <input
-                  type="text"
+              <InputField
+                label="Holiday Title *"
+                required
+                value={companyFormData.title}
+                onChange={(e) => setCompanyFormData({ ...companyFormData, title: e.target.value })}
+                placeholder="e.g., Company Retreat / End of Year Break"
+              />
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <InputField
+                  label="Start Date *"
+                  type="date"
                   required
-                  value={companyFormData.title}
-                  onChange={(e) => setCompanyFormData({ ...companyFormData, title: e.target.value })}
-                  placeholder="e.g., Company Retreat / End of Year Break"
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-primary"
+                  value={companyFormData.startDate}
+                  onChange={(e) => setCompanyFormData({ ...companyFormData, startDate: e.target.value })}
+                />
+
+                <InputField
+                  label="End Date (Optional)"
+                  type="date"
+                  value={companyFormData.endDate}
+                  onChange={(e) => setCompanyFormData({ ...companyFormData, endDate: e.target.value })}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={companyFormData.startDate}
-                    onChange={(e) => setCompanyFormData({ ...companyFormData, startDate: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">End Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={companyFormData.endDate}
-                    onChange={(e) => setCompanyFormData({ ...companyFormData, endDate: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-primary"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={companyFormData.description}
                   onChange={(e) => setCompanyFormData({ ...companyFormData, description: e.target.value })}
                   placeholder="Optional details or note for employees..."
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs outline-none focus:border-primary resize-none"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs outline-none focus:border-primary resize-none"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-              <span>{editingHoliday ? 'Save Changes' : 'Confirm Holiday'}</span>
-            </button>
+            <div className="mt-5">
+              <Button
+                type="submit"
+                variant="primary"
+                pending={isSaving}
+                className="w-full"
+                label={editingHoliday ? 'Save Changes' : 'Confirm Holiday'}
+              />
+            </div>
           </form>
         </Modal>
       )}
@@ -918,81 +824,71 @@ export function MarkHolidays() {
           variant="bottom"
           showCloseButton={!isSaving}
         >
-          <form onSubmit={handleSaveAdjustment} className="p-4 pt-6 text-slate-900 font-sans w-full flex flex-col">
-            <h2 className="text-base font-bold text-slate-900 mb-1">
+          <form onSubmit={handleSaveAdjustment} className="p-4 pt-6 text-text-primary font-sans w-full flex flex-col">
+            <h2 className="text-base font-bold text-text-primary mb-1">
               Adjust Statutory Holiday
             </h2>
-            <p className="text-xs text-slate-500 mb-4">
-              Shift observed date or customize company status for <span className="font-bold text-slate-800">"{adjustingHoliday.title}"</span>.
+            <p className="text-xs text-text-secondary mb-4">
+              Shift observed date or customize company status for <span className="font-bold text-text-primary">"{adjustingHoliday.title}"</span>.
             </p>
 
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Holiday Display Title</label>
-                <input
-                  type="text"
-                  value={adjustFormData.title}
-                  onChange={(e) => setAdjustFormData({ ...adjustFormData, title: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-primary"
-                />
-              </div>
+              <InputField
+                label="Holiday Display Title"
+                value={adjustFormData.title}
+                onChange={(e) => setAdjustFormData({ ...adjustFormData, title: e.target.value })}
+              />
 
               <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Original Date</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={adjustingHoliday.date}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-xs text-slate-500 cursor-not-allowed"
-                  />
-                </div>
+                <InputField
+                  label="Original Date"
+                  disabled
+                  value={adjustingHoliday.date}
+                  onChange={() => {}}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Adjusted Observed Date</label>
-                  <input
-                    type="date"
-                    value={adjustFormData.adjustedDate}
-                    onChange={(e) => setAdjustFormData({ ...adjustFormData, adjustedDate: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-primary"
-                  />
-                </div>
+                <InputField
+                  label="Adjusted Observed Date"
+                  type="date"
+                  value={adjustFormData.adjustedDate}
+                  onChange={(e) => setAdjustFormData({ ...adjustFormData, adjustedDate: e.target.value })}
+                />
               </div>
 
               {/* Working day toggle */}
-              <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3 flex items-center justify-between">
+              <div className="rounded-xl bg-surface-muted border border-border p-3 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-800">Treat as Normal Working Day</p>
-                  <p className="text-[11px] text-slate-500">Allow employees to order meals on this day</p>
+                  <p className="text-xs font-semibold text-text-primary">Treat as Normal Working Day</p>
+                  <p className="text-[11px] text-text-secondary">Allow employees to order meals on this day</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
+                  variant="toggle"
                   checked={adjustFormData.isIgnored}
-                  onChange={(e) => setAdjustFormData({ ...adjustFormData, isIgnored: e.target.checked })}
-                  className="w-4 h-4 rounded text-primary focus:ring-0 cursor-pointer"
+                  onChange={(checked) => setAdjustFormData({ ...adjustFormData, isIgnored: checked })}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Adjustment Reason / Notes</label>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">Adjustment Reason / Notes</label>
                 <textarea
                   rows={2}
                   value={adjustFormData.notes}
                   onChange={(e) => setAdjustFormData({ ...adjustFormData, notes: e.target.value })}
                   placeholder="e.g. Government Executive Instrument observance shift"
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs outline-none focus:border-primary resize-none"
+                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs outline-none focus:border-primary resize-none"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-              <span>Save Adjustment</span>
-            </button>
+            <div className="mt-5">
+              <Button
+                type="submit"
+                variant="primary"
+                pending={isSaving}
+                className="w-full"
+                label="Save Adjustment"
+              />
+            </div>
           </form>
         </Modal>
       )}
@@ -1005,23 +901,22 @@ export function MarkHolidays() {
           variant="center"
         >
           <div className="p-3 text-center font-sans">
-            <h3 className="text-base font-bold text-slate-900 mb-2">Delete Holiday</h3>
-            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-              Are you sure you want to remove <span className="font-bold text-slate-800">"{deleteConfirmHoliday.title}"</span>? Menu selections for this day will revert to normal operation.
+            <h3 className="text-base font-bold text-text-primary mb-2">Delete Holiday</h3>
+            <p className="text-xs text-text-secondary mb-5 leading-relaxed">
+              Are you sure you want to remove <span className="font-bold text-text-primary">"{deleteConfirmHoliday.title}"</span>? Menu selections for this day will revert to normal operation.
             </p>
             <div className="flex gap-2 w-full">
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                className="flex-1"
+                label="Cancel"
                 onClick={() => setDeleteConfirmHoliday(null)}
-                className="flex-1 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                Cancel
-              </button>
+              />
               <button
                 type="button"
                 disabled={deleteMutation.isPending}
                 onClick={handleDeleteCompanyHoliday}
-                className="flex-1 py-2.5 text-xs font-semibold rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-xs cursor-pointer"
+                className="flex-1 py-2.5 text-xs font-semibold rounded-xl bg-danger text-white hover:bg-danger-hover shadow-xs cursor-pointer"
               >
                 {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
               </button>
@@ -1040,3 +935,5 @@ export function MarkHolidays() {
     </div>
   );
 }
+
+export default MarkHolidays;

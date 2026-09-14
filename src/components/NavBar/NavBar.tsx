@@ -21,6 +21,7 @@ export interface INavBar {
   onExportClick?: () => void;
   actionButton?: INavBarActionButton;
   rightElement?: ReactNode;
+  banner?: ReactNode;
 }
 
 export function NavBar({
@@ -31,6 +32,7 @@ export function NavBar({
   onExportClick,
   actionButton,
   rightElement,
+  banner,
 }: INavBar) {
   const navigate = useNavigate();
 
@@ -43,8 +45,8 @@ export function NavBar({
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-msListBorder bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 font-sans shadow-2xs">
-      <div className="relative flex min-h-7 w-full items-center justify-between">
+    <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-border bg-surface/95 backdrop-blur-md font-sans shadow-2xs">
+      <div className="relative flex min-h-7 w-full items-center justify-between px-4 sm:px-6 py-3">
         <button
           type="button"
           onClick={handleBack}
@@ -69,7 +71,7 @@ export function NavBar({
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 actionButton.className ??
                 (actionButton.variant === 'outline'
-                  ? 'border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-40 shadow-2xs'
+                  ? 'border border-border text-text-primary bg-surface hover:bg-surface-muted disabled:opacity-40 shadow-2xs'
                   : 'bg-primary text-white hover:bg-primary-hover disabled:opacity-40 shadow-2xs')
               }`}
             >
@@ -89,7 +91,7 @@ export function NavBar({
           {!actionButton && !rightElement && onAddButtonClick && (
             <button
               onClick={onAddButtonClick}
-              className="p-1 text-secondary hover:text-text-primary flex items-center gap-1 transition-colors"
+              className="p-1 text-secondary hover:text-text-primary flex items-center gap-1 transition-colors cursor-pointer"
               type="button"
             >
               <Plus className="stroke-current h-4 w-4" />{' '}
@@ -100,7 +102,7 @@ export function NavBar({
           {!actionButton && !rightElement && !onAddButtonClick && onExportClick && (
             <button
               onClick={onExportClick}
-              className="p-1 text-secondary hover:text-text-primary flex items-center gap-1 transition-colors"
+              className="p-1 text-secondary hover:text-text-primary flex items-center gap-1 transition-colors cursor-pointer"
               type="button"
             >
               <Download className="stroke-current h-4 w-4" /> <span className="text-sm">Export</span>
@@ -108,7 +110,10 @@ export function NavBar({
           )}
         </div>
       </div>
+
+      {banner && <div className="w-full">{banner}</div>}
     </nav>
   );
 }
 
+export default NavBar;

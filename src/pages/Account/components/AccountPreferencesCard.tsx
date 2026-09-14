@@ -8,6 +8,10 @@ import {
 } from '../../../api/useApiQueries';
 import { EditPreferencesModal } from './EditPreferencesModal';
 import type { UserPreferences } from '../../../api/Services/UserServices';
+import { Card } from '../../../components/Card/Card';
+import Badge from '../../../components/Badge/Badge';
+import Button from '../../../components/Button/Button';
+import EmptyState from '../../../components/EmptyState/EmptyState';
 
 interface AccountPreferencesCardProps {
   preferences?: UserPreferences | null;
@@ -78,148 +82,136 @@ export const AccountPreferencesCard = ({
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs">
-        {/* Header with Edit Button */}
-        <div className="flex flex-col pb-4 gap-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-[#00633d] border border-emerald-200/60">
-              <Utensils className="h-4 w-4" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Dietary Preferences</h3>
-              <p className="text-xs text-slate-500">Manage dietary dislikes and saved presets</p>
-            </div>
+      <Card
+        header={{
+          title: 'Dietary Preferences',
+          subtitle: 'Manage dietary dislikes and saved presets',
+          icon: <Utensils className="h-4 w-4" />,
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-text-secondary">Custom Exclusions</span>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+              label="Configure"
+              onClick={() => setIsEditModalOpen(true)}
+            />
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsEditModalOpen(true)}
-            className="inline-flex w-fit items-center gap-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 px-3 py-1.5 text-xs font-bold text-[#00633d] border border-emerald-200/70 transition-colors cursor-pointer"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span>Configure</span>
-          </button>
-        </div>
-
-        {/* Dislikes / Exclusions View */}
-        <div className="pt-4 pb-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Dietary Dislikes & Exclusions
-            </span>
-            {totalDislikesCount > 0 && (
-              <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                {totalDislikesCount} exclusions active
+          {/* Dislikes / Exclusions View */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+                Dietary Dislikes & Exclusions
               </span>
+              {totalDislikesCount > 0 && (
+                <Badge
+                  variant="danger"
+                  size="xs"
+                  label={`${totalDislikesCount} exclusions active`}
+                />
+              )}
+            </div>
+
+            {totalDislikesCount === 0 ? (
+              <EmptyState
+                icon={<ShieldCheck className="h-6 w-6" />}
+                title="No specific dietary exclusions configured"
+                description="You receive standard weekly menus. You can exclude ingredients or specific dishes anytime."
+                buttonLabel="Add Dietary Exclusions"
+                buttonIcon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+                buttonAction={() => setIsEditModalOpen(true)}
+              />
+            ) : (
+              <div className="space-y-2.5">
+                {/* Ingredient Badges */}
+                {dislikedFoodNames.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block mb-1">
+                      Ingredients ({dislikedFoodNames.length})
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {dislikedFoodNames.map((foodName, i) => (
+                        <Badge
+                          key={i}
+                          variant="danger"
+                          icon={<Ban className="h-3 w-3" />}
+                          label={foodName}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Meal Badges */}
+                {dislikedMealNames.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block mb-1">
+                      Specific Dishes ({dislikedMealNames.length})
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {dislikedMealNames.map((mealName, i) => (
+                        <Badge
+                          key={i}
+                          variant="warning"
+                          icon={<Ban className="h-3 w-3" />}
+                          label={mealName}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {excludedMealsCount > 0 && (
+                  <p className="text-[11px] text-text-secondary bg-surface-muted rounded-lg p-2 border border-border">
+                    <span className="font-semibold text-text-primary">{excludedMealsCount} dishes</span> are automatically filtered out from your weekly meal planning.
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
-          {totalDislikesCount === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-5 text-center px-4">
-              <ShieldCheck className="h-6 w-6 text-slate-300 mb-1.5" />
-              <p className="text-xs font-medium text-slate-600">
-                No specific dietary exclusions configured
-              </p>
-              <p className="text-[11px] text-slate-400 max-w-xs mt-0.5 mb-2.5">
-                You receive standard weekly menus. You can exclude ingredients or specific dishes anytime.
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#00633d] border border-slate-200 shadow-2xs hover:bg-slate-50 cursor-pointer"
-              >
-                <SlidersHorizontal className="h-3 w-3" />
-                Add Dietary Exclusions
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {/* Ingredient Badges */}
-              {dislikedFoodNames.length > 0 && (
+          {/* Shortcuts / Presets */}
+          <div className="pt-2 border-t border-border flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate('/preset-meals')}
+              className="flex-1 flex items-center justify-between rounded-xl bg-primary-light/60 hover:bg-primary-light p-3 text-left transition-colors border border-primary/20 cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Bookmark className="h-4 w-4 text-primary" />
                 <div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                    Ingredients ({dislikedFoodNames.length})
+                  <span className="text-xs font-bold text-text-primary block">Saved Preset Meals</span>
+                  <span className="text-[11px] text-primary font-medium">
+                    {stats?.totalPresets || 0} active presets
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {dislikedFoodNames.map((foodName, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 border border-rose-200/80"
-                      >
-                        <Ban className="h-3 w-3 text-rose-500" />
-                        {foodName}
-                      </span>
-                    ))}
-                  </div>
                 </div>
-              )}
+              </div>
+              <ChevronRight className="h-4 w-4 text-primary" />
+            </button>
 
-              {/* Meal Badges */}
-              {dislikedMealNames.length > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate('/select-meal')}
+              className="flex-1 flex items-center justify-between rounded-xl bg-surface-muted hover:bg-surface p-3 text-left transition-colors border border-border cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="h-4 w-4 text-text-secondary" />
                 <div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                    Specific Dishes ({dislikedMealNames.length})
+                  <span className="text-xs font-bold text-text-primary block">Weekly Selection</span>
+                  <span className="text-[11px] text-text-muted font-medium">
+                    {stats?.totalSelections || 0} meals chosen
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {dislikedMealNames.map((mealName, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 border border-amber-200"
-                      >
-                        <Ban className="h-3 w-3 text-amber-600" />
-                        {mealName}
-                      </span>
-                    ))}
-                  </div>
                 </div>
-              )}
-
-              {excludedMealsCount > 0 && (
-                <p className="text-[11px] text-slate-500 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <span className="font-semibold text-slate-700">{excludedMealsCount} dishes</span> are automatically filtered out from your weekly meal planning.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Shortcuts / Presets */}
-        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate('/preset-meals')}
-            className="flex-1 flex items-center justify-between rounded-xl bg-emerald-50/70 hover:bg-emerald-50 p-3 text-left transition-colors border border-emerald-100 cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <Bookmark className="h-4 w-4 text-[#00633d]" />
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Saved Preset Meals</span>
-                <span className="text-[11px] text-[#00633d] font-medium">
-                  {stats?.totalPresets || 0} active presets
-                </span>
               </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-[#00633d]" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/select-meal')}
-            className="flex-1 flex items-center justify-between rounded-xl bg-slate-50 hover:bg-slate-100/80 p-3 text-left transition-colors border border-slate-100 cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="h-4 w-4 text-slate-700" />
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Weekly Selection</span>
-                <span className="text-[11px] text-slate-500 font-medium">
-                  {stats?.totalSelections || 0} meals chosen
-                </span>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-slate-400" />
-          </button>
+              <ChevronRight className="h-4 w-4 text-text-muted" />
+            </button>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* Edit Preferences Modal */}
       <EditPreferencesModal

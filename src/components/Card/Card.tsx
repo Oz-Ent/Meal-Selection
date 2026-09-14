@@ -1,46 +1,61 @@
-import type React from "react";
-import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+import type React from 'react';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 
-interface CardHeader{
-    title: string
-    subtitle: string
-    icon: React.ReactNode
+export interface CardHeader {
+  title?: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  action?: React.ReactNode;
 }
-interface CardProps{
-    header?: CardHeader
-    loading?: boolean
-    children: React.ReactNode
+
+export interface CardProps {
+  header?: CardHeader;
+  loading?: boolean;
+  className?: string;
+  children?: React.ReactNode;
 }
-export function Card ({header, loading = false, children}: CardProps){
-    return (
-        <div className="w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs gap-2 p-4 flex flex-col">
-            {header && 
-                <div className="flex flex-row gap-4 px-2">
-                    <div className='flex justify-center items-center h-full'>
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 bg-white text-primary shadow-2xs">
-                            {header.icon}
-                        </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <h3 className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                            {header.title}
-                        </h3>
-                        <span
-                            className="block truncate text-xs font-semibold text-slate-800 sm:text-sm"
-                            title={header.subtitle}
-                        >
-                            {header.subtitle}
-                        </span>
-                    </div>
-                </div>
-            }
-            {loading ? (
-                <div className="flex justify-center items-center p-6">
-                    <LoadingSpinner />
-                </div>
-            ) : (
-                children
+
+export function Card({ header, loading = false, className = '', children }: CardProps) {
+  return (
+    <div
+      className={`w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-xs gap-2 p-4 sm:p-5 flex flex-col transition-colors ${className}`}
+    >
+      {header && (
+        <div className="flex items-center justify-between gap-4 px-1 pb-1">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+            {header.icon && (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-muted text-primary shadow-2xs">
+                {header.icon}
+              </div>
             )}
+            <div className="min-w-0 flex-1">
+              {header.title && (
+                <h3 className="block text-lg font-bold text-text-primary">
+                  {header.title}
+                </h3>
+              )}
+              {header.subtitle && (
+                <span
+                  className="block truncate text-xs text-text-muted sm:text-sm"
+                  title={header.subtitle}
+                >
+                  {header.subtitle}
+                </span>
+              )}
+            </div>
+          </div>
+          {header.action && <div className="shrink-0">{header.action}</div>}
+        </div>
+      )}
+      {loading ? (
+        <div className="flex justify-center items-center p-6 text-text-secondary">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        children
+      )}
     </div>
-    )
+  );
 }
+
+export default Card;

@@ -16,6 +16,7 @@ import type { MenuDay, MenuDayMeal } from '../../api/Services/MenuServices';
 import type { HolidayItem } from '../../api/Services/HolidayServices';
 import MealButton from '../MealButton/MealButton';
 import MealDetailsModal from './MealDetailsModal';
+import Badge from '../Badge/Badge';
 
 export type DaySelectionValue = number | 'UNAVAILABLE' | 'HOLIDAY';
 
@@ -81,6 +82,7 @@ export function MealSelectionView({
   const [randomMenuDayId, setRandomMenuDayId] = useState<number | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedFoodCode, setSelectedFoodCode] = useState<string | null>(null);
+
   const handleLongPress = (foodCode: string) => {
     setSelectedFoodCode(foodCode);
     setDetailsModalOpen(true);
@@ -144,19 +146,18 @@ export function MealSelectionView({
     onToast?.('success', 'All choices have been cleared.');
   };
 
-  
   return (
     <>
       {/* Meal Items Card Container */}
-      <main className="flex-1 px-4 pt-4 overflow-y-auto">
+      <main className="flex-1 px-4 pt-4 overflow-y-auto font-sans">
         {/* Closed Schedule Notice Banner */}
-        {isScheduleClosed && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-rose-50/90 border border-rose-200/90 p-3.5 text-xs text-rose-900 shadow-2xs">
-            <Ban size={20} className="text-rose-600 shrink-0 mt-0.5" />
+        {isScheduleClosed && closedMessage && (
+          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-banner-closed-bg border border-banner-closed-border p-3.5 text-xs text-banner-closed-text shadow-2xs">
+            <Ban size={20} className="text-banner-closed-text shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
-              <span className="font-bold text-slate-900">Meal Selection Closed</span>
-              <p className="mt-0.5 text-[11px] text-slate-600 leading-relaxed">
-                {closedMessage || 'Meal selection for this week is closed. You can view your selections below.'}
+              <span className="font-bold text-text-primary">Meal Selection Closed</span>
+              <p className="mt-0.5 text-[11px] text-text-secondary leading-relaxed">
+                {closedMessage}
               </p>
             </div>
           </div>
@@ -164,16 +165,18 @@ export function MealSelectionView({
 
         {/* Active Holiday Information Banner */}
         {activeHoliday && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200/90 p-3.5 text-xs text-amber-900 shadow-2xs">
-            <Sparkles size={20} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-meal-holiday-bg border border-meal-holiday-border p-3.5 text-xs text-meal-holiday-text shadow-2xs">
+            <Sparkles size={20} className="text-warning-dark shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-slate-900">{activeHoliday.title}</span>
-                <span className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wide">
-                  {activeHoliday.source === 'COMPANY' ? 'Company Holiday' : 'Public Holiday'}
-                </span>
+                <span className="font-bold text-text-primary">{activeHoliday.title}</span>
+                <Badge
+                  variant="warning"
+                  size="xs"
+                  label={activeHoliday.source === 'COMPANY' ? 'Company Holiday' : 'Public Holiday'}
+                />
               </div>
-              <p className="mt-0.5 text-[11px] text-slate-600 leading-relaxed">
+              <p className="mt-0.5 text-[11px] text-text-secondary leading-relaxed">
                 This day is recognized as a holiday. Menu selection is closed and automatically set to Holiday.
               </p>
             </div>
@@ -182,16 +185,14 @@ export function MealSelectionView({
 
         {/* On Leave Information Banner */}
         {isLeaveDay && !isHolidayDay && !isScheduleClosed && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200/90 p-3.5 text-xs text-amber-900 shadow-2xs">
-            <Ban size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-meal-holiday-bg border border-meal-holiday-border p-3.5 text-xs text-meal-holiday-text shadow-2xs">
+            <Ban size={18} className="text-warning-dark shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-900">On Approved Leave</span>
-                <span className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wide">
-                  Unavailable
-                </span>
+                <span className="font-bold text-text-primary">On Approved Leave</span>
+                <Badge variant="warning" size="xs" label="Unavailable" />
               </div>
-              <p className="mt-0.5 text-[11px] text-slate-600 leading-relaxed">
+              <p className="mt-0.5 text-[11px] text-text-secondary leading-relaxed">
                 This day is within an approved leave period. Automatically set to Unavailable.
               </p>
             </div>
@@ -200,18 +201,16 @@ export function MealSelectionView({
 
         {/* Past Day / Closed Today Information Banner */}
         {isPastDay && !isHolidayDay && !isLeaveDay && !isScheduleClosed && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-slate-100/90 border border-slate-200 p-3.5 text-xs text-slate-700 shadow-2xs">
-            <Ban size={18} className="text-slate-500 shrink-0 mt-0.5" />
+          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-surface-muted border border-border p-3.5 text-xs text-text-secondary shadow-2xs">
+            <Ban size={18} className="text-text-muted shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-text-primary">
                   {isTodayClosed ? 'Closed for Today' : 'Past Day'}
                 </span>
-                <span className="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 uppercase tracking-wide">
-                  Locked
-                </span>
+                <Badge variant="neutral" size="xs" label="Locked" />
               </div>
-              <p className="mt-0.5 text-[11px] text-slate-600 leading-relaxed">
+              <p className="mt-0.5 text-[11px] text-text-muted leading-relaxed">
                 {isTodayClosed
                   ? 'Meal selection for today closed at 10:00 AM. Selections cannot be modified.'
                   : 'This day has passed. Selections for this day cannot be modified.'}
@@ -220,17 +219,18 @@ export function MealSelectionView({
           </div>
         )}
 
-
         {/* Guest Mode Summary Header */}
         {isGuestMode && currentDay && (
           <div className="mb-3 flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
               {currentDayName} Guest Dishes
             </span>
             {totalGuestMealsToday > 0 && (
-              <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
-                {totalGuestMealsToday} meal{totalGuestMealsToday === 1 ? '' : 's'} selected
-              </span>
+              <Badge
+                variant="primary"
+                size="sm"
+                label={`${totalGuestMealsToday} meal${totalGuestMealsToday === 1 ? '' : 's'} selected`}
+              />
             )}
           </div>
         )}
@@ -238,7 +238,7 @@ export function MealSelectionView({
         <div
           role={isGuestMode ? undefined : 'radiogroup'}
           aria-label={`${currentDayName} meal choices`}
-          className="bg-white rounded-3xl border border-slate-100/80 p-2 shadow-2xs space-y-1"
+          className="bg-surface rounded-3xl border border-border p-2 shadow-2xs space-y-1"
         >
           {/* Regular Menu Dishes */}
           {currentDayMeals.map((meal) => {
@@ -288,7 +288,7 @@ export function MealSelectionView({
           })}
 
           {currentDayMeals.length === 0 && !isHolidayDay && (
-            <div className="p-6 text-center text-slate-400 text-sm">
+            <div className="p-6 text-center text-text-muted text-sm">
               No specific meal options configured for this day.
             </div>
           )}
@@ -296,7 +296,7 @@ export function MealSelectionView({
           {/* Divider and Other Options (Unavailable, Holiday) */}
           {showOtherOptions && (
             <>
-              <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 Other options
               </div>
 
@@ -322,7 +322,7 @@ export function MealSelectionView({
                     }
                   }
                 }}
-                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-slate-50 last:border-b-0 text-left transition-colors ${
+                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-border-subtle last:border-b-0 text-left transition-colors ${
                   isDayDisabled
                     ? shouldDim
                       ? isUnavailableSelected
@@ -334,12 +334,12 @@ export function MealSelectionView({
                     : isUnavailableSelected
                     ? 'bg-primary-light'
                     : mode === 'select'
-                    ? 'hover:bg-slate-50 cursor-pointer'
+                    ? 'hover:bg-surface-muted cursor-pointer'
                     : ''
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-surface-muted flex items-center justify-center text-text-secondary shrink-0 border border-border/50">
                     <Ban size={20} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -347,12 +347,16 @@ export function MealSelectionView({
                       className={`text-sm leading-snug ${
                         isUnavailableSelected
                           ? 'font-semibold text-primary'
-                          : 'font-medium text-slate-800'
+                          : 'font-medium text-text-primary'
                       }`}
                     >
                       Unavailable
                     </span>
-                    <p className="text-[11px] text-slate-500">{isGuestMode ? 'No guests will be having lunch on this day' : 'I will not be having lunch on this day'}</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      {isGuestMode
+                        ? 'No guests will be having lunch on this day'
+                        : 'I will not be having lunch on this day'}
+                    </p>
                   </div>
                 </div>
 
@@ -364,8 +368,8 @@ export function MealSelectionView({
                   <div
                     className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
                       isUnavailableSelected
-                        ? 'border-primary bg-white'
-                        : 'border-slate-300 bg-white'
+                        ? 'border-primary bg-surface'
+                        : 'border-border bg-surface'
                     }`}
                   >
                     {isUnavailableSelected && (
@@ -399,18 +403,18 @@ export function MealSelectionView({
                 }}
                 className={`flex w-full items-center justify-between p-3 rounded-2xl text-left transition-colors ${
                   isHolidaySelected || isHolidayDay
-                    ? 'bg-amber-50/80 border border-amber-200/70'
+                    ? 'bg-meal-holiday-bg border border-meal-holiday-border'
                     : isDayDisabled
                     ? shouldDim
                       ? 'opacity-40 cursor-not-allowed'
                       : 'cursor-default'
                     : mode === 'select'
-                    ? 'hover:bg-slate-50 cursor-pointer'
+                    ? 'hover:bg-surface-muted cursor-pointer'
                     : ''
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-                  <div className="w-11 h-11 rounded-xl bg-amber-100/70 flex items-center justify-center text-amber-700 shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-warning-light flex items-center justify-center text-warning-dark shrink-0 border border-warning/20">
                     <Palmtree size={20} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -418,19 +422,17 @@ export function MealSelectionView({
                       <span
                         className={`text-sm leading-snug ${
                           isHolidaySelected || isHolidayDay
-                            ? 'font-semibold text-amber-950'
-                            : 'font-medium text-slate-800'
+                            ? 'font-semibold text-warning-dark'
+                            : 'font-medium text-text-primary'
                         }`}
                       >
                         Holiday
                       </span>
                       {isHolidayDay && (
-                        <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">
-                          Auto-marked
-                        </span>
+                        <Badge variant="warning" size="xs" label="Auto-marked" />
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-text-muted mt-0.5">
                       {isHolidayDay ? activeHoliday?.title : 'Mark this day as a holiday / day off'}
                     </p>
                   </div>
@@ -438,18 +440,18 @@ export function MealSelectionView({
 
                 {mode === 'view' || isDayDisabled ? (
                   (isHolidaySelected || isHolidayDay) && (
-                    <Check size={18} className="text-amber-800 shrink-0 font-bold" />
+                    <Check size={18} className="text-warning-dark shrink-0 font-bold" />
                   )
                 ) : (
                   <div
                     className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
                       isHolidaySelected || isHolidayDay
-                        ? 'border-amber-700 bg-white'
-                        : 'border-slate-300 bg-white'
+                        ? 'border-warning-dark bg-surface'
+                        : 'border-border bg-surface'
                     }`}
                   >
                     {(isHolidaySelected || isHolidayDay) && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-700" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-warning-dark" />
                     )}
                   </div>
                 )}
@@ -458,25 +460,26 @@ export function MealSelectionView({
           )}
         </div>
       </main>
-        <MealDetailsModal
-          isOpen={detailsModalOpen}
-          foodCode={selectedFoodCode}
-          onClose={() => {
-            setDetailsModalOpen(false);
-            setSelectedFoodCode(null);
-          }}
-        />
+
+      <MealDetailsModal
+        isOpen={detailsModalOpen}
+        foodCode={selectedFoodCode}
+        onClose={() => {
+          setDetailsModalOpen(false);
+          setSelectedFoodCode(null);
+        }}
+      />
 
       {/* Floating Bottom Control Bar */}
       <footer className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md md:max-w-lg px-4 flex items-center gap-2 z-20">
         {/* Pill 1: Day Navigation */}
-        <div className="flex-1 flex items-center justify-between bg-white rounded-2xl border border-slate-100 px-3 py-2 shadow-md shadow-slate-200/50 text-xs font-bold text-slate-800">
+        <div className="flex-1 flex items-center justify-between bg-surface rounded-2xl border border-border px-3 py-2 shadow-md text-xs font-bold text-text-primary">
           <button
             type="button"
             aria-label="Previous day navigation"
             disabled={currentDayIndex === 0}
             onClick={() => onDayIndexChange(Math.max(0, currentDayIndex - 1))}
-            className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-text-secondary disabled:opacity-25 hover:bg-surface-muted rounded-lg transition-colors cursor-pointer"
           >
             <ChevronLeft size={18} />
           </button>
@@ -488,7 +491,7 @@ export function MealSelectionView({
             aria-label="Next"
             disabled={isFinalDay}
             onClick={() => onDayIndexChange(Math.min(menuDays.length - 1, currentDayIndex + 1))}
-            className="p-1 text-slate-600 disabled:opacity-25 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-text-secondary disabled:opacity-25 hover:bg-surface-muted rounded-lg transition-colors cursor-pointer"
           >
             <ChevronRight size={18} />
           </button>
@@ -500,7 +503,7 @@ export function MealSelectionView({
             type="button"
             aria-label="Clear all selections"
             onClick={handleClearAll}
-            className="w-11 h-11 shrink-0 flex items-center justify-center bg-white rounded-2xl border border-slate-100 shadow-md shadow-slate-200/50 text-slate-600 hover:text-slate-900 active:scale-95 transition-transform cursor-pointer"
+            className="w-11 h-11 shrink-0 flex items-center justify-center bg-surface rounded-2xl border border-border shadow-md text-text-secondary hover:text-text-primary active:scale-95 transition-transform cursor-pointer"
           >
             <CircleX size={18} />
           </button>
@@ -517,7 +520,7 @@ export function MealSelectionView({
                 setRandomDrawerOpen(true);
               }
             }}
-            className="w-11 h-11 shrink-0 flex items-center justify-center bg-white rounded-2xl border border-slate-100 shadow-md shadow-slate-200/50 text-slate-700 hover:text-slate-900 active:scale-95 transition-transform cursor-pointer"
+            className="w-11 h-11 shrink-0 flex items-center justify-center bg-surface rounded-2xl border border-border shadow-md text-text-secondary hover:text-text-primary active:scale-95 transition-transform cursor-pointer"
           >
             <Shuffle size={18} />
           </button>
@@ -529,7 +532,7 @@ export function MealSelectionView({
             type="button"
             aria-label="Presets"
             onClick={onPresetClick}
-            className="w-11 h-11 shrink-0 flex items-center justify-center bg-white rounded-2xl border border-slate-100 shadow-md shadow-slate-200/50 text-slate-700 hover:text-slate-900 active:scale-95 transition-transform cursor-pointer"
+            className="w-11 h-11 shrink-0 flex items-center justify-center bg-surface rounded-2xl border border-border shadow-md text-text-secondary hover:text-text-primary active:scale-95 transition-transform cursor-pointer"
           >
             <Bookmark size={18} />
           </button>
@@ -543,8 +546,8 @@ export function MealSelectionView({
         variant="bottom"
         showCloseButton={true}
       >
-        <div className="p-4 flex flex-col gap-4 text-black h-full font-sans">
-          <h2 className="text-base font-bold text-slate-900">Random Meal</h2>
+        <div className="p-4 flex flex-col gap-4 text-text-primary h-full font-sans">
+          <h2 className="text-base font-bold text-text-primary">Random Meal</h2>
           <div className="flex flex-1 flex-col items-center py-8">
             <SpinWheel
               options={menuDayMeals
@@ -562,10 +565,12 @@ export function MealSelectionView({
           </div>
           {menuDayMeals.filter((item) => item.menuDayId === randomMenuDayId && item.isActive)
             .length === 0 && (
-            <div className="p-4 text-center text-gray-500">No meals available for this day.</div>
+            <div className="p-4 text-center text-text-muted">No meals available for this day.</div>
           )}
         </div>
       </Modal>
     </>
   );
 }
+
+export default MealSelectionView;

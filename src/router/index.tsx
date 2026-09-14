@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet } from 'react-router-dom';
+﻿import { createBrowserRouter, Outlet } from 'react-router-dom';
 import MasterLayout from '../layouts/MasterLayout/MasterLayout';
 import NotFoundPage from '../pages/NotFound/NotFound';
 import Welcome from '../pages/Auth/Welcome';
@@ -26,6 +26,8 @@ import { PresetBuilder } from '../pages/Preset/PresetBuilder';
 import { PresetDetail } from '../pages/Preset/PresetDetail';
 import { MarkHolidays } from '../pages/Admin/Holidays/MarkHolidays';
 import { SelectionStatus } from '../pages/Admin/SelectionStatus/SelectionStatus';
+import { Budgets } from '../pages/Admin/Budgets/Budgets';
+import { Analytics } from '../pages/Admin/Analytics/Analytics';
 import { Account } from '../pages/Account/Account';
 import { History } from '../pages/History/History';
 
@@ -146,6 +148,14 @@ export const routes = [
             path: 'admin/selection-status',
             element: <SelectionStatus />,
           },
+          {
+            path: 'admin/budgets',
+            element: <Budgets />,
+          },
+          {
+            path: 'admin/analytics',
+            element: <Analytics />,
+          },
         ],
       },
       {
@@ -159,3 +169,5 @@ export const routes = [
 const router = createBrowserRouter(routes);
 
 export default router;
+
+

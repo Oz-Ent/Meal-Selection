@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Modal from '../../components/Modal/Modal';
 import TickIcon from "../../assets/TickIcon.webp"
-import type { OverviewMeal } from './MealOverview';
+
+export interface OverviewMeal {
+  title: string;
+  imageUrl?: string;
+}
 
 export interface SuccessModalProps {
   selectedMeals?: Record<string, OverviewMeal>;
@@ -28,7 +32,7 @@ export function SuccessModal({ targetName, onClose }: SuccessModalProps) {
     <Modal isOpen={isOpen} onClose={handleClose} variant="bottom" showCloseButton={true}>
       <div className="flex flex-col items-center text-center p-4 pt-2 w-full font-sans">
         {/* Burger Illustration */}
-        <div className="flex justify-center my-4">
+       <div className="flex justify-center my-4">
           <img
             src={TickIcon}
             alt="Meals Locked In"

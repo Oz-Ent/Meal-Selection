@@ -133,4 +133,29 @@ describe('MealButton Component', () => {
     fireEvent.click(decreaseBtn);
     expect(onQuantityChange).toHaveBeenCalledWith(1);
   });
+
+  it('applies correct background and hover classes when selected vs unselected', () => {
+    const { rerender } = render(<MealButton {...defaultProps} isSelected={false} />);
+    const button = screen.getByRole('radio');
+    expect(button.className).toContain('hover:bg-surface-muted');
+    expect(button.className).not.toContain('bg-primary-light');
+
+    rerender(<MealButton {...defaultProps} isSelected={true} />);
+    expect(button.className).toContain('bg-primary-light');
+    expect(button.className).toContain('hover:bg-primary-light/80');
+  });
+
+  it('applies appropriate disabled and dimmed classes', () => {
+    const { rerender } = render(
+      <MealButton {...defaultProps} isDisabled={true} isDimmed={true} isSelected={false} />
+    );
+    const button = screen.getByRole('radio');
+    expect(button.className).toContain('opacity-40');
+    expect(button.className).toContain('cursor-not-allowed');
+
+    rerender(
+      <MealButton {...defaultProps} isDisabled={true} isDimmed={true} isSelected={true} />
+    );
+    expect(button.className).toContain('bg-primary-light/60');
+  });
 });

@@ -1,4 +1,4 @@
-import apiClient from '../axios';
+﻿import apiClient from '../axios';
 import type { User } from './UserServices';
 
 export interface Selection {
@@ -230,6 +230,23 @@ export interface WeeklyGuestSelectionItem {
   };
 }
 
+export interface FoodArrivalPayload {
+  weekMenuScheduleId?: number;
+  menuDayId?: number;
+  unfulfilledSelectionIds?: number[];
+  note?: string;
+}
+
+export interface FoodArrivalResponse {
+  message: string;
+  fulfilledCount: number;
+  unfulfilledCount: number;
+  notification?: {
+    sent: number;
+    failed: number;
+  };
+}
+
 export const mealSelectionService = {
   getAll: async (): Promise<Selection[]> => {
     const response = await apiClient.get<Selection[]>('/meal-selections');
@@ -429,4 +446,12 @@ export const mealSelectionService = {
     );
     return response.data;
   },
+  notifyFoodArrival: async (data: FoodArrivalPayload): Promise<FoodArrivalResponse> => {
+    const response = await apiClient.post<FoodArrivalResponse>(
+      '/meal-selections/food-arrival',
+      data,
+    );
+    return response.data;
+  },
 };
+

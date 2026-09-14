@@ -25,11 +25,10 @@ describe('AccountSecurityCard Component', () => {
     expect(screen.getByRole('button', { name: 'Change Password' })).toBeInTheDocument();
   });
 
-  it('shows error if current password is empty on submit', () => {
+  it('disables submit button when required password fields are empty', () => {
     render(<AccountSecurityCard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }));
-    expect(screen.getByText('Please enter your current password.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change Password' })).toBeDisabled();
   });
 
   it('shows error if new password is too short', () => {
