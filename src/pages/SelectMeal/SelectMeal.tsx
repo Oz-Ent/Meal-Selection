@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
@@ -22,12 +22,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type User } from '../../api/Services/UserServices';
 import { type MenuDay } from '../../api/Services/MenuServices';
 import { type CreateSelectionRequest } from '../../api/Services/MealSelectionServices';
-import { presetService, type Preset } from '../../api/Services/PresetServices';
+import { presetService, type Preset, type CreatePresetItemData } from '../../api/Services/PresetServices';
 import {
   useAdminOverrideSelectionsMutation,
   useCreateMealSelectionsMutation,
+  useCreatePresetMutation,
   useMenuDaysQuery,
   useMenuMealsQuery,
+  usePresetsByUserQuery,
   useUserLeavesQuery,
   useUserProfileQuery,
   useUsersQuery,
@@ -73,6 +75,7 @@ export default function SelectMealPage() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [saveSelectionsAsPreset, setSaveSelectionsAsPreset] = useState(false);
   const [toast, setToast] = useState<{
     isOpen: boolean;
     type: ToastType;
@@ -138,6 +141,8 @@ export default function SelectMealPage() {
 
   const createMealSelectionsMutation = useCreateMealSelectionsMutation();
   const adminOverrideSelectionsMutation = useAdminOverrideSelectionsMutation();
+  const createPresetMutation = useCreatePresetMutation();
+  const userPresetsQuery = usePresetsByUserQuery(targetUserId || currentUserId);
 
   const users = useMemo(
     () => (Array.isArray(usersQuery.data) ? usersQuery.data : []),
@@ -881,8 +886,40 @@ export default function SelectMealPage() {
       } else {
         await createMealSelectionsMutation.mutateAsync(payload);
       }
+
+      if (saveSelectionsAsPreset && !isGuest && (targetUserId || currentUserId) && menuId) {
+        const presetItems: CreatePresetItemData[] = [];
+        for (const [mDayIdStr, val] of Object.entries(selections)) {
+          if (typeof val === 'number') {
+            presetItems.push({
+              menuDayId: Number(mDayIdStr),
+              dayMealId: val,
+            });
+          }
+        }
+
+        if (presetItems.length > 0) {
+          const menuTitle = weekMenuSchedule?.menu?.title || 'Menu';
+          const existingMenuPresets = (userPresetsQuery.data ?? []).filter((p) => p.menuId === menuId);
+          const presetNumber = existingMenuPresets.length + 1;
+          const presetTitle = `${menuTitle} Preset ${presetNumber}`;
+
+          try {
+            await createPresetMutation.mutateAsync({
+              name: presetTitle,
+              menuId,
+              userId: targetUserId || currentUserId,
+              presetItems,
+            });
+          } catch (presetErr) {
+            console.error('Failed to create preset from selections:', presetErr);
+          }
+        }
+      }
+
       setIsConfirmed(true);
       setIsConfirmModalOpen(false);
+      setSaveSelectionsAsPreset(false);
     } catch (error) {
       const err = error as {
         response?: { data?: { message?: string; error?: string } };
@@ -1332,6 +1369,9 @@ export default function SelectMealPage() {
           )
         }
         directSelections={confirmModalSelections}
+        showSaveAsPresetCheckbox={!isGuest && selectedUsers.length <= 1}
+        saveAsPresetChecked={saveSelectionsAsPreset}
+        onSaveAsPresetChange={setSaveSelectionsAsPreset}
         confirmButton={{
           label: 'Confirm',
           onClick: submitSelections,

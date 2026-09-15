@@ -30,7 +30,7 @@ export function SearchBar({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full rounded-2xl border border-border bg-surface py-2.5 pl-10 pr-10 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-colors ${inputClassName}`}
+        className={`w-full rounded-2xl border border-border bg-surface py-2.5 pl-10 pr-10 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-border shadow-2xs transition-colors ${inputClassName}`}
         {...rest}
       />
       {value && (

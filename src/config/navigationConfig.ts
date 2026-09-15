@@ -5,7 +5,6 @@ import {
   History,
   Home,
   LayoutDashboard,
-  MessageCircle,
   Sparkles,
   User,
   UserRound,
@@ -181,13 +180,13 @@ export const bottomNavItems: readonly NavigationItemConfig[] = Object.freeze([
     icon: History,
     roles: ALL_ROLES,
   },
-  {
-    id: 'feedback',
-    name: 'Feedback',
-    href: '/feedback',
-    icon: MessageCircle,
-    roles: ALL_ROLES,
-  },
+  // {
+  //   id: 'feedback',
+  //   name: 'Feedback',
+  //   href: '/feedback',
+  //   icon: MessageCircle,
+  //   roles: ALL_ROLES,
+  // },
   {
     id: 'account',
     name: 'Account',

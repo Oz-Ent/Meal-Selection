@@ -89,7 +89,7 @@ export const AccountPreferencesCard = ({
           icon: <Utensils className="h-4 w-4" />,
         }}
       >
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 justify-between h-full">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-text-secondary">Custom Exclusions</span>
             <Button
