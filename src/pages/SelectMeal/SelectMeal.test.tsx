@@ -17,6 +17,7 @@ function render(ui: React.ReactElement) {
 
 const mockSubmitSelections = jest.fn();
 const mockAdminOverrideSelections = jest.fn();
+const mockCreatePreset = jest.fn();
 
 let mockCurrentUserRole = 'user';
 let mockPresetsData = [
@@ -34,7 +35,7 @@ jest.mock('../Auth/useAuth/useAuth', () => ({
         id: 132,
         email: null,
         name: 'Bismark Owiredu Owusu',
-        roleId: 1,
+        roleId: mockCurrentUserRole === 'admin' ? 1 : 5,
         roleName: mockCurrentUserRole,
       },
       availability: { startDate: '', endDate: '' },
@@ -174,6 +175,7 @@ jest.mock('../../api/useApiQueries', () => ({
   }),
   useCreateMealSelectionsMutation: () => ({ mutateAsync: mockSubmitSelections }),
   useAdminOverrideSelectionsMutation: () => ({ mutateAsync: mockAdminOverrideSelections }),
+  useCreatePresetMutation: () => ({ mutateAsync: mockCreatePreset }),
   useMealDetailsQuery: () => ({ data: null, isPending: false, isError: false }),
 }));
 
@@ -187,8 +189,10 @@ describe('SelectMealPage', () => {
     jest.clearAllMocks();
     mockSubmitSelections.mockReset();
     mockAdminOverrideSelections.mockReset();
+    mockCreatePreset.mockReset();
     mockSubmitSelections.mockResolvedValue({});
     mockAdminOverrideSelections.mockResolvedValue({});
+    mockCreatePreset.mockResolvedValue({});
     (presetService.getWithDetails as jest.Mock).mockReset();
     mockCurrentUserRole = 'user';
     mockWeeklySelectionsData = null;
@@ -267,6 +271,55 @@ describe('SelectMealPage', () => {
     expect(await screen.findByTestId('success-modal')).toBeInTheDocument();
     expect(mockSubmitSelections).toHaveBeenCalledWith(
       expect.arrayContaining([expect.objectContaining({ createdFor: 132 })]),
+    );
+  });
+
+  it('saves selections as preset when "Save selections as preset" checkbox is checked in confirm modal', async () => {
+    render(
+      <MemoryRouter>
+        <SelectMealPage />
+      </MemoryRouter>,
+    );
+
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+    for (let i = 0; i < days.length; i++) {
+      const pizzaRadio = screen.getAllByRole('radio')[0];
+      fireEvent.click(pizzaRadio);
+
+      if (i < days.length - 1) {
+        const nextBtn = screen.getByRole('button', { name: 'Next' });
+        fireEvent.click(nextBtn);
+      }
+    }
+
+    const saveBtn = screen.getByRole('button', { name: /Save \(5\/5\)/i });
+    fireEvent.click(saveBtn);
+
+    // Confirm modal should show checkbox
+    const presetCheckbox = screen.getByLabelText(/Save selections as preset/i);
+    expect(presetCheckbox).toBeInTheDocument();
+    expect(presetCheckbox).not.toBeChecked();
+
+    // Check the preset checkbox
+    fireEvent.click(presetCheckbox);
+    expect(presetCheckbox).toBeChecked();
+
+    // Click Confirm
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmBtn);
+
+    expect(await screen.findByTestId('success-modal')).toBeInTheDocument();
+    expect(mockSubmitSelections).toHaveBeenCalled();
+    expect(mockCreatePreset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: expect.stringMatching(/preset/i),
+        menuId: 1,
+        userId: 132,
+        presetItems: expect.arrayContaining([
+          expect.objectContaining({ menuDayId: expect.any(Number), dayMealId: expect.any(Number) }),
+        ]),
+      }),
     );
   });
 

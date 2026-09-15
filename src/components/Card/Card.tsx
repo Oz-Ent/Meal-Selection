@@ -21,10 +21,10 @@ export function Card({ header, loading = false, className = '', children }: Card
       className={`w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-xs gap-2 p-4 sm:p-5 flex flex-col transition-colors ${className}`}
     >
       {header && (
-        <div className="flex items-center justify-between gap-4 px-1 pb-1">
+        <div className="flex items-center justify-between gap-4 px-1 pb-4">
           <div className="flex items-center gap-3.5 min-w-0 flex-1">
             {header.icon && (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-muted text-primary shadow-2xs">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-elevated text-text-secondary shadow-2xs">
                 {header.icon}
               </div>
             )}

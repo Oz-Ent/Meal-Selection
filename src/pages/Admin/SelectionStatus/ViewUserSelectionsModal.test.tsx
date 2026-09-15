@@ -163,4 +163,31 @@ describe('ViewUserSelectionsModal Component', () => {
     fireEvent.click(confirmBtn);
     expect(handleConfirm).toHaveBeenCalledTimes(1);
   });
+
+  it('renders Save selections as preset checkbox when showSaveAsPresetCheckbox is true', () => {
+    const handleCheckboxChange = jest.fn();
+
+    renderWithProviders(
+      <ViewUserSelectionsModal
+        isOpen={true}
+        onClose={jest.fn()}
+        customTitle="Confirm Meals"
+        directSelections={[]}
+        showSaveAsPresetCheckbox={true}
+        saveAsPresetChecked={false}
+        onSaveAsPresetChange={handleCheckboxChange}
+        confirmButton={{
+          label: 'Confirm',
+          onClick: jest.fn(),
+        }}
+      />,
+    );
+
+    const checkbox = screen.getByLabelText(/Save selections as preset/i);
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+
+    fireEvent.click(checkbox);
+    expect(handleCheckboxChange).toHaveBeenCalledWith(true);
+  });
 });

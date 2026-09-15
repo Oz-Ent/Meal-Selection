@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { History } from './History';
 
@@ -81,12 +81,25 @@ const mockAdminHistoryData = {
   ],
 };
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const mockCreatePreset = jest.fn();
+
 jest.mock('../Auth/useAuth/useAuth', () => ({
   useAuth: () => ({
     profile: {
       user: { id: 1, name: 'Test Admin', roleName: 'admin' },
     },
   }),
+}));
+
+jest.mock('../../api/Services/MenuServices', () => ({
+  menuService: {
+    getDays: jest.fn().mockResolvedValue([{ id: 1, day: 'MONDAY' }]),
+    getMeals: jest.fn().mockResolvedValue([
+      { id: 101, menuDayId: 1, meal: { id: 5, name: 'Grilled Chicken Salad' } },
+    ]),
+  },
 }));
 
 jest.mock('../../api/useApiQueries', () => ({
@@ -100,15 +113,50 @@ jest.mock('../../api/useApiQueries', () => ({
     isLoading: false,
     isError: false,
   }),
+  useCreatePresetMutation: () => ({
+    mutateAsync: mockCreatePreset,
+  }),
 }));
 
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 describe('History Page Component', () => {
+  beforeAll(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: jest.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      })),
+    });
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreatePreset.mockReset();
+    mockCreatePreset.mockResolvedValue({ id: 99, name: 'Summer Standard Menu Preset' });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
   it('renders history header, title, user weekly cards with descriptive week date range and day dates', () => {
-    render(
-      <MemoryRouter>
-        <History />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<History />);
 
     expect(screen.getByText(/Edziban/i)).toBeInTheDocument();
     expect(screen.getByText('Selection History')).toBeInTheDocument();
@@ -119,11 +167,7 @@ describe('History Page Component', () => {
   });
 
   it('toggles filter panel and displays live date range preview for entered week numbers', () => {
-    render(
-      <MemoryRouter>
-        <History />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<History />);
 
     const filterButton = screen.getByRole('button', { name: /toggle filter panel/i });
     fireEvent.click(filterButton);
@@ -139,11 +183,7 @@ describe('History Page Component', () => {
   });
 
   it('switches between My Selection History and Admin Report History tabs with descriptive week date ranges', () => {
-    render(
-      <MemoryRouter>
-        <History />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<History />);
 
     const adminTab = screen.getByText('Admin Report History');
     fireEvent.click(adminTab);
@@ -152,5 +192,64 @@ describe('History Page Component', () => {
     expect(screen.getByText('10 total orders')).toBeInTheDocument();
     expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();
     expect(screen.getByText('Aug 17')).toBeInTheDocument();
+  });
+
+  it('renders Save as preset button on history card and saves preset with default name', async () => {
+    renderWithProviders(<History />);
+
+    const savePresetBtn = screen.getByRole('button', { name: /Save as preset/i });
+    expect(savePresetBtn).toBeInTheDocument();
+
+    fireEvent.click(savePresetBtn);
+
+    // Modal should open
+    expect(screen.getByRole('heading', { name: 'Save as preset' })).toBeInTheDocument();
+
+    // Input should be pre-filled with default name: "Menu title + Preset"
+    const input = screen.getByPlaceholderText('Enter preset name') as HTMLInputElement;
+    expect(input.value).toBe('Summer Standard Menu Preset');
+
+    // Click Save Preset
+    const submitBtn = screen.getByRole('button', { name: 'Save Preset' });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockCreatePreset).toHaveBeenCalledWith({
+        name: 'Summer Standard Menu Preset',
+        menuId: 1,
+        userId: 1,
+        presetItems: [{ menuDayId: 1, dayMealId: 101 }],
+      });
+    });
+
+    expect(
+      await screen.findByText(/Preset "Summer Standard Menu Preset" saved successfully/i),
+    ).toBeInTheDocument();
+  });
+
+  it('allows user to change preset name before saving', async () => {
+    renderWithProviders(<History />);
+
+    const savePresetBtn = screen.getByRole('button', { name: /Save as preset/i });
+    fireEvent.click(savePresetBtn);
+
+    const input = screen.getByPlaceholderText('Enter preset name');
+    fireEvent.change(input, { target: { value: 'My Summer Favorites' } });
+
+    const submitBtn = screen.getByRole('button', { name: 'Save Preset' });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockCreatePreset).toHaveBeenCalledWith({
+        name: 'My Summer Favorites',
+        menuId: 1,
+        userId: 1,
+        presetItems: [{ menuDayId: 1, dayMealId: 101 }],
+      });
+    });
+
+    expect(
+      await screen.findByText(/Preset "My Summer Favorites" saved successfully/i),
+    ).toBeInTheDocument();
   });
 });

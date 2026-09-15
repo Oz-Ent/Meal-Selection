@@ -5,6 +5,7 @@ import Modal from '../../../components/Modal/Modal';
 import Skeleton from '../../../components/Skeleton/Skeleton';
 import Button from '../../../components/Button/Button';
 import Badge from '../../../components/Badge/Badge';
+import Checkbox from '../../../components/Checkbox/Checkbox';
 import { useWeeklySelectionsQuery } from '../../../api/useApiQueries';
 import { days } from '../../../utils/Enums/DayOfWeek';
 import type { User } from '../../../api/Services/UserServices';
@@ -40,6 +41,9 @@ export interface ViewUserSelectionsModalProps {
   };
   showCancelButton?: boolean;
   onEdit?: () => void;
+  showSaveAsPresetCheckbox?: boolean;
+  saveAsPresetChecked?: boolean;
+  onSaveAsPresetChange?: (checked: boolean) => void;
 }
 
 export function ViewUserSelectionsModal({
@@ -55,6 +59,9 @@ export function ViewUserSelectionsModal({
   confirmButton,
   showCancelButton = false,
   onEdit,
+  showSaveAsPresetCheckbox = false,
+  saveAsPresetChecked = false,
+  onSaveAsPresetChange,
 }: ViewUserSelectionsModalProps) {
   const navigate = useNavigate();
   const userId = user?.id;
@@ -264,6 +271,17 @@ export function ViewUserSelectionsModal({
                     </div>
                   );
                 })}
+          </div>
+        )}
+
+        {/* Save selections as preset checkbox */}
+        {showSaveAsPresetCheckbox && (
+          <div className="w-full mt-4 pt-3 border-t border-border flex items-center justify-start text-left">
+            <Checkbox
+              label="Save selections as preset"
+              checked={Boolean(saveAsPresetChecked)}
+              onChange={(checked) => onSaveAsPresetChange?.(checked)}
+            />
           </div>
         )}
 

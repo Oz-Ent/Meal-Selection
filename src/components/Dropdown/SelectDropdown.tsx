@@ -87,7 +87,7 @@ export function SelectDropdown<T extends string = string>({
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
         className={`flex w-full items-center justify-between gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-semibold text-text-primary shadow-2xs transition-all hover:border-border-hover focus:border-border-hover focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer ${
-          isOpen ? 'border-border-hover ring-1 ring-primary/20' : ''
+          isOpen ? 'border-border-hover ring-0.5 ring-primary/20' : ''
         }`}
       >
         <div className="flex items-center gap-2.5 truncate">

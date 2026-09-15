@@ -48,106 +48,9 @@ import type { User } from '../../../api/Services/UserServices';
 import type { WeeklyGuestSelectionItem, UserWithoutWeeklySelections } from '../../../api/Services/MealSelectionServices';
 import { DeleteGuestSelectionModal } from './DeleteGuestSelectionModal';
 import { ViewUserSelectionsModal } from './ViewUserSelectionsModal';
+import Tabs from '../../../components/Tabs/Tabs';
 
 type ActiveStatusTab = 'pending' | 'submitted' | 'guests';
-
-interface StatusTabProps{
-  icon: React.ReactNode
-  label: string
-  count: number
-  isActive: boolean
-  onClick: () => void
-}
-
-          // <button
-          //   type="button"
-          //   onClick={() => {
-          //     setActiveTab('pending');
-          //     setSearchQuery('');
-          //     setSelectedUserIds([]);
-          //     setSelectedGuestIds([]);
-          //   }}
-          //   className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
-          //     activeTab === 'pending'
-          //       ? 'bg-primary text-white shadow-2xs'
-          //       : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
-          //   }`}
-          // >
-          //   <UserX size={15} />
-          //   <span>Pending </span>
-          //   <Badge
-          //     variant={activeTab === 'pending' ? 'neutral' : 'secondary'}
-          //     size="xs"
-          //     label={rawPendingUsers.length}
-          //   />
-          // </button>
-
-          // <button
-          //   type="button"
-          //   onClick={() => {
-          //     setActiveTab('submitted');
-          //     setSearchQuery('');
-          //     setSelectedUserIds([]);
-          //     setSelectedGuestIds([]);
-          //   }}
-          //   className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
-          //     activeTab === 'submitted'
-          //       ? 'bg-primary text-white shadow-2xs'
-          //       : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
-          //   }`}
-          // >
-          //   <UserCheck size={15} />
-          //   <span>Submitted</span>
-          //   <Badge
-          //     variant={activeTab === 'submitted' ? 'neutral' : 'secondary'}
-          //     size="xs"
-          //     label={rawSubmittedUsers.length}
-          //   />
-          // </button>
-
-          // <button
-          //   type="button"
-          //   onClick={() => {
-          //     setActiveTab('guests');
-          //     setSearchQuery('');
-          //     setSelectedUserIds([]);
-          //     setSelectedGuestIds([]);
-          //   }}
-          //   className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
-          //     activeTab === 'guests'
-          //       ? 'bg-primary text-white shadow-2xs'
-          //       : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
-          //   }`}
-          // >
-          //   <Users size={15} />
-          //   <span className='truncate'>Guest Meals</span>
-          //   <Badge
-          //     variant={activeTab === 'guests' ? 'neutral' : 'secondary'}
-          //     size="xs"
-          //     label={totalGuestMealsCount}
-          //   />
-          // </button>
-function StatusTab ({icon, label, count, isActive, onClick}: StatusTabProps){
-  return(
-      <button
-            type="button"
-            onClick={onClick}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
-              isActive
-                ? 'bg-primary text-white shadow-2xs'
-                : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
-            }`}
-          >
-            {icon}
-            <span className='truncate'>{label}</span>
-            <Badge
-              variant={isActive ? 'neutral' : 'secondary'}
-              size="xs"
-              label={count}
-            />
-      </button>
-  )
-}
 
 export function SelectionStatus() {
   const navigate = useNavigate();
@@ -607,44 +510,39 @@ export function SelectionStatus() {
         </section>
 
         {/* Status Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-border pb-2 overflow-x-auto">
-          <StatusTab
-          isActive={activeTab=="pending"}
-          icon={<UserX size={15} />}
-          label="Pending"
-          count={rawPendingUsers.length}
-          onClick={() => {
-            setActiveTab('pending');
+        <Tabs
+          value={activeTab}
+          onChange={(val) => {
+            setActiveTab(val as ActiveStatusTab);
             setSearchQuery('');
             setSelectedUserIds([]);
             setSelectedGuestIds([]);
           }}
-          />
-          <StatusTab
-          isActive={activeTab=="submitted"}
-          icon={<UserCheck size={15} />}
-          label="Submitted"
-          count={rawSubmittedUsers.length}
-          onClick={() => {
-            setActiveTab('submitted');
-            setSearchQuery('');
-            setSelectedUserIds([]);
-            setSelectedGuestIds([]);
-          }}
-          />
-          <StatusTab
-          isActive={activeTab=="guests"}
-          icon={<Users size={15} />}
-          label="Guest Meals"
-          count={totalGuestMealsCount}
-          onClick={() => {
-            setActiveTab('guests');
-            setSearchQuery('');
-            setSelectedUserIds([]);
-            setSelectedGuestIds([]);
-          }}
-          />
-        </div>
+        >
+          <Tabs.Options>
+            <Tabs.Option
+              value="pending"
+              icon={<UserX size={15} />}
+              count={rawPendingUsers.length}
+            >
+              Pending
+            </Tabs.Option>
+            <Tabs.Option
+              value="submitted"
+              icon={<UserCheck size={15} />}
+              count={rawSubmittedUsers.length}
+            >
+              Submitted
+            </Tabs.Option>
+            <Tabs.Option
+              value="guests"
+              icon={<Users size={15} />}
+              count={totalGuestMealsCount}
+            >
+              Guest Meals
+            </Tabs.Option>
+          </Tabs.Options>
+        </Tabs>
 
         {/* Tab 1: Pending Users Section */}
         {activeTab === 'pending' && (

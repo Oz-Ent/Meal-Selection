@@ -4,6 +4,7 @@ import { Card } from '../../../components/Card/Card';
 import Badge from '../../../components/Badge/Badge';
 import EmptyState from '../../../components/EmptyState/EmptyState';
 import InfoBanner from '../../../components/Banner/InfoBanner';
+import StatCard from '../../../components/StatCard/StatCard';
 
 interface AccountLeaveCardProps {
   leaves: UserLeave[];
@@ -65,25 +66,18 @@ export const AccountLeaveCard = ({
 
         {/* Leave Summary Counters */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl bg-surface-muted p-3.5 border border-border">
-            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider block">
-              Upcoming / Active
-            </span>
-            <span className="text-xl font-bold text-text-primary mt-1 block">
-              {upcomingOrActiveLeaves.length}
-            </span>
-          </div>
 
-          <div className="rounded-xl bg-surface-muted p-3.5 border border-border">
-            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider block">
-              Total Leave Days
-            </span>
-            <span className="text-xl font-bold text-text-primary mt-1 block">
-              {totalLeaveDays} {totalLeaveDays === 1 ? 'Day' : 'Days'}
-            </span>
-          </div>
+          <StatCard
+            title="Upcoming / Active"
+            value={upcomingOrActiveLeaves.length}
+          />
+          <StatCard
+            title="Total Leave Days"
+            value={totalLeaveDays}
+          />
+
         </div>
-
+        
         {/* Leave Records List */}
         <div className="space-y-2.5">
           <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider">

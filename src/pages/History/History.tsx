@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  BookmarkPlus,
   Calendar,
   ChevronDown,
   ChevronLeft,
@@ -8,7 +10,6 @@ import {
   Download,
   Filter,
   Flame,
-  Layers,
   RotateCcw,
   User,
   Users,
@@ -21,12 +22,22 @@ import { EmptyPage } from '../../components/EmptyPage/EmptyPage';
 import Tabs from '../../components/Tabs/Tabs';
 import Badge from '../../components/Badge/Badge';
 import Button from '../../components/Button/Button';
+import Modal from '../../components/Modal/Modal';
+import InputField from '../../components/InputField/InputField';
+import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import {
+  useCreatePresetMutation,
   useUserWeeklyHistoryQuery,
   useWeeklyHistoryQuery,
 } from '../../api/useApiQueries';
-import type { WeeklyHistoryFilterParams } from '../../api/Services/MealSelectionServices';
+import { menuService } from '../../api/Services/MenuServices';
+import { queryKeys } from '../../api/queryKeys';
+import type { CreatePresetItemData } from '../../api/Services/PresetServices';
+import type {
+  UserWeeklyHistoryItem,
+  WeeklyHistoryFilterParams,
+} from '../../api/Services/MealSelectionServices';
 import { DAY_ORDER, formatDay, exportWeeklyReportToPdf } from '../../utils/exportMealReportPdf';
 import { formatWeekDateRange, formatDayDate } from '../../utils/dateHelpers';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
@@ -60,6 +71,150 @@ export function History() {
       ...prev,
       [key]: !prev[key],
     }));
+  };
+
+  const queryClient = useQueryClient();
+  const createPresetMutation = useCreatePresetMutation();
+
+  // Save as Preset Modal state
+  const [presetModalItem, setPresetModalItem] = useState<UserWeeklyHistoryItem | null>(null);
+  const [presetNameInput, setPresetNameInput] = useState('');
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    type: ToastType;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    message: '',
+  });
+
+  const handleOpenSavePreset = (weekItem: UserWeeklyHistoryItem) => {
+    setPresetModalItem(weekItem);
+    const defaultName = `${weekItem.menu?.title || 'Menu'} Preset`;
+    setPresetNameInput(defaultName);
+  };
+
+  const handleSavePreset = async () => {
+    if (!presetModalItem) return;
+
+    const trimmedName = presetNameInput.trim() || `${presetModalItem.menu?.title || 'Menu'} Preset`;
+    const menuId = presetModalItem.menu.id;
+    const userId = profile?.user?.id;
+
+    if (!userId || !menuId) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: 'User or menu information is missing.',
+      });
+      return;
+    }
+
+    setIsSavingPreset(true);
+    try {
+      const [menuDays, menuDayMeals] = await Promise.all([
+        queryClient.fetchQuery({
+          queryKey: queryKeys.menuDays(menuId),
+          queryFn: () => menuService.getDays(menuId),
+        }),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.menuMeals(menuId, userId),
+          queryFn: () => menuService.getMeals(menuId, userId),
+        }),
+      ]);
+
+      const rawSelections = (presetModalItem.selection?.mealSelections as Record<
+        string,
+        {
+          id?: number;
+          mealName?: string;
+          selectionType?: string;
+          dayMealId?: number;
+          menuDayId?: number;
+          mealID?: number | null;
+        }
+      >) || {};
+
+      const presetItems: CreatePresetItemData[] = [];
+
+      for (const [dayName, sel] of Object.entries(rawSelections)) {
+        if (!sel) continue;
+        if (
+          sel.selectionType === 'UNAVAILABLE' ||
+          sel.selectionType === 'HOLIDAY' ||
+          sel.mealName === 'Unavailable' ||
+          sel.mealName === 'Holiday'
+        ) {
+          continue;
+        }
+
+        if (sel.menuDayId && sel.dayMealId) {
+          presetItems.push({
+            menuDayId: sel.menuDayId,
+            dayMealId: sel.dayMealId,
+          });
+          continue;
+        }
+
+        const matchedDay = (Array.isArray(menuDays) ? menuDays : [])?.find(
+          (d) => d.day?.toUpperCase() === dayName.toUpperCase(),
+        );
+        if (!matchedDay) continue;
+
+        const matchedMeal = (Array.isArray(menuDayMeals) ? menuDayMeals : [])?.find(
+          (m) =>
+            m.menuDayId === matchedDay.id &&
+            (m.id === sel.id ||
+              m.id === sel.dayMealId ||
+              m.meal?.id === sel.mealID ||
+              (sel.mealName &&
+                m.meal?.name?.trim().toLowerCase() === sel.mealName.trim().toLowerCase())),
+        );
+
+        if (matchedMeal) {
+          presetItems.push({
+            menuDayId: matchedDay.id,
+            dayMealId: matchedMeal.id,
+          });
+        }
+      }
+
+      if (presetItems.length === 0) {
+        setToast({
+          isOpen: true,
+          type: 'error',
+          message: 'No valid meals found to save as preset.',
+        });
+        setIsSavingPreset(false);
+        setPresetModalItem(null);
+        return;
+      }
+
+      await createPresetMutation.mutateAsync({
+        name: trimmedName,
+        menuId,
+        userId,
+        presetItems,
+      });
+
+      setToast({
+        isOpen: true,
+        type: 'success',
+        message: `Preset "${trimmedName}" saved successfully`,
+      });
+      setPresetModalItem(null);
+    } catch (error) {
+      console.error('Failed to save preset from history:', error);
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: 'Failed to save preset. Please try again.',
+      });
+    } finally {
+      setIsSavingPreset(false);
+    }
   };
 
   const filterParams: WeeklyHistoryFilterParams = useMemo(() => {
@@ -449,42 +604,56 @@ export function History() {
                   className="overflow-hidden rounded-3xl border border-border bg-surface shadow-2xs transition-all"
                 >
                   {/* Week Header Accordion Bar */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => toggleWeekExpand(weekItem.weekMenuScheduleId)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleWeekExpand(weekItem.weekMenuScheduleId);
-                      }
-                    }}
-                    className="flex cursor-pointer items-center justify-between bg-surface-muted/50 px-4 py-3.5 hover:bg-surface-muted transition-colors sm:px-6"
-                  >
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-white shadow-2xs">
-                        <Layers size={13} />
-                        <span>
+                  <div className="flex items-center justify-between bg-surface-muted/50 px-4 py-3.5 transition-colors sm:px-6">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => toggleWeekExpand(weekItem.weekMenuScheduleId)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleWeekExpand(weekItem.weekMenuScheduleId);
+                        }
+                      }}
+                      className="flex flex-1 cursor-pointer flex-wrap items-center gap-2.5 hover:opacity-90 transition-opacity"
+                    >
+                      <span className="flex items-center gap-1.5 rounded-full text-[15px] font-bold text-text-secondary">
+                        {/* <Layers size={13} /> */}
+                        <span className='flex flex-col'>
                           Week {weekItem.week} • {weekItem.menu.title}
+                          <span className='text-xs text-text-muted'>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
                         </span>
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-0.5 text-xs font-semibold text-text-secondary shadow-2xs">
-                        <Calendar size={12} className="text-primary" />
-                        <span>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
+
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenSavePreset(weekItem)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-text-primary hover:bg-surface-muted hover:border-primary/40 transition-colors shadow-2xs cursor-pointer"
+                        title="Save as preset"
+                      >
+                        <BookmarkPlus size={13} className="text-primary" />
+                        <span>Save as preset</span>
+                      </button>
                       <Badge
                         variant={weekItem.selection.selectionStatus === 'SUBMITTED' ? 'success' : 'warning'}
                         size="xs"
                         label={weekItem.selection.selectionStatus ?? 'PENDING'}
                       />
-                      {isExpanded ? (
-                        <ChevronUp size={18} className="text-text-muted" />
-                      ) : (
-                        <ChevronDown size={18} className="text-text-muted" />
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleWeekExpand(weekItem.weekMenuScheduleId)}
+                        className="text-text-muted hover:text-text-primary p-0.5 cursor-pointer"
+                        aria-label={isExpanded ? 'Collapse week' : 'Expand week'}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp size={18} />
+                        ) : (
+                          <ChevronDown size={18} />
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -584,21 +753,17 @@ export function History() {
                       toggleWeekExpand(weekItem.weekMenuScheduleId);
                     }
                   }}
-                  className="flex cursor-pointer flex-wrap items-center justify-between gap-2 bg-surface-muted/50 px-4 py-3.5 hover:bg-surface-muted transition-colors sm:px-6"
+                  className="flex cursor-pointer flex-wrap items-center justify-between gap-2 bg-surface-muted/50 px-4 py-3.5 hover:bg-surface-muted/65 transition-colors sm:px-6"
                 >
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-0.5 text-xs font-bold text-white shadow-2xs">
-                      <Layers size={13} />
+                    <span className="flex items-center gap-1.5 text-[14px] font-bold text-text-secondary">
                       <span>
-                        Week {weekItem.week} • {weekItem.year}
+                        Week {weekItem.week} • {weekItem.menu.title}
                       </span>
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-0.5 text-xs font-semibold text-text-secondary shadow-2xs">
-                      <Calendar size={12} className="text-primary" />
-                      <span>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
-                    </span>
+
                     <span className="text-sm font-bold text-text-primary">
-                      {weekItem.menu.title}
+                      
                     </span>
                     <Badge variant="neutral" size="xs" label={`${weekItem.totalResponses} Total Orders`} />
                   </div>
@@ -679,21 +844,15 @@ export function History() {
                                     className="flex cursor-pointer flex-col p-3 transition-colors hover:bg-surface-muted sm:flex-row sm:items-center sm:justify-between"
                                   >
                                     <div className="flex items-center gap-2.5">
-                                      <Utensils size={15} className="text-primary shrink-0" />
+                                      <Utensils size={15} className="text-text-secondary/55 shrink-0" />
                                       <span className="text-xs font-bold text-text-primary">
                                         {dish.name}
                                       </span>
-                                      {dish.foodCode && (
-                                        <Badge variant="neutral" size="xs" label={dish.foodCode} />
-                                      )}
                                     </div>
 
                                     <div className="mt-2 flex items-center justify-between gap-2.5 sm:mt-0">
                                       <div className="flex items-center gap-2 text-xs font-bold text-text-secondary">
                                         <Badge variant="success" size="xs" label={`${dish.count} selected`} />
-                                        <span className="text-[11px] font-medium text-text-muted">
-                                          ({dish.users.length} {dish.users.length === 1 ? 'user' : 'users'})
-                                        </span>
                                       </div>
 
                                       <div className="flex items-center text-text-muted">
@@ -799,6 +958,66 @@ export function History() {
 
       {/* Bottom Navbar */}
       <BottomNavbar activeTab="history" />
+
+      {/* Save as Preset Modal */}
+      <Modal
+        isOpen={Boolean(presetModalItem)}
+        onClose={() => {
+          if (!isSavingPreset) {
+            setPresetModalItem(null);
+          }
+        }}
+        variant="center"
+        showCloseButton={!isSavingPreset}
+      >
+        <div className="p-4 sm:p-6 flex flex-col text-text-primary font-sans w-full max-w-md gap-4 text-left">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-text-primary">Save as preset</h2>
+            <p className="text-xs text-text-secondary mt-1">
+              Save your meal selections from Week {presetModalItem?.week} ({presetModalItem?.menu.title}) as a reusable preset.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="preset-name-input" className="text-xs font-semibold text-text-secondary">
+              Preset Name
+            </label>
+            <InputField
+              id="preset-name-input"
+              value={presetNameInput}
+              onChange={(e) => setPresetNameInput(e.target.value)}
+              placeholder="Enter preset name"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex items-center gap-3 mt-2">
+            <Button
+              variant="outline"
+              label="Cancel"
+              onClick={() => setPresetModalItem(null)}
+              disabled={isSavingPreset}
+              className="flex-1"
+            />
+            <Button
+              variant="primary"
+              label="Save Preset"
+              onClick={handleSavePreset}
+              pending={isSavingPreset}
+              disabled={isSavingPreset}
+              className="flex-1"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Toast Notification */}
+      <BottomToast
+        isOpen={toast.isOpen}
+        type={toast.type}
+        message={toast.message}
+        onClose={() => setToast((prev) => ({ ...prev, isOpen: false }))}
+      />
     </main>
   );
 }
