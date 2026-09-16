@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { BookmarkPlus, ChevronDown, ChevronUp, Flame } from 'lucide-react';
+import { BookmarkPlus, ChevronDown, Flame } from 'lucide-react';
 import MealForeground from '../../../assets/MealForeground.webp';
-import Badge from '../../../components/Badge/Badge';
 import type { UserWeeklyHistoryItem } from '../../../api/Services/MealSelectionServices';
 import { DAY_ORDER, formatDay } from '../../../utils/exportMealReportPdf';
 import { formatWeekDateRange, formatDayDate } from '../../../utils/dateHelpers';
@@ -65,11 +64,6 @@ export function UserHistoryCard({ weekItem, onOpenSavePreset }: UserHistoryCardP
             variant="outline"
             onClick={() => onOpenSavePreset(weekItem)}
           />
-          {/* <Badge
-            variant={weekItem.selection?.selectionStatus === 'SUBMITTED' ? 'success' : 'warning'}
-            size="xs"
-            label={weekItem.selection?.selectionStatus ?? 'PENDING'}
-          /> */}
           <button
             type="button"
             onClick={toggleExpand}
