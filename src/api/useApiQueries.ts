@@ -1,4 +1,4 @@
-﻿import {
+import {
   budgetService,
   expenditureService,
   type CreateBudgetDto,
@@ -177,10 +177,14 @@ export const useWeeklyGuestSelectionsQuery = (date: string, options?: { enabled?
     enabled: options?.enabled ?? Boolean(date),
   });
 
-export const useWeeklyHistoryQuery = (params?: WeeklyHistoryFilterParams) =>
+export const useWeeklyHistoryQuery = (
+  params?: WeeklyHistoryFilterParams,
+  options?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: queryKeys.weeklyHistory(params),
     queryFn: () => mealSelectionService.getWeeklyHistory(params),
+    enabled: options?.enabled ?? true,
   });
 
 export const useUserWeeklyHistoryQuery = (

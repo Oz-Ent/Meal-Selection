@@ -1,47 +1,31 @@
-import { useState, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import {
-  BookmarkPlus,
-  Calendar,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  Download,
   Filter,
-  Flame,
-  RotateCcw,
   User,
   Users,
-  Utensils,
 } from 'lucide-react';
-import MealForeground from '../../assets/MealForeground.webp';
 import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { EmptyPage } from '../../components/EmptyPage/EmptyPage';
 import Tabs from '../../components/Tabs/Tabs';
-import Badge from '../../components/Badge/Badge';
 import Button from '../../components/Button/Button';
-import Modal from '../../components/Modal/Modal';
-import InputField from '../../components/InputField/InputField';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
+import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import {
-  useCreatePresetMutation,
   useUserWeeklyHistoryQuery,
   useWeeklyHistoryQuery,
 } from '../../api/useApiQueries';
-import { menuService } from '../../api/Services/MenuServices';
-import { queryKeys } from '../../api/queryKeys';
-import type { CreatePresetItemData } from '../../api/Services/PresetServices';
-import type {
-  UserWeeklyHistoryItem,
-  WeeklyHistoryFilterParams,
-} from '../../api/Services/MealSelectionServices';
-import { DAY_ORDER, formatDay, exportWeeklyReportToPdf } from '../../utils/exportMealReportPdf';
-import { formatWeekDateRange, formatDayDate } from '../../utils/dateHelpers';
-import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { isAdminRole } from '../../utils/Enums/Roles';
+import type { UserWeeklyHistoryItem } from '../../api/Services/MealSelectionServices';
+
+import { useHistoryFilters } from './useHistoryFilters';
+import { HistoryFilterPanel } from './components/HistoryFilterPanel';
+import { UserHistoryCard } from './components/UserHistoryCard';
+import { AdminHistoryCard } from './components/AdminHistoryCard';
+import { SavePresetModal } from './components/SavePresetModal';
 
 export function History() {
   const { profile } = useAuth();
@@ -49,37 +33,21 @@ export function History() {
 
   // Tabs for Admin/HR: 'my-history' | 'admin-report'
   const [activeTab, setActiveTab] = useState<'my-history' | 'admin-report'>('my-history');
-
-  // Filter state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const [startYear, setStartYear] = useState<string>('');
-  const [startWeek, setStartWeek] = useState<string>('');
-  const [endYear, setEndYear] = useState<string>('');
-  const [endWeek, setEndWeek] = useState<string>('');
-  const [order, setOrder] = useState<'desc' | 'asc'>('desc');
 
-  // Expanded weeks state
-  const [expandedWeeks, setExpandedWeeks] = useState<Record<number, boolean>>({});
+  // Consolidated Filter State via Reducer
+  const {
+    state: filterState,
+    filterParams,
+    hasActiveFilters,
+    setField,
+    setPage,
+    setQuickRange,
+    resetFilters,
+  } = useHistoryFilters();
 
-  // Expanded meal details state in admin view
-  const [expandedMealIds, setExpandedMealIds] = useState<Record<string, boolean>>({});
-
-  const toggleMealExpand = (key: string) => {
-    setExpandedMealIds((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const queryClient = useQueryClient();
-  const createPresetMutation = useCreatePresetMutation();
-
-  // Save as Preset Modal state
+  // Preset Modal State & Feedback Toast
   const [presetModalItem, setPresetModalItem] = useState<UserWeeklyHistoryItem | null>(null);
-  const [presetNameInput, setPresetNameInput] = useState('');
-  const [isSavingPreset, setIsSavingPreset] = useState(false);
   const [toast, setToast] = useState<{
     isOpen: boolean;
     type: ToastType;
@@ -90,206 +58,37 @@ export function History() {
     message: '',
   });
 
-  const handleOpenSavePreset = (weekItem: UserWeeklyHistoryItem) => {
-    setPresetModalItem(weekItem);
-    const defaultName = `${weekItem.menu?.title || 'Menu'} Preset`;
-    setPresetNameInput(defaultName);
-  };
+  // Queries - only execute when the corresponding view is active
+  const isUserViewActive = !isAdminOrHr || activeTab === 'my-history';
+  const isAdminViewActive = isAdminOrHr && activeTab === 'admin-report';
 
-  const handleSavePreset = async () => {
-    if (!presetModalItem) return;
-
-    const trimmedName = presetNameInput.trim() || `${presetModalItem.menu?.title || 'Menu'} Preset`;
-    const menuId = presetModalItem.menu.id;
-    const userId = profile?.user?.id;
-
-    if (!userId || !menuId) {
-      setToast({
-        isOpen: true,
-        type: 'error',
-        message: 'User or menu information is missing.',
-      });
-      return;
-    }
-
-    setIsSavingPreset(true);
-    try {
-      const [menuDays, menuDayMeals] = await Promise.all([
-        queryClient.fetchQuery({
-          queryKey: queryKeys.menuDays(menuId),
-          queryFn: () => menuService.getDays(menuId),
-        }),
-        queryClient.fetchQuery({
-          queryKey: queryKeys.menuMeals(menuId, userId),
-          queryFn: () => menuService.getMeals(menuId, userId),
-        }),
-      ]);
-
-      const rawSelections = (presetModalItem.selection?.mealSelections as Record<
-        string,
-        {
-          id?: number;
-          mealName?: string;
-          selectionType?: string;
-          dayMealId?: number;
-          menuDayId?: number;
-          mealID?: number | null;
-        }
-      >) || {};
-
-      const presetItems: CreatePresetItemData[] = [];
-
-      for (const [dayName, sel] of Object.entries(rawSelections)) {
-        if (!sel) continue;
-        if (
-          sel.selectionType === 'UNAVAILABLE' ||
-          sel.selectionType === 'HOLIDAY' ||
-          sel.mealName === 'Unavailable' ||
-          sel.mealName === 'Holiday'
-        ) {
-          continue;
-        }
-
-        if (sel.menuDayId && sel.dayMealId) {
-          presetItems.push({
-            menuDayId: sel.menuDayId,
-            dayMealId: sel.dayMealId,
-          });
-          continue;
-        }
-
-        const matchedDay = (Array.isArray(menuDays) ? menuDays : [])?.find(
-          (d) => d.day?.toUpperCase() === dayName.toUpperCase(),
-        );
-        if (!matchedDay) continue;
-
-        const matchedMeal = (Array.isArray(menuDayMeals) ? menuDayMeals : [])?.find(
-          (m) =>
-            m.menuDayId === matchedDay.id &&
-            (m.id === sel.id ||
-              m.id === sel.dayMealId ||
-              m.meal?.id === sel.mealID ||
-              (sel.mealName &&
-                m.meal?.name?.trim().toLowerCase() === sel.mealName.trim().toLowerCase())),
-        );
-
-        if (matchedMeal) {
-          presetItems.push({
-            menuDayId: matchedDay.id,
-            dayMealId: matchedMeal.id,
-          });
-        }
-      }
-
-      if (presetItems.length === 0) {
-        setToast({
-          isOpen: true,
-          type: 'error',
-          message: 'No valid meals found to save as preset.',
-        });
-        setIsSavingPreset(false);
-        setPresetModalItem(null);
-        return;
-      }
-
-      await createPresetMutation.mutateAsync({
-        name: trimmedName,
-        menuId,
-        userId,
-        presetItems,
-      });
-
-      setToast({
-        isOpen: true,
-        type: 'success',
-        message: `Preset "${trimmedName}" saved successfully`,
-      });
-      setPresetModalItem(null);
-    } catch (error) {
-      console.error('Failed to save preset from history:', error);
-      setToast({
-        isOpen: true,
-        type: 'error',
-        message: 'Failed to save preset. Please try again.',
-      });
-    } finally {
-      setIsSavingPreset(false);
-    }
-  };
-
-  const filterParams: WeeklyHistoryFilterParams = useMemo(() => {
-    const params: WeeklyHistoryFilterParams = {
-      page,
-      limit,
-      order,
-    };
-    if (startYear) params.startYear = Number(startYear);
-    if (startWeek) params.startWeek = Number(startWeek);
-    if (endYear) params.endYear = Number(endYear);
-    if (endWeek) params.endWeek = Number(endWeek);
-    return params;
-  }, [page, limit, order, startYear, startWeek, endYear, endWeek]);
-
-  // Queries
   const userHistoryQuery = useUserWeeklyHistoryQuery(
     profile?.user?.id,
     filterParams,
-    { enabled: !isAdminOrHr || activeTab === 'my-history' },
+    { enabled: isUserViewActive },
   );
 
-  const adminHistoryQuery = useWeeklyHistoryQuery(filterParams);
+  const adminHistoryQuery = useWeeklyHistoryQuery(filterParams, {
+    enabled: isAdminViewActive,
+  });
 
-  const isQueryLoading =
-    activeTab === 'my-history' || !isAdminOrHr
-      ? userHistoryQuery.isLoading
-      : adminHistoryQuery.isLoading;
+  const isQueryLoading = isUserViewActive
+    ? userHistoryQuery.isLoading
+    : adminHistoryQuery.isLoading;
 
-  const isQueryError =
-    activeTab === 'my-history' || !isAdminOrHr
-      ? userHistoryQuery.isError
-      : adminHistoryQuery.isError;
+  const isQueryError = isUserViewActive
+    ? userHistoryQuery.isError
+    : adminHistoryQuery.isError;
 
   const userHistoryData = userHistoryQuery.data;
   const adminHistoryData = adminHistoryQuery.data;
 
-  const pagination =
-    activeTab === 'my-history' || !isAdminOrHr
-      ? userHistoryData?.pagination
-      : adminHistoryData?.pagination;
+  const pagination = isUserViewActive
+    ? userHistoryData?.pagination
+    : adminHistoryData?.pagination;
 
   const totalWeeks = pagination?.totalWeeks ?? 0;
   const totalPages = pagination?.totalPages ?? 1;
-
-  const toggleWeekExpand = (id: number) => {
-    setExpandedWeeks((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-
-  const handleResetFilters = () => {
-    setStartYear('');
-    setStartWeek('');
-    setEndYear('');
-    setEndWeek('');
-    setOrder('desc');
-    setLimit(20);
-    setPage(1);
-  };
-
-  const handleQuickRange = (weeksLimit: number) => {
-    setStartYear('');
-    setStartWeek('');
-    setEndYear('');
-    setEndWeek('');
-    setLimit(weeksLimit);
-    setOrder('desc');
-    setPage(1);
-  };
-
-  const hasActiveFilters = Boolean(
-    startYear || startWeek || endYear || endWeek || order !== 'desc' || limit !== 20,
-  );
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-32 text-text-primary font-sans">
@@ -349,199 +148,13 @@ export function History() {
 
         {/* Collapsible Filter Panel */}
         {isFilterOpen && (
-          <div className="rounded-3xl border border-border bg-surface p-4 shadow-xs transition-all sm:p-6">
-            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-              <span className="flex items-center gap-2 text-sm font-bold text-text-primary">
-                <Calendar size={16} className="text-primary" />
-                <span>Week & Year Range Filters</span>
-              </span>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-text-muted hover:bg-danger-light hover:text-danger transition-colors cursor-pointer"
-              >
-                <RotateCcw size={13} />
-                <span>Reset</span>
-              </button>
-            </div>
-
-            {/* Quick Filter Presets */}
-            <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-text-secondary mr-1">Quick ranges:</span>
-              <button
-                type="button"
-                onClick={() => handleQuickRange(4)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  limit === 4 && !startYear && !endYear
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-surface-muted text-text-secondary hover:bg-surface'
-                }`}
-              >
-                Last 4 Weeks
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickRange(12)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  limit === 12 && !startYear && !endYear
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-surface-muted text-text-secondary hover:bg-surface'
-                }`}
-              >
-                Last 12 Weeks
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickRange(20)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  limit === 20 && !startYear && !endYear
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-surface-muted text-text-secondary hover:bg-surface'
-                }`}
-              >
-                Last 20 Weeks (Default)
-              </button>
-            </div>
-
-            {/* Range Inputs Grid */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div>
-                <label htmlFor="history-from-year" className="mb-1.5 block text-xs font-semibold text-text-secondary">
-                  From Year
-                </label>
-                <input
-                  id="history-from-year"
-                  type="number"
-                  placeholder="e.g. 2025"
-                  min={2000}
-                  max={2100}
-                  value={startYear}
-                  onChange={(e) => {
-                    setStartYear(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-10 w-full rounded-xl border border-border bg-surface-muted px-3.5 text-xs font-medium text-text-primary placeholder:text-text-muted transition-all hover:bg-surface hover:border-border-hover focus:bg-surface focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="history-from-week" className="mb-1.5 block text-xs font-semibold text-text-secondary">
-                  From Week (1-53)
-                </label>
-                <input
-                  id="history-from-week"
-                  type="number"
-                  placeholder="e.g. 40"
-                  min={1}
-                  max={53}
-                  value={startWeek}
-                  onChange={(e) => {
-                    setStartWeek(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-10 w-full rounded-xl border border-border bg-surface-muted px-3.5 text-xs font-medium text-text-primary placeholder:text-text-muted transition-all hover:bg-surface hover:border-border-hover focus:bg-surface focus:border-primary focus:outline-none"
-                />
-                {startWeek && Number(startWeek) >= 1 && Number(startWeek) <= 53 && (
-                  <span className="mt-1 block text-[11px] font-semibold text-primary">
-                    {formatWeekDateRange(Number(startWeek), Number(startYear) || new Date().getFullYear())}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="history-to-year" className="mb-1.5 block text-xs font-semibold text-text-secondary">
-                  To Year
-                </label>
-                <input
-                  id="history-to-year"
-                  type="number"
-                  placeholder="e.g. 2026"
-                  min={2000}
-                  max={2100}
-                  value={endYear}
-                  onChange={(e) => {
-                    setEndYear(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-10 w-full rounded-xl border border-border bg-surface-muted px-3.5 text-xs font-medium text-text-primary placeholder:text-text-muted transition-all hover:bg-surface hover:border-border-hover focus:bg-surface focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="history-to-week" className="mb-1.5 block text-xs font-semibold text-text-secondary">
-                  To Week (1-53)
-                </label>
-                <input
-                  id="history-to-week"
-                  type="number"
-                  placeholder="e.g. 10"
-                  min={1}
-                  max={53}
-                  value={endWeek}
-                  onChange={(e) => {
-                    setEndWeek(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-10 w-full rounded-xl border border-border bg-surface-muted px-3.5 text-xs font-medium text-text-primary placeholder:text-text-muted transition-all hover:bg-surface hover:border-border-hover focus:bg-surface focus:border-primary focus:outline-none"
-                />
-                {endWeek && Number(endWeek) >= 1 && Number(endWeek) <= 53 && (
-                  <span className="mt-1 block text-[11px] font-semibold text-primary">
-                    {formatWeekDateRange(Number(endWeek), Number(endYear) || new Date().getFullYear())}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Secondary Controls: Limit and Order */}
-            <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-text-secondary whitespace-nowrap">Sort:</span>
-                  <div className="relative">
-                    <select
-                      id="history-sort-order"
-                      value={order}
-                      onChange={(e) => {
-                        setOrder(e.target.value as 'asc' | 'desc');
-                        setPage(1);
-                      }}
-                      className="h-9 cursor-pointer appearance-none rounded-xl border border-border bg-surface py-1.5 pl-3 pr-8 text-xs font-semibold text-text-primary shadow-2xs transition-all hover:border-border-hover focus:border-primary focus:outline-none"
-                    >
-                      <option value="desc">Newest First</option>
-                      <option value="asc">Oldest First</option>
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-text-secondary whitespace-nowrap">Per page:</span>
-                  <div className="relative">
-                    <select
-                      id="history-per-page-limit"
-                      value={limit}
-                      onChange={(e) => {
-                        setLimit(Number(e.target.value));
-                        setPage(1);
-                      }}
-                      className="h-9 cursor-pointer appearance-none rounded-xl border border-border bg-surface py-1.5 pl-3 pr-8 text-xs font-semibold text-text-primary shadow-2xs transition-all hover:border-border-hover focus:border-primary focus:outline-none"
-                    >
-                      <option value={10}>10 weeks</option>
-                      <option value={20}>20 weeks (Default)</option>
-                      <option value={50}>50 weeks</option>
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center self-start sm:self-auto">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface-muted px-2.5 py-1 text-xs font-medium text-text-secondary border border-border">
-                  Total matching: <strong className="font-bold text-text-primary">{totalWeeks}</strong> {totalWeeks === 1 ? 'week' : 'weeks'}
-                </span>
-              </div>
-            </div>
-          </div>
+          <HistoryFilterPanel
+            state={filterState}
+            totalWeeks={totalWeeks}
+            onSetField={setField}
+            onQuickRange={setQuickRange}
+            onResetFilters={resetFilters}
+          />
         )}
 
         {/* Loading Spinner */}
@@ -568,7 +181,7 @@ export function History() {
                 variant="primary"
                 className="mt-4"
                 label="Clear Filters"
-                onClick={handleResetFilters}
+                onClick={resetFilters}
               />
             )}
           </div>
@@ -577,359 +190,33 @@ export function History() {
         {/* Data List: User History View */}
         {!isQueryLoading &&
           !isQueryError &&
-          (activeTab === 'my-history' || !isAdminOrHr) &&
+          isUserViewActive &&
           userHistoryData?.data
             ?.filter((weekItem) => weekItem.selection?.createdById != null)
-            .map((weekItem) => {
-              const isExpanded = expandedWeeks[weekItem.weekMenuScheduleId] ?? true;
-              const mealSelections = weekItem.selection.mealSelections as Record<
-                string,
-                {
-                  id?: number;
-                  mealName?: string;
-                  selectionType?: string;
-                  calories?: number | null;
-                  foodCode?: string | null;
-                  mealImagePath?: string | null;
-                }
-              >;
-
-              const daysWithSelections = DAY_ORDER.filter(
-                (day) => day in (mealSelections || {}),
-              );
-
-              return (
-                <section
-                  key={weekItem.weekMenuScheduleId}
-                  className="overflow-hidden rounded-3xl border border-border bg-surface shadow-2xs transition-all"
-                >
-                  {/* Week Header Accordion Bar */}
-                  <div className="flex items-center justify-between bg-surface-muted/50 px-4 py-3.5 transition-colors sm:px-6">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleWeekExpand(weekItem.weekMenuScheduleId)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleWeekExpand(weekItem.weekMenuScheduleId);
-                        }
-                      }}
-                      className="flex flex-1 cursor-pointer flex-wrap items-center gap-2.5 hover:opacity-90 transition-opacity"
-                    >
-                      <span className="flex items-center gap-1.5 rounded-full text-[15px] font-bold text-text-secondary">
-                        {/* <Layers size={13} /> */}
-                        <span className='flex flex-col'>
-                          Week {weekItem.week} • {weekItem.menu.title}
-                          <span className='text-xs text-text-muted'>{formatWeekDateRange(weekItem.week, weekItem.year)}</span>
-                        </span>
-
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSavePreset(weekItem)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-text-primary hover:bg-surface-muted hover:border-primary/40 transition-colors shadow-2xs cursor-pointer"
-                        title="Save as preset"
-                      >
-                        <BookmarkPlus size={13} className="text-primary" />
-                        <span>Save as preset</span>
-                      </button>
-                      <Badge
-                        variant={weekItem.selection.selectionStatus === 'SUBMITTED' ? 'success' : 'warning'}
-                        size="xs"
-                        label={weekItem.selection.selectionStatus ?? 'PENDING'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => toggleWeekExpand(weekItem.weekMenuScheduleId)}
-                        className="text-text-muted hover:text-text-primary p-0.5 cursor-pointer"
-                        aria-label={isExpanded ? 'Collapse week' : 'Expand week'}
-                      >
-                        {isExpanded ? (
-                          <ChevronUp size={18} />
-                        ) : (
-                          <ChevronDown size={18} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Week Details Body */}
-                  {isExpanded && (
-                    <div className="border-t border-border p-4 sm:p-6">
-                      {daysWithSelections.length === 0 ? (
-                        <p className="py-4 text-center text-xs text-text-muted">
-                          No individual meal selections recorded for this scheduled week.
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          {daysWithSelections.map((day) => {
-                            const selection = mealSelections[day];
-                            const isUnavailable =
-                              selection?.selectionType === 'UNAVAILABLE' ||
-                              selection?.mealName === 'Unavailable';
-                            const isHoliday =
-                              selection?.selectionType === 'HOLIDAY' ||
-                              selection?.mealName === 'Holiday';
-
-                            return (
-                              <div
-                                key={day}
-                                className="flex items-center gap-3.5 rounded-2xl border border-border bg-surface-muted/40 p-3 shadow-2xs"
-                              >
-                                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface border border-border/50 shadow-2xs">
-                                  <img
-                                    src={selection?.mealImagePath || MealForeground}
-                                    alt={selection?.mealName || 'Meal'}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-1">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
-                                      {formatDay(day)}
-                                    </span>
-                                    <span className="text-[10px] font-medium text-text-secondary bg-surface px-1.5 py-0.2 rounded border border-border/50">
-                                      {formatDayDate(weekItem.week, weekItem.year, day)}
-                                    </span>
-                                  </div>
-                                  <h4 className="truncate text-xs sm:text-sm font-bold text-text-primary">
-                                    {isUnavailable
-                                      ? 'Unavailable'
-                                      : isHoliday
-                                      ? 'Holiday'
-                                      : selection?.mealName || 'No selection'}
-                                  </h4>
-
-                                  <div className="mt-1 flex items-center gap-2 text-[11px] text-text-secondary">
-                                    {selection?.calories && (
-                                      <span className="flex items-center gap-0.5 text-warning-dark font-medium">
-                                        <Flame size={12} />
-                                        <span>{selection.calories} kcal</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
+            .map((weekItem) => (
+              <UserHistoryCard
+                key={weekItem.weekMenuScheduleId}
+                weekItem={weekItem}
+                onOpenSavePreset={(item) => setPresetModalItem(item)}
+              />
+            ))}
 
         {/* Data List: Admin Report History View */}
         {!isQueryLoading &&
           !isQueryError &&
-          isAdminOrHr &&
-          activeTab === 'admin-report' &&
-          adminHistoryData?.data?.map((weekItem) => {
-            const isExpanded = expandedWeeks[weekItem.weekMenuScheduleId] ?? true;
-            const daysEntries = Object.entries(weekItem.selections).sort(
-              ([firstDay], [secondDay]) =>
-                DAY_ORDER.indexOf(firstDay) - DAY_ORDER.indexOf(secondDay),
-            );
-
-            return (
-              <section
-                key={weekItem.weekMenuScheduleId}
-                className="overflow-hidden rounded-3xl border border-border bg-surface shadow-2xs transition-all"
-              >
-                {/* Week Header Bar */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => toggleWeekExpand(weekItem.weekMenuScheduleId)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggleWeekExpand(weekItem.weekMenuScheduleId);
-                    }
-                  }}
-                  className="flex cursor-pointer flex-wrap items-center justify-between gap-2 bg-surface-muted/50 px-4 py-3.5 hover:bg-surface-muted/65 transition-colors sm:px-6"
-                >
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="flex items-center gap-1.5 text-[14px] font-bold text-text-secondary">
-                      <span>
-                        Week {weekItem.week} • {weekItem.menu.title}
-                      </span>
-                    </span>
-
-                    <span className="text-sm font-bold text-text-primary">
-                      
-                    </span>
-                    <Badge variant="neutral" size="xs" label={`${weekItem.totalResponses} Total Orders`} />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        exportWeeklyReportToPdf({
-                          report: weekItem.selections,
-                          titlePrefix: `Week ${weekItem.week} (${formatWeekDateRange(weekItem.week, weekItem.year)}) Report`,
-                        });
-                      }}
-                      className="flex items-center gap-1 rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-text-secondary shadow-2xs hover:bg-surface-muted cursor-pointer"
-                      title="Export PDF"
-                    >
-                      <Download size={13} />
-                      <span>PDF</span>
-                    </button>
-
-                    {isExpanded ? (
-                      <ChevronUp size={18} className="text-text-muted" />
-                    ) : (
-                      <ChevronDown size={18} className="text-text-muted" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Week Breakdown Table / List */}
-                {isExpanded && (
-                  <div className="space-y-4 border-t border-border p-4 sm:p-6">
-                    {daysEntries.length === 0 ? (
-                      <p className="py-4 text-center text-xs text-text-muted">
-                        No aggregated meal orders recorded for this scheduled week.
-                      </p>
-                    ) : (
-                      daysEntries.map(([day, data]) => (
-                        <div
-                          key={day}
-                          className="rounded-2xl border border-border bg-surface-muted/30 p-4"
-                        >
-                          <div className="mb-2.5 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                                {formatDay(day)}
-                              </span>
-                              <span className="rounded-md bg-surface border border-border px-2 py-0.5 text-[11px] font-semibold text-text-secondary shadow-2xs">
-                                {formatDayDate(weekItem.week, weekItem.year, day)}
-                              </span>
-                            </div>
-                            <span className="text-xs font-semibold text-text-secondary">
-                              {data.total} total orders
-                            </span>
-                          </div>
-
-                          <div className="space-y-2">
-                            {data.response.map((dish) => {
-                              const dishKey = `${weekItem.weekMenuScheduleId}-${day}-${dish.id}`;
-                              const isDishExpanded = Boolean(expandedMealIds[dishKey]);
-
-                              return (
-                                <div
-                                  key={dish.id}
-                                  className="overflow-hidden rounded-xl border border-border bg-surface shadow-2xs transition-all"
-                                >
-                                  {/* Dish Item Row Header */}
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => toggleMealExpand(dishKey)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        toggleMealExpand(dishKey);
-                                      }
-                                    }}
-                                    className="flex cursor-pointer flex-col p-3 transition-colors hover:bg-surface-muted sm:flex-row sm:items-center sm:justify-between"
-                                  >
-                                    <div className="flex items-center gap-2.5">
-                                      <Utensils size={15} className="text-text-secondary/55 shrink-0" />
-                                      <span className="text-xs font-bold text-text-primary">
-                                        {dish.name}
-                                      </span>
-                                    </div>
-
-                                    <div className="mt-2 flex items-center justify-between gap-2.5 sm:mt-0">
-                                      <div className="flex items-center gap-2 text-xs font-bold text-text-secondary">
-                                        <Badge variant="success" size="xs" label={`${dish.count} selected`} />
-                                      </div>
-
-                                      <div className="flex items-center text-text-muted">
-                                        {isDishExpanded ? (
-                                          <ChevronUp size={16} />
-                                        ) : (
-                                          <ChevronDown size={16} />
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Expanded User Breakdown List */}
-                                  {isDishExpanded && (
-                                    <div className="border-t border-border bg-surface-muted/50 px-4 py-3">
-                                      <span className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                                        Selected by / for ({dish.users.length}):
-                                      </span>
-                                      {dish.users.length === 0 ? (
-                                        <p className="text-xs text-text-muted">No users found for this meal.</p>
-                                      ) : (
-                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                          {dish.users.map((user, idx) => {
-                                            const displayName = user.createdForName || (user.isGuest ? 'Guest Selection' : user.name);
-                                            const showCreatedBy = user.createdByName && user.createdByName !== user.createdForName;
-
-                                            return (
-                                              <div
-                                                key={`${user.id ?? 'guest'}-${idx}`}
-                                                className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-1.5 shadow-2xs"
-                                              >
-                                                <div className="flex flex-col min-w-0 flex-1">
-                                                  <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-[10px] font-bold text-primary border border-primary/20">
-                                                      {displayName.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <span className="truncate text-xs font-medium text-text-primary" title={displayName}>
-                                                      {displayName}
-                                                    </span>
-                                                  </div>
-                                                  {showCreatedBy && (
-                                                    <span className="text-[10px] text-text-muted ml-8 truncate -mt-0.5" title={`Selected by ${user.createdByName}`}>
-                                                      by {user.createdByName}
-                                                    </span>
-                                                  )}
-                                                </div>
-
-                                                {user.quantity > 1 && (
-                                                  <span className="ml-2 shrink-0 rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-text-secondary border border-border">
-                                                    x{user.quantity}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </section>
-            );
-          })}
+          isAdminViewActive &&
+          adminHistoryData?.data?.map((weekItem) => (
+            <AdminHistoryCard
+              key={weekItem.weekMenuScheduleId}
+              weekItem={weekItem}
+            />
+          ))}
 
         {/* Pagination Bar */}
         {!isQueryLoading && !isQueryError && totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 shadow-xs">
             <span className="text-xs text-text-secondary">
-              Page <strong className="text-text-primary">{page}</strong> of{' '}
+              Page <strong className="text-text-primary">{filterState.page}</strong> of{' '}
               <strong className="text-text-primary">{totalPages}</strong>
             </span>
 
@@ -937,19 +224,19 @@ export function History() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page <= 1}
+                disabled={filterState.page <= 1}
                 icon={<ChevronLeft size={15} />}
                 label="Previous"
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                onClick={() => setPage(Math.max(filterState.page - 1, 1))}
               />
 
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page >= totalPages}
+                disabled={filterState.page >= totalPages}
                 label="Next"
                 icon={<ChevronRight size={15} />}
-                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                onClick={() => setPage(Math.min(filterState.page + 1, totalPages))}
               />
             </div>
           </div>
@@ -960,56 +247,13 @@ export function History() {
       <BottomNavbar activeTab="history" />
 
       {/* Save as Preset Modal */}
-      <Modal
-        isOpen={Boolean(presetModalItem)}
-        onClose={() => {
-          if (!isSavingPreset) {
-            setPresetModalItem(null);
-          }
-        }}
-        variant="center"
-        showCloseButton={!isSavingPreset}
-      >
-        <div className="p-4 sm:p-6 flex flex-col text-text-primary font-sans w-full max-w-md gap-4 text-left">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-text-primary">Save as preset</h2>
-            <p className="text-xs text-text-secondary mt-1">
-              Save your meal selections from Week {presetModalItem?.week} ({presetModalItem?.menu.title}) as a reusable preset.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="preset-name-input" className="text-xs font-semibold text-text-secondary">
-              Preset Name
-            </label>
-            <InputField
-              id="preset-name-input"
-              value={presetNameInput}
-              onChange={(e) => setPresetNameInput(e.target.value)}
-              placeholder="Enter preset name"
-              autoFocus
-            />
-          </div>
-
-          <div className="flex items-center gap-3 mt-2">
-            <Button
-              variant="outline"
-              label="Cancel"
-              onClick={() => setPresetModalItem(null)}
-              disabled={isSavingPreset}
-              className="flex-1"
-            />
-            <Button
-              variant="primary"
-              label="Save Preset"
-              onClick={handleSavePreset}
-              pending={isSavingPreset}
-              disabled={isSavingPreset}
-              className="flex-1"
-            />
-          </div>
-        </div>
-      </Modal>
+      <SavePresetModal
+        presetModalItem={presetModalItem}
+        userId={profile?.user?.id}
+        onClose={() => setPresetModalItem(null)}
+        onSuccessToast={(message) => setToast({ isOpen: true, type: 'success', message })}
+        onErrorToast={(message) => setToast({ isOpen: true, type: 'error', message })}
+      />
 
       {/* Toast Notification */}
       <BottomToast

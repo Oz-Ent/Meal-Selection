@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Download } from 'lucide-react';
 import { navigateBack } from '../../utils/navigation';
+import Button from '../Button/Button';
 
 export interface INavBarActionButton {
   label: string;
@@ -47,15 +48,13 @@ export function NavBar({
   return (
     <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-border bg-surface/95 backdrop-blur-md font-sans shadow-2xs">
       <div className="relative flex min-h-7 w-full items-center justify-between px-4 sm:px-6 py-3">
-        <button
-          type="button"
+        <Button
+          iconOnly
+          icon={<ArrowLeft className="h-5 w-5 stroke-current" />}
           onClick={handleBack}
           aria-label="Back"
-          className="p-1 text-secondary hover:text-text-primary transition-colors z-10 cursor-pointer"
-        >
-          <ArrowLeft className="h-5 w-5 stroke-current" />
-        </button>
-
+          variant='secondary'
+        />
         {title && (
           <h3 className="absolute inset-x-0 text-center text-base sm:text-lg font-bold text-text-primary px-16 truncate pointer-events-none">
             {title}
