@@ -4,16 +4,21 @@ import { MemoryRouter } from 'react-router-dom';
 import { UserActivities } from './Activities';
 
 // Mock Lucide icons
-jest.mock('lucide-react', () => ({
-  ArrowRight: () => <span data-testid="icon-arrow-right" />,
-  LogOut: () => <span data-testid="icon-logout" />,
-  Check: () => <span data-testid="icon-check" />,
-  ChevronRight: () => <span data-testid="icon-chevron-right" />,
-  Search: () => <span data-testid="icon-search" />,
-  Pencil: () => <span data-testid="icon-pencil" />,
-  Loader2: () => <span data-testid="icon-loader" />,
-  LoaderCircle: () => <span data-testid="icon-loader-circle" />,
-}));
+jest.mock('lucide-react', () => {
+  const actual = jest.requireActual('lucide-react');
+  return {
+    __esModule: true,
+    ...actual,
+    ArrowRight: () => <span data-testid="icon-arrow-right" />,
+    LogOut: () => <span data-testid="icon-logout" />,
+    Check: () => <span data-testid="icon-check" />,
+    ChevronRight: () => <span data-testid="icon-chevron-right" />,
+    Search: () => <span data-testid="icon-search" />,
+    Pencil: () => <span data-testid="icon-pencil" />,
+    Loader2: () => <span data-testid="icon-loader" />,
+    LoaderCircle: () => <span data-testid="icon-loader-circle" />,
+  };
+});
 
 // Mock Swiper
 jest.mock('swiper/react', () => ({

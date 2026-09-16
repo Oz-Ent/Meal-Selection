@@ -6,6 +6,22 @@ jest.mock('../../../hooks/useTheme', () => ({
   useTheme: jest.fn(),
 }));
 
+jest.mock('../../../api/useApiQueries', () => ({
+  useUserPreferencesQuery: () => ({
+    data: {
+      theme: 'light',
+      autoSubmitPreset: false,
+      emailNotifications: true,
+      pushNotifications: true,
+    },
+    isLoading: false,
+  }),
+  usePatchUserPreferencesMutation: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+}));
+
 describe('UserPreferencesCard Component', () => {
   const mockSetTheme = jest.fn();
 

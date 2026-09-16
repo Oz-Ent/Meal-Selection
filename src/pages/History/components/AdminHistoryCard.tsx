@@ -152,7 +152,7 @@ export function AdminHistoryCard({ weekItem }: AdminHistoryCardProps) {
             variant="secondary"
             size="sm"
             icon={<UserCircle size={13}/>}
-            label={weekItem.totalResponses}
+            label={`${weekItem.totalResponses} Total Orders`}
           />
           <Button
           label="Export PDF"
