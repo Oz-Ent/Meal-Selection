@@ -8,11 +8,9 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { NavBar } from '../../components/NavBar/NavBar';
 import Modal from '../../components/Modal/Modal';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import { LoadingOverlay } from '../../components/LoadingOverlay/LoadingOverlay';
-import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import PresetIllustration from '../../assets/Preset Illustration.svg';
 import Button from '../../components/Button/Button';
 import Badge from '../../components/Badge/Badge';
@@ -26,7 +24,6 @@ import {
   useSetDefaultPresetMutation,
   useUpdatePresetMutation,
 } from '../../api/useApiQueries';
-import { queryKeys } from '../../api/queryKeys';
 import { presetService, type Preset } from '../../api/Services/PresetServices';
 import { menuService } from '../../api/Services/MenuServices';
 import ActionMenu from '../../components/ActionMenu/ActionMenu';
@@ -35,7 +32,6 @@ import { useAuth } from '../Auth/useAuth/useAuth';
 
 export function PresetMeals() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { profile } = useAuth();
   const userId = profile?.user?.id;
 
@@ -44,18 +40,6 @@ export function PresetMeals() {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameInput, setRenameInput] = useState('');
   const [presetToRename, setPresetToRename] = useState<Preset | null>(null);
-
-  const [warningPresetModal, setWarningPresetModal] = useState<{
-    isOpen: boolean;
-    preset: Preset | null;
-    emptyDays: string[];
-    isLoading: boolean;
-  }>({
-    isOpen: false,
-    preset: null,
-    emptyDays: [],
-    isLoading: false,
-  });
 
   const [loadingOverlay, setLoadingOverlay] = useState<{
     isLoading: boolean;
@@ -79,9 +63,7 @@ export function PresetMeals() {
 
   const menusQuery = useMenusQuery();
   const menus = menusQuery.data ?? [];
-  const activeMenus = menus
-    .filter((menu) => menu.isActive)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id - b.id);
+  const activeMenus = menus.filter((menu) => menu.isActive);
 
   const presetsQuery = usePresetsByUserQuery(userId);
   const presets = presetsQuery.data ?? [];
@@ -93,10 +75,7 @@ export function PresetMeals() {
 
   const handleSelectMenu = (menuId: number) => {
     setIsSelectMenuModalOpen(false);
-    const selectedMenu = menus.find((m) => m.id === menuId);
-    navigate(`/preset-meals/create/${menuId}`, {
-      state: { menuTitle: selectedMenu?.title, menu: selectedMenu },
-    });
+    navigate(`/preset-meals/create/${menuId}`);
   };
 
   const handleOpenRename = (preset: Preset) => {
@@ -132,9 +111,11 @@ export function PresetMeals() {
     }
   };
 
-  const executeSetDefault = async (presetId: number) => {
+  const handleSetDefault = async (preset: Preset) => {
+    setActiveMenuPresetId(null);
+    setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
     try {
-      await setDefaultPresetMutation.mutateAsync(presetId);
+      await setDefaultPresetMutation.mutateAsync(preset.id);
       setToast({
         isOpen: true,
         type: 'success',
@@ -228,25 +209,10 @@ export function PresetMeals() {
     }
   };
 
-  const handleConfirmDefaultWarning = async () => {
-    if (!warningPresetModal.preset) return;
-    setWarningPresetModal((prev) => ({ ...prev, isLoading: true }));
-    await executeSetDefault(warningPresetModal.preset.id);
-    setWarningPresetModal({
-      isOpen: false,
-      preset: null,
-      emptyDays: [],
-      isLoading: false,
-    });
-  };
-
   const handleDuplicate = async (preset: Preset) => {
     setLoadingOverlay({ isLoading: true, message: 'Duplicating preset meal...' });
     try {
-      const details = await queryClient.fetchQuery({
-        queryKey: queryKeys.preset(preset.id),
-        queryFn: () => presetService.getWithDetails(preset.id),
-      });
+      const details = await presetService.getWithDetails(preset.id);
       const itemsToDuplicate =
         details.presetItems?.map((item) => ({
           menuDayId: item.menuDayId,
@@ -299,12 +265,21 @@ export function PresetMeals() {
     }
   };
 
-  const isQueryLoading = presetsQuery.isLoading || menusQuery.isLoading;
-
   return (
-    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
+    <div className="min-h-screen w-full max-w-md mx-auto bg-[#f8fafc] text-msTextPrimary flex flex-col font-sans relative pb-20">
       {/* Header */}
-      <NavBar title="Preset Meals" backUrl="/activities" />
+      <header className="flex h-14 items-center justify-between bg-white px-4 border-b border-slate-100 sticky top-0 z-10 shadow-2xs">
+        <button
+          type="button"
+          aria-label="Back"
+          onClick={() => navigate('/activities')}
+          className="p-1.5 rounded-full text-[#10384f] hover:bg-slate-100 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
+        <h1 className="text-base font-bold text-slate-900 text-center flex-1 pr-6">Preset Meals</h1>
+      </header>
 
       {/* Main Content */}
       <main className="p-4 sm:p-6">
@@ -328,7 +303,7 @@ export function PresetMeals() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full text-left">
+          <div className="w-full flex flex-col gap-3 text-left">
             {presets.map((preset) => {
               const menuObj = menus.find((m) => m.id === preset.menuId);
               const menuLabel = menuObj?.title || `Menu ${preset.menuId}`;
@@ -400,14 +375,14 @@ export function PresetMeals() {
       </main>
 
       {/* Floating Action Button "+ Add" */}
-      <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-5xl pointer-events-none z-30 px-4 sm:px-6 flex justify-end">
+      <div className="fixed bottom-6 right-6 z-20">
         <button
           type="button"
           aria-label="Add new preset menu"
           onClick={() => setIsSelectMenuModalOpen(true)}
-          className="pointer-events-auto flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary-hover px-5 py-3.5 text-sm font-bold text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+          className="flex items-center gap-2 bg-[#20475b] hover:bg-[#183a4a] text-white px-5 py-3 rounded-full shadow-lg font-semibold text-sm transition-transform active:scale-95"
         >
-          <Plus size={18} strokeWidth={2.5} />
+          <Plus size={18} />
           <span>Add</span>
         </button>
       </div>

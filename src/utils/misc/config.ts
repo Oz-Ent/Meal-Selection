@@ -1,4 +1,4 @@
-﻿export const MEAL_APP_CORE =
+﻿﻿export const MEAL_APP_CORE =
   import.meta.env.VITE_MEAL_APP_CORE ?? 'https://meal-app-core-dev.vercel.app';
 
 export const VAPID_PUBLIC_KEY =

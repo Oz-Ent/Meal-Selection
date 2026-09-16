@@ -87,15 +87,18 @@ export const AuthProvider = ({children}:{children: ReactNode}) => {
                 const response = await authService.refresh();
                 if (isMounted && response?.accessToken) {
                     setToken(response.accessToken);
+                    if (response.refreshToken) {
+                        setRefreshToken(response.refreshToken);
+                    }
                     // Always persist the new access token to storage
-                    authStorage.setTokens(response.accessToken, undefined, isPersistent);
+                    authStorage.setTokens(response.accessToken, response.refreshToken, isPersistent);
                     if (response.user) {
                         const restoredProfile: IAuthUser = {
                             user: response.user,
                             availability: response.availability ?? { startDate: '', endDate: '' }
                         };
                         setProfile(restoredProfile);
-                        authStorage.setSession(restoredProfile, response.accessToken, undefined, isPersistent);
+                        authStorage.setSession(restoredProfile, response.accessToken, response.refreshToken, isPersistent);
                     }
                 }
             } catch {
