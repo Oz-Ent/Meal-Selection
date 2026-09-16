@@ -5,5 +5,14 @@ import vitePluginSvgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vitePluginSvgr(),react(), tailwindcss()],
+  plugins: [vitePluginSvgr(), react(), tailwindcss()],
+  server: {
+    proxy: {
+      "/api/core": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/core/, ""),
+      },
+    },
+  },
 });

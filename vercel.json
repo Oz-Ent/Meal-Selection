@@ -1,6 +1,17 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/core/:path*",
+      "destination": "https://meal-app-core.vercel.app/:path*"
+    },
+    {
+      "source": "/api/dev-core/:path*",
+      "destination": "https://meal-app-core-dev.vercel.app/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
