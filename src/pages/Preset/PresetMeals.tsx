@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -11,13 +12,10 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { NavBar } from '../../components/NavBar/NavBar';
 import Modal from '../../components/Modal/Modal';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import { LoadingOverlay } from '../../components/LoadingOverlay/LoadingOverlay';
-import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import PresetIllustration from '../../assets/Preset Illustration.svg';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreatePresetMutation,
   useDeletePresetMutation,
@@ -26,15 +24,11 @@ import {
   useSetDefaultPresetMutation,
   useUpdatePresetMutation,
 } from '../../api/useApiQueries';
-import { queryKeys } from '../../api/queryKeys';
 import { presetService, type Preset } from '../../api/Services/PresetServices';
-import { menuService } from '../../api/Services/MenuServices';
-import { DefaultPresetWarningModal } from './components/DefaultPresetWarningModal';
 import { useAuth } from '../Auth/useAuth/useAuth';
 
 export function PresetMeals() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { profile } = useAuth();
   const userId = profile?.user?.id;
 
@@ -44,18 +38,6 @@ export function PresetMeals() {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [renameInput, setRenameInput] = useState('');
   const [presetToRename, setPresetToRename] = useState<Preset | null>(null);
-
-  const [warningPresetModal, setWarningPresetModal] = useState<{
-    isOpen: boolean;
-    preset: Preset | null;
-    emptyDays: string[];
-    isLoading: boolean;
-  }>({
-    isOpen: false,
-    preset: null,
-    emptyDays: [],
-    isLoading: false,
-  });
 
   const [loadingOverlay, setLoadingOverlay] = useState<{
     isLoading: boolean;
@@ -79,9 +61,7 @@ export function PresetMeals() {
 
   const menusQuery = useMenusQuery();
   const menus = menusQuery.data ?? [];
-  const activeMenus = menus
-    .filter((menu) => menu.isActive)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id - b.id);
+  const activeMenus = menus.filter((menu) => menu.isActive);
 
   const presetsQuery = usePresetsByUserQuery(userId);
   const presets = presetsQuery.data ?? [];
@@ -93,10 +73,7 @@ export function PresetMeals() {
 
   const handleSelectMenu = (menuId: number) => {
     setIsSelectMenuModalOpen(false);
-    const selectedMenu = menus.find((m) => m.id === menuId);
-    navigate(`/preset-meals/create/${menuId}`, {
-      state: { menuTitle: selectedMenu?.title, menu: selectedMenu },
-    });
+    navigate(`/preset-meals/create/${menuId}`);
   };
 
   const handleOpenRename = (preset: Preset) => {
@@ -133,9 +110,11 @@ export function PresetMeals() {
     }
   };
 
-  const executeSetDefault = async (presetId: number) => {
+  const handleSetDefault = async (preset: Preset) => {
+    setActiveMenuPresetId(null);
+    setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
     try {
-      await setDefaultPresetMutation.mutateAsync(presetId);
+      await setDefaultPresetMutation.mutateAsync(preset.id);
       setToast({
         isOpen: true,
         type: 'success',
@@ -148,108 +127,16 @@ export function PresetMeals() {
         type: 'error',
         message: 'Something went wrong while setting preset meal as default. Please try again.',
       });
-    }
-  };
-
-  const handleSetDefault = async (preset: Preset) => {
-    setActiveMenuPresetId(null);
-    setLoadingOverlay({ isLoading: true, message: 'Checking preset details...' });
-    try {
-      const [details, menuDays] = await Promise.all([
-        queryClient.fetchQuery({
-          queryKey: queryKeys.preset(preset.id),
-          queryFn: () => presetService.getWithDetails(preset.id),
-        }),
-        queryClient.fetchQuery({
-          queryKey: queryKeys.menuDays(preset.menuId),
-          queryFn: () => menuService.getDays(preset.menuId),
-        }),
-      ]);
-
-      const selectedDayIds = new Set<number>();
-      if (Array.isArray(details.presetItems) && details.presetItems.length > 0) {
-        for (const item of details.presetItems) {
-          if (item.menuDayId) {
-            selectedDayIds.add(item.menuDayId);
-          } else if (item.menuDay?.day) {
-            const matchedDay = menuDays.find(
-              (d) => d.day?.toUpperCase() === item.menuDay.day.toUpperCase(),
-            );
-            if (matchedDay) {
-              selectedDayIds.add(matchedDay.id);
-            }
-          }
-        }
-      }
-
-      // Check items object fallback (keyed by day name, e.g. { "MONDAY": { dayMealId: 95 } })
-      const presetRecord = details as { items?: Record<string, { dayMealId?: number }> } | undefined;
-      if (
-        selectedDayIds.size === 0 &&
-        presetRecord?.items &&
-        typeof presetRecord.items === 'object' &&
-        menuDays.length > 0
-      ) {
-        for (const [dayName, item] of Object.entries(presetRecord.items)) {
-          const itemObj = item as { dayMealId?: number };
-          if (itemObj?.dayMealId) {
-            const matchedDay = menuDays.find(
-              (d) => d.day?.toUpperCase() === dayName.toUpperCase(),
-            );
-            if (matchedDay) {
-              selectedDayIds.add(matchedDay.id);
-            }
-          }
-        }
-      }
-
-      const emptyDays = menuDays
-        .filter((day) => !selectedDayIds.has(day.id))
-        .map((day) => day.day);
-
-      setLoadingOverlay({ isLoading: false, message: '' });
-
-      if (emptyDays.length > 0) {
-        setWarningPresetModal({
-          isOpen: true,
-          preset,
-          emptyDays,
-          isLoading: false,
-        });
-      } else {
-        setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
-        await executeSetDefault(preset.id);
-        setLoadingOverlay({ isLoading: false, message: '' });
-      }
-    } catch (error) {
-      setLoadingOverlay({ isLoading: false, message: '' });
-      console.error('Failed to check preset details:', error);
-      setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
-      await executeSetDefault(preset.id);
+    } finally {
       setLoadingOverlay({ isLoading: false, message: '' });
     }
-  };
-
-  const handleConfirmDefaultWarning = async () => {
-    if (!warningPresetModal.preset) return;
-    setWarningPresetModal((prev) => ({ ...prev, isLoading: true }));
-    await executeSetDefault(warningPresetModal.preset.id);
-    setWarningPresetModal({
-      isOpen: false,
-      preset: null,
-      emptyDays: [],
-      isLoading: false,
-    });
   };
 
   const handleDuplicate = async (preset: Preset) => {
     setActiveMenuPresetId(null);
     setLoadingOverlay({ isLoading: true, message: 'Duplicating preset meal...' });
     try {
-      const details = await queryClient.fetchQuery({
-        queryKey: queryKeys.preset(preset.id),
-        queryFn: () => presetService.getWithDetails(preset.id),
-      });
+      const details = await presetService.getWithDetails(preset.id);
       const itemsToDuplicate =
         details.presetItems?.map((item) => ({
           menuDayId: item.menuDayId,
@@ -303,24 +190,26 @@ export function PresetMeals() {
     }
   };
 
-  const isQueryLoading = presetsQuery.isLoading || menusQuery.isLoading;
-
   return (
-    <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
+    <div className="min-h-screen w-full max-w-md mx-auto bg-[#f8fafc] text-msTextPrimary flex flex-col font-sans relative pb-20">
       {/* Header */}
-      <NavBar title="Preset Meals" backUrl="/activities" />
+      <header className="flex h-14 items-center justify-between bg-white px-4 border-b border-slate-100 sticky top-0 z-10 shadow-2xs">
+        <button
+          type="button"
+          aria-label="Back"
+          onClick={() => navigate('/activities')}
+          className="p-1.5 rounded-full text-[#10384f] hover:bg-slate-100 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
+        <h1 className="text-base font-bold text-slate-900 text-center flex-1 pr-6">Preset Meals</h1>
+      </header>
 
       {/* Main Content */}
-      <main className="p-4 sm:p-6">
-        {isQueryLoading ? (
-          <div className="flex min-h-64 flex-col items-center justify-center gap-3 my-auto py-16">
-            <div className="h-8 w-8">
-              <LoadingSpinner />
-            </div>
-            <p className="text-sm text-slate-500">Loading presets...</p>
-          </div>
-        ) : presets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center my-auto py-12 text-center">
+      <main className="flex-1 flex flex-col items-center justify-start p-4 text-center">
+        {presets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center my-auto py-12">
             <img
               src={PresetIllustration}
               alt="Preset Illustration"
@@ -332,7 +221,7 @@ export function PresetMeals() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full text-left">
+          <div className="w-full flex flex-col gap-3 text-left">
             {presets.map((preset) => {
               const menuObj = menus.find((m) => m.id === preset.menuId);
               const menuLabel = menuObj?.title || `Menu ${preset.menuId}`;
@@ -342,11 +231,7 @@ export function PresetMeals() {
               return (
                 <div key={preset.id} className="relative w-full">
                   <div
-                    onClick={() =>
-                      navigate(`/preset-meals/${preset.id}`, {
-                        state: { presetName: preset.name, preset },
-                      })
-                    }
+                    onClick={() => navigate(`/preset-meals/${preset.id}`)}
                     className="bg-white border border-slate-100 p-4 rounded-2xl shadow-2xs flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     <div>
@@ -423,14 +308,14 @@ export function PresetMeals() {
       </main>
 
       {/* Floating Action Button "+ Add" */}
-      <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-5xl pointer-events-none z-30 px-4 sm:px-6 flex justify-end">
+      <div className="fixed bottom-6 right-6 z-20">
         <button
           type="button"
           aria-label="Add new preset menu"
           onClick={() => setIsSelectMenuModalOpen(true)}
-          className="pointer-events-auto flex items-center gap-2 rounded-full bg-secondary hover:bg-secondary-hover px-5 py-3.5 text-sm font-bold text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+          className="flex items-center gap-2 bg-[#20475b] hover:bg-[#183a4a] text-white px-5 py-3 rounded-full shadow-lg font-semibold text-sm transition-transform active:scale-95"
         >
-          <Plus size={18} strokeWidth={2.5} />
+          <Plus size={18} />
           <span>Add</span>
         </button>
       </div>
@@ -510,23 +395,6 @@ export function PresetMeals() {
           </button>
         </div>
       </Modal>
-
-      {/* Modal: Warning for Incomplete Default Preset */}
-      <DefaultPresetWarningModal
-        isOpen={warningPresetModal.isOpen}
-        onClose={() =>
-          setWarningPresetModal({
-            isOpen: false,
-            preset: null,
-            emptyDays: [],
-            isLoading: false,
-          })
-        }
-        onConfirm={handleConfirmDefaultWarning}
-        presetName={warningPresetModal.preset?.name || 'Preset'}
-        emptyDays={warningPresetModal.emptyDays}
-        isLoading={warningPresetModal.isLoading}
-      />
 
       {/* Global Loading Overlay for Full Screen Actions */}
       <LoadingOverlay isLoading={loadingOverlay.isLoading} message={loadingOverlay.message} />
