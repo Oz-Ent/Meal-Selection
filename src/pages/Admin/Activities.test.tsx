@@ -5,7 +5,7 @@ import { Activities } from './Activities';
 jest.mock('../Auth/useAuth/useAuth', () => ({
   useAuth: () => ({
     profile: {
-      user: { name: 'Admin Test' },
+      user: { name: 'Admin Test', roleId: 1, roleName: 'admin' },
     },
   }),
 }));

@@ -73,7 +73,7 @@ export const AccountLeaveCard = ({
           />
           <StatCard
             title="Total Leave Days"
-            value={totalLeaveDays}
+            value={`${totalLeaveDays} ${totalLeaveDays === 1 ? 'Day' : 'Days'}`}
           />
 
         </div>

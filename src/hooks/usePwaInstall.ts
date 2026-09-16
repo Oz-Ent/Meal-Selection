@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,7 +11,8 @@ export function usePwaInstall() {
   const [isStandalone, setIsStandalone] = useState(() => {
     if (typeof window === 'undefined') return false;
     return (
-      window.matchMedia('(display-mode: standalone)').matches ||
+      (typeof window.matchMedia === 'function' &&
+        window.matchMedia('(display-mode: standalone)').matches) ||
       Boolean((window.navigator as unknown as { standalone?: boolean }).standalone) ||
       document.referrer.includes('android-app://')
     );
@@ -20,12 +21,15 @@ export function usePwaInstall() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const mediaQuery =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('(display-mode: standalone)')
+        : null;
     const handleDisplayModeChange = (e: MediaQueryListEvent) => {
       setIsStandalone(e.matches);
     };
 
-    if (mediaQuery.addEventListener) {
+    if (mediaQuery?.addEventListener) {
       mediaQuery.addEventListener('change', handleDisplayModeChange);
     }
 
@@ -45,7 +49,7 @@ export function usePwaInstall() {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      if (mediaQuery.removeEventListener) {
+      if (mediaQuery?.removeEventListener) {
         mediaQuery.removeEventListener('change', handleDisplayModeChange);
       }
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

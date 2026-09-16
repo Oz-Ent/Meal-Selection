@@ -20,6 +20,10 @@ jest.mock('../../../api/useApiQueries', () => ({
   useWeeklyHolidaysQuery: jest.fn(),
   useWeeklyMealReportQuery: jest.fn(),
   useReplaceWeeklyMealMutation: jest.fn(),
+  useFoodArrivalMutation: jest.fn(() => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  })),
 }));
 
 const mockedUseWeekScheduleQuery = useWeekScheduleQuery as jest.Mock;

@@ -85,6 +85,10 @@ jest.mock('../../api/useApiQueries', () => ({
     mutateAsync: mockUpdatePreferencesMutation,
     isPending: false,
   }),
+  usePatchUserPreferencesMutation: () => ({
+    mutateAsync: mockUpdatePreferencesMutation,
+    isPending: false,
+  }),
   useFoodLibraryQuery: () => ({
     data: [
       { id: 1, name: 'Pork', foodCode: 'PK', foodGroup: 'PROTEIN' },
