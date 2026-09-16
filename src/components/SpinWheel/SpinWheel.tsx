@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPieSlice } from '../../helpers/pieConvertor';
-import Button from '../Button/Button';
 import { parseMealName } from '../../helpers/parsers';
+import { LoaderCircleIcon } from 'lucide-react';
 
 interface Options {
   label: string;
@@ -14,7 +14,14 @@ interface ISpinWheelProps {
 }
 
 const sliceFills = ['var(--color-wheel-slice-1)', 'var(--color-wheel-slice-2)'];
-const labelColors = ['#00633d', '#7c3aed', '#d97706', '#1e465e', '#b45309', '#dc2626'];
+const labelColors = [
+  'var(--color-wheel-label-1)',
+  'var(--color-wheel-label-2)',
+  'var(--color-wheel-label-3)',
+  'var(--color-wheel-label-4)',
+  'var(--color-wheel-label-5)',
+  'var(--color-wheel-label-6)',
+];
 const WHEEL_RADIUS = 150;
 const MAX_LABEL_WIDTH = WHEEL_RADIUS * 0.9;
 const LABEL_FONT_SIZE = 13;
@@ -63,17 +70,19 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
       <div className="relative w-72 h-72 rounded-full shadow-md bg-surface">
         <div className="relative w-72 h-72 items-center flex flex-col gap-4">
           {/* POINTER */}
-          <div className="absolute text-xl text-primary top-0 left-1/2 -translate-x-1/2 z-10 select-none">
+          <div className="absolute text-xl text-secondary top-0 left-1/2 -translate-x-1/2 z-10 select-none scale-200">
             ▼
           </div>
 
-          <Button
-            variant="none"
-            className="absolute top-27 left-27.5 p-2 shadow-md z-20 w-17 h-17 rounded-full bg-secondary border-4 border-[var(--color-wheel-center-border)] text-white text-truncate hover:scale-95 transition-transform cursor-pointer font-bold text-sm"
-            label="Spin"
-            pending={spinning}
+          <button
+            type="button"
+            aria-label="Spin"
+            disabled={spinning}
             onClick={spin}
-          />
+            className="absolute top-27 left-27.5 p-2 shadow-md z-20 w-17 h-17 rounded-full bg-secondary border-4 border-[var(--color-wheel-center-border)] text-white hover:scale-95 transition-transform cursor-pointer font-bold text-sm flex items-center justify-center"
+          >
+            {spinning ? <LoaderCircleIcon className="animate-spin w-5 h-5" /> : 'Spin'}
+          </button>
 
           {/* ROTATING WHEEL */}
           <div

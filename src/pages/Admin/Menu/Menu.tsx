@@ -156,17 +156,16 @@ export function Menu() {
     return result;
   }, [activeMenus, hasUnsavedOrderChanges, orderedMenuIds]);
 
-  const weekSchedules: WeekMenuSchedule[] = Array.isArray(weekSchedulesQuery.data)
-    ? weekSchedulesQuery.data
-    : [];
-
   const currentWeekSchedule = useMemo(() => {
+    const schedules: WeekMenuSchedule[] = Array.isArray(weekSchedulesQuery.data)
+      ? weekSchedulesQuery.data
+      : [];
     return (
-      weekSchedules.find(
+      schedules.find(
         (s) => Number(s.week) === Number(week) && Number(s.year) === Number(year),
       ) ?? null
     );
-  }, [weekSchedules, week, year]);
+  }, [weekSchedulesQuery.data, week, year]);
 
   const activeMenuId = currentWeekSchedule?.menu?.id ?? null;
 

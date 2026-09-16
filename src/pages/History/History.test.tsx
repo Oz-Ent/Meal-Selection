@@ -190,7 +190,7 @@ describe('History Page Component', () => {
 
     expect(screen.getByText('15 Total Orders')).toBeInTheDocument();
     expect(screen.getByText('10 total orders')).toBeInTheDocument();
-    expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();
+    expect(screen.getByText('Week 34 • Summer Standard Menu')).toBeInTheDocument();
     expect(screen.getByText('Aug 17')).toBeInTheDocument();
   });
 

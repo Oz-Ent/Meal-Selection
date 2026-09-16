@@ -1,5 +1,5 @@
 import type React from 'react';
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import Skeleton from '../Skeleton/Skeleton';
 
 export interface CardHeader {
   title?: string;
@@ -49,7 +49,7 @@ export function Card({ header, loading = false, className = '', children }: Card
       )}
       {loading ? (
         <div className="flex justify-center items-center p-6 text-text-secondary">
-          <LoadingSpinner />
+          <Skeleton rows={4} />
         </div>
       ) : (
         children

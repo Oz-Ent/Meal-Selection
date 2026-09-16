@@ -173,6 +173,7 @@ export const AnnouncementProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAnnouncement = () => {
   const context = useContext(AnnouncementContext);
   if (!context) {

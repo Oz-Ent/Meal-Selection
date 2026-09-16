@@ -1,16 +1,16 @@
-﻿import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
+import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 
 import chefIcon from '../../assets/admin/ChefOnAdminCard.svg';
 import burgerIcon from '../../assets/admin/BurgeronAdminCard.svg';
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
 import MenuCard from '../../components/MenuCard/MenuCard';
-import { adminActivitiesConfig } from '../../config/activitiesConfig';
-
+import { getAdminActivitiesForRole } from '../../config/activitiesConfig';
 
 export function Activities() {
   const { profile } = useAuth();
   const userName = profile?.user?.name ? profile.user.name.split(' ')[0] : 'Admin';
+  const activities = getAdminActivitiesForRole(profile?.user);
 
 
 
@@ -51,7 +51,7 @@ export function Activities() {
         <section className="w-full">
           <h2 className="mb-3 text-base font-bold text-text-primary">Activities</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {adminActivitiesConfig.map((activity) => (
+            {activities.map((activity) => (
               <MenuCard
                 key={activity.id}
                 label={activity.title}

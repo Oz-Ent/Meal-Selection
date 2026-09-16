@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useCallback,
   Children,
   isValidElement,
   type ReactNode,
@@ -23,6 +24,7 @@ interface ActionMenuContextType {
 
 const ActionMenuContext = createContext<ActionMenuContextType | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useActionMenu = () => {
   const context = useContext(ActionMenuContext);
   if (!context) {
@@ -221,31 +223,33 @@ function ActionMenuRoot({
     align,
   });
 
-  const open = () => {
+  const open = useCallback(() => {
     setIsOpen(true);
     onOpenChange?.(true);
-  };
+  }, [onOpenChange]);
 
-  const close = () => {
+  const close = useCallback(() => {
     setIsOpen(false);
     onOpenChange?.(false);
-  };
+  }, [onOpenChange]);
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     setIsOpen((prev) => {
       const next = !prev;
       onOpenChange?.(next);
       return next;
     });
-  };
+  }, [onOpenChange]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      const isInsideContainer = containerRef.current?.contains(target);
-      const isInsideDropdown = dropdownRef.current?.contains(target);
-
-      if (!isInsideContainer && !isInsideDropdown) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         close();
       }
     };
@@ -264,7 +268,7 @@ function ActionMenuRoot({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, close]);
 
   const isUp = direction === 'up';
 

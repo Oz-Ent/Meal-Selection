@@ -48,7 +48,7 @@ import {
   isMenuDayToday,
 } from '../../utils/dateHelpers';
 import { useAuth } from '../Auth/useAuth/useAuth';
-import { isAdminRole } from '../../utils/Enums/Role';
+import { isAdminRole } from '../../utils/Enums/Roles';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
 
 export interface OverviewMeal {

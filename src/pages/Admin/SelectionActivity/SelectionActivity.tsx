@@ -332,7 +332,7 @@ export function SelectionActivity() {
 
       {/* MEALS LIST VIEW FOR CURRENT DAY */}
       {!isLoading && menuDays.length > 0 && (
-        <main className="px-4 sm:px-6 pt-4">
+        <main className="px-4 sm:px-6 pt-4 gap-4 flex flex-col">
           {/* Top Search Bar */}
           <SearchBar
             value={searchQuery}
@@ -343,14 +343,12 @@ export function SelectionActivity() {
 
           {/* Active Holiday Information Banner */}
           {isHoliday && (
-            <div className="mb-4">
               <InfoBanner
                 variant="warning"
                 icon={<Sparkles size={18} className="text-warning shrink-0" />}
                 title={holidayTitle}
                 description={holidayDescription}
               />
-            </div>
           )}
 
           <div className="mb-4 flex items-center justify-between pb-2 border-b border-border">
@@ -476,9 +474,6 @@ export function SelectionActivity() {
                   {/* Expandable assigned users list */}
                   {isExpanded && (
                     <div className="mt-3 border-t border-border pt-3">
-                      <p className="mb-1.5 text-xs font-semibold text-text-secondary">
-                        Assigned Recipients {displayUsers.length > 0 && `(${displayUsers.length})`}:
-                      </p>
                       {displayUsers.length > 0 ? (
                         <div className="space-y-1 pl-1">
                           {displayUsers.map((user, index) => {
@@ -489,13 +484,13 @@ export function SelectionActivity() {
                             return (
                               <div
                                 key={`${user.id ?? 'guest'}-${index}`}
-                                className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-surface-muted/60 text-text-secondary"
+                                className="flex items-center justify-between text-xs rounded-xl bg-surface-muted/10 text-text-secondary"
                               >
                                 <span
                                   className={
                                     isUserMatch
                                       ? 'font-bold text-primary'
-                                      : 'font-medium text-text-primary'
+                                      : 'font-medium text-text-secondary'
                                   }
                                 >
                                   {index + 1}. {displayName}

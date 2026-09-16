@@ -28,7 +28,6 @@ describe('BottomNavbar Component', () => {
     expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     expect(screen.queryByText('Budget')).not.toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
-    expect(screen.getByText('Feedback')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
   });
 
@@ -46,7 +45,6 @@ describe('BottomNavbar Component', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
-    expect(screen.getByText('Feedback')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
   });
 

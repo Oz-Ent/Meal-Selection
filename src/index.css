@@ -114,6 +114,12 @@
     --color-wheel-border: #eaeff7;
     --color-wheel-stroke: #00000014;
     --color-wheel-center-border: #ffffff;
+    --color-wheel-label-1: #00633d;
+    --color-wheel-label-2: #7c3aed;
+    --color-wheel-label-3: #b45309;
+    --color-wheel-label-4: #1e465e;
+    --color-wheel-label-5: #c2410c;
+    --color-wheel-label-6: #dc2626;
 
     /* -------------------------------------------------------
        Misc
@@ -233,6 +239,12 @@
     --color-wheel-border: #2a2e33;
     --color-wheel-stroke: #ffffff14;
     --color-wheel-center-border: #202327;
+    --color-wheel-label-1: #34d399;
+    --color-wheel-label-2: #a78bfa;
+    --color-wheel-label-3: #fbbf24;
+    --color-wheel-label-4: #38bdf8;
+    --color-wheel-label-5: #fb923c;
+    --color-wheel-label-6: #f87171;
 
     /* -------------------------------------------------------
        Misc
@@ -387,6 +399,12 @@
   --color-wheel-border: var(--color-wheel-border);
   --color-wheel-stroke: var(--color-wheel-stroke);
   --color-wheel-center-border: var(--color-wheel-center-border);
+  --color-wheel-label-1: var(--color-wheel-label-1);
+  --color-wheel-label-2: var(--color-wheel-label-2);
+  --color-wheel-label-3: var(--color-wheel-label-3);
+  --color-wheel-label-4: var(--color-wheel-label-4);
+  --color-wheel-label-5: var(--color-wheel-label-5);
+  --color-wheel-label-6: var(--color-wheel-label-6);
 
   /* Misc */
   --color-overlay: var(--color-overlay);

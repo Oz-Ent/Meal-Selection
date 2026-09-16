@@ -1,4 +1,4 @@
-﻿import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Outlet } from 'react-router-dom';
 import MasterLayout from '../layouts/MasterLayout/MasterLayout';
 import NotFoundPage from '../pages/NotFound/NotFound';
 import Welcome from '../pages/Auth/Welcome';
@@ -19,6 +19,8 @@ import { OtpVerification } from '../pages/Auth/ForgotPassword/OtpVerification/Ot
 import { ResetPassword } from '../pages/Auth/ForgotPassword/ResetPassword/ResetPassword';
 import { ResetSuccess } from '../pages/Auth/ForgotPassword/ResetSuccess/ResetSuccess';
 import { AdminProtectedRoute } from '../pages/Auth/ProtectedRoutes/AdminProtectedRoute/AdminProtectedRoute';
+import { RouteProtector } from '../pages/Auth/ProtectedRoutes/RouteProtector';
+import { Role } from '../utils/Enums/Roles';
 import { ActivitiesRedirect } from '../pages/Auth/ProtectedRoutes/ActivitiesRedirect/ActivitiesRedirect';
 import { SelectionActivity } from '../pages/Admin/SelectionActivity/SelectionActivity';
 import { PresetMeals } from '../pages/Preset/PresetMeals';
@@ -114,47 +116,91 @@ export const routes = [
         children: [
           {
             path: 'admin/activities',
-            element: <Activities />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.manager, Role.worker]}>
+                <Activities />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/menu',
-            element: <Menu />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.worker]}>
+                <Menu />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/menu/add-menu/:menuName',
-            element: <AddMenu />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.worker]}>
+                <AddMenu />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/menu/edit/:menuId',
-            element: <EditMenu />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.worker]}>
+                <EditMenu />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/meal',
-            element: <Meal />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.worker]}>
+                <Meal />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/meal/edit/:cardId',
-            element: <EditMeal />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.worker]}>
+                <EditMeal />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/selection-activity',
-            element: <SelectionActivity />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.worker]}>
+                <SelectionActivity />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/holidays',
-            element: <MarkHolidays />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr]}>
+                <MarkHolidays />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/selection-status',
-            element: <SelectionStatus />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.manager]}>
+                <SelectionStatus />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/budgets',
-            element: <Budgets />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.manager]}>
+                <Budgets />
+              </RouteProtector>
+            ),
           },
           {
             path: 'admin/analytics',
-            element: <Analytics />,
+            element: (
+              <RouteProtector allowedRoles={[Role.admin, Role.hr, Role.manager]}>
+                <Analytics />
+              </RouteProtector>
+            ),
           },
         ],
       },
