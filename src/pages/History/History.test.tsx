@@ -155,13 +155,21 @@ describe('History Page Component', () => {
   afterEach(() => {
     cleanup();
   });
-  it('renders history header, title, user weekly cards with descriptive week date range and day dates', () => {
+  it('renders history header, title, user weekly cards with descriptive week date range collapsed by default and expands on click', () => {
     renderWithProviders(<History />);
 
     expect(screen.getByText(/Edziban/i)).toBeInTheDocument();
     expect(screen.getByText('Selection History')).toBeInTheDocument();
     expect(screen.getByText('Week 34 • Summer Standard Menu')).toBeInTheDocument();
     expect(screen.getByText('Aug 17 - 21, 2026')).toBeInTheDocument();
+
+    // Collapsed by default: individual meal selections not shown
+    expect(screen.queryByText('Grilled Chicken Salad')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aug 17')).not.toBeInTheDocument();
+
+    // Click to expand
+    fireEvent.click(screen.getByRole('button', { name: /expand week/i }));
+
     expect(screen.getByText('Grilled Chicken Salad')).toBeInTheDocument();
     expect(screen.getByText('Aug 17')).toBeInTheDocument();
   });
@@ -189,8 +197,15 @@ describe('History Page Component', () => {
     fireEvent.click(adminTab);
 
     expect(screen.getByText('15 Total Orders')).toBeInTheDocument();
-    expect(screen.getByText('10 total orders')).toBeInTheDocument();
     expect(screen.getByText('Week 34 • Summer Standard Menu')).toBeInTheDocument();
+
+    // Collapsed by default: detailed order breakdown not visible
+    expect(screen.queryByText('10 total orders')).not.toBeInTheDocument();
+
+    // Click header to expand
+    fireEvent.click(screen.getByText('15 Total Orders'));
+
+    expect(screen.getByText('10 total orders')).toBeInTheDocument();
     expect(screen.getByText('Aug 17')).toBeInTheDocument();
   });
 
