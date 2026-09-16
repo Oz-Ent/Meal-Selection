@@ -39,7 +39,7 @@ export function TitleBar({ isLoading, extraActions, refetchAction, banner }: Tit
         variant="center"
         showCloseButton={false}
       >
-        <div className="relative flex flex-col p-5 font-sans text-text-primary max-w-sm mx-auto">
+        <div className="relative flex flex-col p-5 font-sans text-text-primary max-w-sm mx-auto h-full gap-4">
           <button
             type="button"
             onClick={() => setShowManualInstallModal(false)}
@@ -83,13 +83,10 @@ export function TitleBar({ isLoading, extraActions, refetchAction, banner }: Tit
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowManualInstallModal(false)}
-            className="mt-4 w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-white hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            Got it
-          </button>
+          <Button
+          label="Got it"
+          onClick={() => setShowManualInstallModal(false)}
+          />
         </div>
       </Modal>
 
@@ -110,23 +107,23 @@ export function TitleBar({ isLoading, extraActions, refetchAction, banner }: Tit
                 onClick={handleInstallClick}
                 title="Install Edziban App"
                 aria-label="Install App"
-                className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-primary-light hover:bg-primary-light/80 text-primary border border-primary/20 text-xs font-semibold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-surface border-b-3 hover:border-b-1 text-primary border border-primary/20 text-xs font-semibold active:scale-95 cursor-pointer "
               >
                 <ArrowDownToLine className="h-4 w-4 shrink-0" />
-                <span className="hidden sm:inline">Install App</span>
+                <span className="hidden sm:inline">Install</span>
               </button>
             )}
 
             {extraActions}
             {!!refetchAction && (
-              <button
-                type="button"
-                onClick={refetchAction}
-                aria-label="Refresh profile"
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-muted hover:bg-surface text-text-secondary border border-border transition-colors cursor-pointer"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
+              <Button
+              iconOnly
+              icon={<RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />}
+              onClick={refetchAction}
+              aria-label="Refresh"
+              variant='tertiary'
+              size='sm'
+              />
             )}
 
             <Button

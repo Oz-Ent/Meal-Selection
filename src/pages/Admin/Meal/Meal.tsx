@@ -134,7 +134,7 @@ export function Meal() {
 
       {/* MEALS LIST VIEW */}
       {!isLoading && meals.length > 0 && (
-        <div className="px-4 sm:px-6 pt-5">
+        <div className="px-4 sm:px-6 pt-5 gap-4 flex flex-col ">
           {/* Top Search Bar */}
           <SearchBar
             value={searchQuery}
@@ -143,7 +143,7 @@ export function Meal() {
             placeholder="Search meal..."
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ">
             {filteredMeals.map((meal) => (
               <div
                 key={meal.id}

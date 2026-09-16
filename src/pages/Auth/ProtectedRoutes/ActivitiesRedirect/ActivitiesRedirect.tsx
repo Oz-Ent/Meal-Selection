@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../useAuth/useAuth';
-import { isAdminRole } from '../../../../utils/Enums/Role';
+import { isAdminRole } from '../../../../utils/Enums/Roles';
 
 export const ActivitiesRedirect = () => {
   const { profile } = useAuth();

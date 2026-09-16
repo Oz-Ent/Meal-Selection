@@ -41,7 +41,7 @@ import type {
 import { DAY_ORDER, formatDay, exportWeeklyReportToPdf } from '../../utils/exportMealReportPdf';
 import { formatWeekDateRange, formatDayDate } from '../../utils/dateHelpers';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
-import { isAdminRole } from '../../utils/Enums/Role';
+import { isAdminRole } from '../../utils/Enums/Roles';
 
 export function History() {
   const { profile } = useAuth();

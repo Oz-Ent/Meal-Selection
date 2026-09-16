@@ -7,15 +7,13 @@ import { BottomNavbar } from '../../components/BottomNavbar/BottomNavbar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { WeeklyMealCarousel, type CarouselMealItem } from '../../components/WeeklyMealCarousel/WeeklyMealCarousel';
 import MealForeground from '../../assets/MealForeground.webp';
-import SelectMealIcon from '../../assets/admin/MenuIcon.webp';
-import PresetsIcon from '../../assets/admin/PresetsIcon.webp';
 import ClockIllustration from '../../assets/Clock Illustration.svg';
 import ChipsIcon from '../../assets/chips.svg';
 import MenuIcon from '../../assets/admin/MenuIcon.webp';
 
 import { useAuth } from '../Auth/useAuth/useAuth';
 import { days } from '../../utils/Enums/DayOfWeek';
-import { isAdminRole } from '../../utils/Enums/Role';
+import { isAdminRole } from '../../utils/Enums/Roles';
 import { useUsersQuery, useWeeklySelectionsQuery } from '../../api/useApiQueries';
 import type { User } from '../../api/Services/UserServices';
 import type { WeeklyUserMealSelection } from '../../api/Services/MealSelectionServices';
@@ -23,11 +21,13 @@ import { TitleBar } from '../../components/TitleBar/TitleBar';
 import MenuCard from '../../components/MenuCard/MenuCard';
 import Button from '../../components/Button/Button';
 import SearchBar from '../../components/SearchBar/SearchBar';
+import { getMenuCardsForRole } from '../../config/activitiesConfig';
 
 export function UserActivities() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const userId = profile?.user?.id;
+  const menuCards = getMenuCardsForRole(profile?.user);
   const today = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -259,20 +259,16 @@ export function UserActivities() {
         <section className="w-full">
           <h2 className="mb-3 text-base font-bold text-text-primary">Activities</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {/* Card 1: Select Meals */}
-            <MenuCard
-              label="Select Meals"
-              subtitle="Pick dishes for the upcoming week for yourself or on behalf of other users."
-              onClick={() => setIsSelectionOpen(true)}
-              icon={SelectMealIcon}
-            />
-            {/* Card 2: Preset Meals */}
-            <MenuCard
-              label="Preset Meals"
-              subtitle="Create reusable dish combo templates to avoid repetitive meal selections."
-              path="/preset-meals"
-              icon={PresetsIcon}
-            />
+            {menuCards.map((card) => (
+              <MenuCard
+                key={card.id}
+                label={card.label}
+                subtitle={card.subtitle}
+                icon={card.icon}
+                path={card.path}
+                onClick={card.actionKey === 'select-meals' ? () => setIsSelectionOpen(true) : undefined}
+              />
+            ))}
           </div>
         </section>
       </div>

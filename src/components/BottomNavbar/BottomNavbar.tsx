@@ -3,10 +3,9 @@ import { useAuth } from '../../pages/Auth/useAuth/useAuth';
 import {
   getBottomNavItemsForRole,
   type NavigationItemConfig,
-  type NavItemId,
 } from '../../config/navigationConfig';
 
-export type NavTab = NavItemId | 'home' | 'admin' | 'budget' | 'history' | 'feedback' | 'account' | string;
+export type NavTab = string;
 
 interface BottomNavbarProps {
   activeTab: NavTab;
@@ -17,7 +16,6 @@ interface BottomNavbarProps {
 export function BottomNavbar({ activeTab, items }: BottomNavbarProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const role = profile?.user?.roleName ?? profile?.user?.roleId;
 
   const handleNavigation = (tab: NavTab, path: string) => {
     if (activeTab !== tab) {
@@ -25,7 +23,7 @@ export function BottomNavbar({ activeTab, items }: BottomNavbarProps) {
     }
   };
 
-  const navItems = items ? items : getBottomNavItemsForRole(role);
+  const navItems = items ? items : getBottomNavItemsForRole(profile?.user);
 
   return (
     <nav

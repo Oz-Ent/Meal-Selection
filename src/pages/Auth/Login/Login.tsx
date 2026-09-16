@@ -6,7 +6,7 @@ import PasswordField from '../../../components/PasswordField/PasswordField';
 import AuthLink from '../../../components/AuthLink/AuthLink';
 import Checkbox from '../../../components/Checkbox/Checkbox';
 import { useLoginHandler } from '../LoginHandler/LoginHandler';
-import { isAdminRole } from '../../../utils/Enums/Role';
+import { isAdminRole } from '../../../utils/Enums/Roles';
 import AppIcon from '../../../assets/App Icon.svg';
 import bro from '../../../assets/bro.svg';
 

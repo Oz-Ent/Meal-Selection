@@ -11,7 +11,7 @@ import UserPreferencesCard from './components/UserPreferencesCard';
 import type { UserProfileResponse } from '../../api/Services/UserServices';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { LogoutConfirmModal } from './components/LogoutConfirmModal';
-import { Roles } from '../../utils/Enums/Role';
+import { Roles } from '../../utils/Enums/Roles';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import PageHeader from '../../components/PageHeader/PageHeader';
