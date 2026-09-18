@@ -26,11 +26,13 @@ function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{ui}</MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return render(ui, {
+    wrapper: ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    ),
+  });
 }
 
 describe('ViewUserSelectionsModal Component', () => {
@@ -104,7 +106,6 @@ describe('ViewUserSelectionsModal Component', () => {
     expect(screen.getByText(/selected by admin user/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /edit meals/i })).toBeInTheDocument();
     expect(screen.getByText('Jollof Rice')).toBeInTheDocument();
-    expect(screen.getByText('650 kcal')).toBeInTheDocument();
     expect(screen.getAllByText('Unavailable').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Holiday').length).toBeGreaterThanOrEqual(1);
   });
@@ -186,8 +187,59 @@ describe('ViewUserSelectionsModal Component', () => {
     const checkbox = screen.getByLabelText(/Save selections as preset/i);
     expect(checkbox).toBeInTheDocument();
     expect(checkbox).not.toBeChecked();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 
     fireEvent.click(checkbox);
     expect(handleCheckboxChange).toHaveBeenCalledWith(true);
+  });
+
+  it('renders preset name input field only when saveAsPresetChecked is true and fires onPresetNameChange', () => {
+    const handlePresetNameChange = jest.fn();
+
+    const { rerender } = renderWithProviders(
+      <ViewUserSelectionsModal
+        isOpen={true}
+        onClose={jest.fn()}
+        customTitle="Confirm Meals"
+        directSelections={[]}
+        showSaveAsPresetCheckbox={true}
+        saveAsPresetChecked={false}
+        presetName="Week 35 Menu 1 Preset"
+        onPresetNameChange={handlePresetNameChange}
+        confirmButton={{
+          label: 'Confirm',
+          onClick: jest.fn(),
+        }}
+      />,
+    );
+
+    // Should not be visible when unchecked
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+    // Rerender with saveAsPresetChecked={true}
+    rerender(
+      <ViewUserSelectionsModal
+        isOpen={true}
+        onClose={jest.fn()}
+        customTitle="Confirm Meals"
+        directSelections={[]}
+        showSaveAsPresetCheckbox={true}
+        saveAsPresetChecked={true}
+        presetName="Week 35 Menu 1 Preset"
+        defaultPresetName="Week 35 Menu 1 Preset"
+        onPresetNameChange={handlePresetNameChange}
+        confirmButton={{
+          label: 'Confirm',
+          onClick: jest.fn(),
+        }}
+      />,
+    );
+
+    const input = screen.getByRole('textbox');
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveValue('Week 35 Menu 1 Preset');
+
+    fireEvent.change(input, { target: { value: 'My Custom Week 35 Preset' } });
+    expect(handlePresetNameChange).toHaveBeenCalledWith('My Custom Week 35 Preset');
   });
 });

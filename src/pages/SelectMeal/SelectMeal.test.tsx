@@ -305,6 +305,14 @@ describe('SelectMealPage', () => {
     fireEvent.click(presetCheckbox);
     expect(presetCheckbox).toBeChecked();
 
+    // Preset name input should be visible with default value
+    const presetNameInput = screen.getByRole('textbox');
+    expect(presetNameInput).toBeInTheDocument();
+    expect(presetNameInput).toHaveValue('Week 35 Menu Preset');
+
+    // Change preset name
+    fireEvent.change(presetNameInput, { target: { value: 'My Favorite Week 35 Meals' } });
+
     // Click Confirm
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
     fireEvent.click(confirmBtn);
@@ -313,7 +321,7 @@ describe('SelectMealPage', () => {
     expect(mockSubmitSelections).toHaveBeenCalled();
     expect(mockCreatePreset).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: expect.stringMatching(/preset/i),
+        name: 'My Favorite Week 35 Meals',
         menuId: 1,
         userId: 132,
         presetItems: expect.arrayContaining([
