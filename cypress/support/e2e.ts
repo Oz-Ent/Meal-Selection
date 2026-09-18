@@ -9,6 +9,13 @@ Cypress.on('uncaught:exception', () => {
   return false;
 });
 
+beforeEach(() => {
+  cy.on('window:before:load', (win) => {
+    win.localStorage.setItem('announcementVersion', '99');
+  });
+  window.localStorage.setItem('announcementVersion', '99');
+});
+
 interface SeedAuthOptions {
   id?: number;
   name?: string;
@@ -46,6 +53,7 @@ Cypress.Commands.add('seedAuth', (options: SeedAuthOptions = {}) => {
     'refreshToken',
     options.refreshToken ?? 'mock-refresh-token',
   );
+  window.localStorage.setItem('announcementVersion', '99');
 
   // Keep any unmocked 401 from redirecting: the interceptor refreshes, retries
   // once (marked _retry), then rejects without navigating away.

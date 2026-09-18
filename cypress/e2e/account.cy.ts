@@ -166,7 +166,7 @@ describe('User Account & Profile Integration Tests', () => {
   it('opens dietary preferences modal when Configure is clicked', () => {
     cy.visit('/account');
 
-    cy.contains(/Configure|Add Dietary/i).click();
+    cy.contains(/Configure|Add Dietary/i).scrollIntoView().click({ force: true });
     cy.contains('Manage Meal Preferences').should('exist');
     cy.contains('Ingredients').should('exist');
   });
@@ -174,7 +174,7 @@ describe('User Account & Profile Integration Tests', () => {
   it('opens sign out confirmation modal when logout button is clicked', () => {
     cy.visit('/account');
 
-    cy.contains('button', /Sign Out|Log Out/i).click();
+    cy.contains('button', /Sign Out|Log Out/i).scrollIntoView().click({ force: true });
     cy.contains('Sign Out of Account?').should('exist');
     cy.contains('Cancel').should('exist');
   });

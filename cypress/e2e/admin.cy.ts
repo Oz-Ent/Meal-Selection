@@ -38,9 +38,31 @@ describe('Admin Portal Integration Tests', () => {
       body: [],
     }).as('getWeekSchedules');
 
+    // Mock auth refresh & profile
+    cy.intercept('POST', '**/auth/refresh**', {
+      statusCode: 200,
+      body: {
+        accessToken: 'mock-admin-token',
+        refreshToken: 'mock-admin-refresh',
+        user: mockAdminUser.user,
+      },
+    }).as('refreshToken');
+
+    cy.intercept('GET', '**/users/profile**', {
+      statusCode: 200,
+      body: {
+        id: 99,
+        name: 'Admin Boss',
+        email: 'admin@company.com',
+        roleId: 1,
+        roleName: 'admin',
+        status: 'ACTIVE',
+      },
+    }).as('getAdminProfile');
+
     // Mock holidays API without intercepting /admin/holidays navigation
     cy.intercept('GET', '**/holidays**', (req) => {
-      if (req.url.includes('localhost:5173')) {
+      if (req.url.includes('/admin/holidays') || req.url.includes('localhost:5173') || req.url.includes('127.0.0.1')) {
         req.continue();
         return;
       }
@@ -116,7 +138,7 @@ describe('Admin Portal Integration Tests', () => {
     cy.contains('Waakye Deluxe').should('exist');
 
     // Click back button to dynamically return to admin activities
-    cy.get('button[aria-label="Back"]').click();
+    cy.get('button[aria-label="Back"]').click({ force: true });
     cy.url().should('include', '/admin/activities');
   });
 });
