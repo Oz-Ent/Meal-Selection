@@ -6,6 +6,7 @@ import Skeleton from '../../../components/Skeleton/Skeleton';
 import Button from '../../../components/Button/Button';
 import Badge from '../../../components/Badge/Badge';
 import Checkbox from '../../../components/Checkbox/Checkbox';
+import InputField from '../../../components/InputField/InputField';
 import { useWeeklySelectionsQuery } from '../../../api/useApiQueries';
 import { days } from '../../../utils/Enums/DayOfWeek';
 import type { User } from '../../../api/Services/UserServices';
@@ -44,6 +45,9 @@ export interface ViewUserSelectionsModalProps {
   showSaveAsPresetCheckbox?: boolean;
   saveAsPresetChecked?: boolean;
   onSaveAsPresetChange?: (checked: boolean) => void;
+  presetName?: string;
+  onPresetNameChange?: (name: string) => void;
+  defaultPresetName?: string;
 }
 
 export function ViewUserSelectionsModal({
@@ -62,6 +66,9 @@ export function ViewUserSelectionsModal({
   showSaveAsPresetCheckbox = false,
   saveAsPresetChecked = false,
   onSaveAsPresetChange,
+  presetName,
+  onPresetNameChange,
+  defaultPresetName,
 }: ViewUserSelectionsModalProps) {
   const navigate = useNavigate();
   const userId = user?.id;
@@ -178,8 +185,6 @@ export function ViewUserSelectionsModal({
           <div className="space-y-2.5 max-h-[400px] overflow-y-auto overscroll-contain pr-1">
             {directSelections
               ? directSelections.map((item, idx) => {
-                  const isUnavailable = item.selectionType === 'UNAVAILABLE';
-                  const isHoliday = item.selectionType === 'HOLIDAY';
 
                   return (
                     <div
@@ -197,19 +202,9 @@ export function ViewUserSelectionsModal({
                             <p className="text-xs sm:text-sm font-semibold text-text-primary truncate">
                               {item.mealName}
                             </p>
-                            {item.calories && !isUnavailable && !isHoliday ? (
-                              <span className="text-[11px] text-text-secondary">{item.calories} kcal</span>
-                            ) : null}
                           </div>
                         </div>
 
-                        <div>
-                          {isUnavailable ? (
-                            <Badge variant="neutral" size="xs" label="Unavailable" />
-                          ) : isHoliday ? (
-                            <Badge variant="warning" size="xs" label="Holiday" />
-                          ) : null}
-                        </div>
                       </div>
 
                       {/* Nested Guest multi-dish breakdown */}
@@ -249,24 +244,11 @@ export function ViewUserSelectionsModal({
                         <span className="w-12 text-xs font-bold text-text-secondary shrink-0 uppercase tracking-wider">
                           {day.slice(0, 3)}
                         </span>
-
-
                         <div className="min-w-0 flex-1">
                           <p className="text-xs sm:text-sm font-semibold text-text-primary truncate">
                             {mealName}
                           </p>
-                          {selection?.calories && !isUnavailable && !isHoliday ? (
-                            <span className="text-[11px] text-text-secondary">{selection.calories} kcal</span>
-                          ) : null}
                         </div>
-                      </div>
-
-                      <div>
-                        {isUnavailable ? (
-                          <Badge variant="neutral" size="xs" label="Unavailable" />
-                        ) : isHoliday ? (
-                          <Badge variant="warning" size="xs" label="Holiday" />
-                        ):null}
                       </div>
                     </div>
                   );
@@ -274,9 +256,18 @@ export function ViewUserSelectionsModal({
           </div>
         )}
 
-        {/* Save selections as preset checkbox */}
+        {/* Save selections as preset checkbox and input */}
         {showSaveAsPresetCheckbox && (
-          <div className="w-full mt-4 pt-3 border-t border-border flex items-center justify-start text-left">
+          <div className="w-full mt-4 pt-3 border-t border-border flex flex-col gap-3 text-left">
+            {saveAsPresetChecked && (
+                <InputField
+                  id="preset-name-input"
+                  value={presetName ?? ''}
+                  onChange={(e) => onPresetNameChange?.(e.target.value)}
+                  placeholder={defaultPresetName || 'Enter preset name'}
+                  autoFocus
+                />
+            )}
             <Checkbox
               label="Save selections as preset"
               checked={Boolean(saveAsPresetChecked)}

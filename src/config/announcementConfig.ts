@@ -36,7 +36,10 @@ export const ANNOUNCEMENT_VERSION: AnnouncementVersion[] = [
       {
         title: "All in One",
         description: "Install the app to your home screen to make it easier to access",
-        
+      },
+      {
+        title: "More ways to create presets",
+        description: "Save your meal selections directly as a named preset during confirmation, or create them from your order history.",
       },
     ],
   },

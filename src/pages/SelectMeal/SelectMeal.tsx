@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
@@ -29,7 +29,6 @@ import {
   useCreatePresetMutation,
   useMenuDaysQuery,
   useMenuMealsQuery,
-  usePresetsByUserQuery,
   useUserLeavesQuery,
   useUserProfileQuery,
   useUsersQuery,
@@ -56,6 +55,51 @@ export interface OverviewMeal {
   imageUrl?: string;
 }
 
+export interface PresetDraftState {
+  enabled: boolean;
+  name: string;
+  isCustomName: boolean;
+}
+
+export type PresetDraftAction =
+  | { type: 'SET_ENABLED'; payload: boolean }
+  | { type: 'SET_NAME'; payload: string }
+  | { type: 'SYNC_DEFAULT_NAME'; payload: string }
+  | { type: 'RESET'; payload?: { defaultName?: string } };
+
+function presetDraftReducer(
+  state: PresetDraftState,
+  action: PresetDraftAction,
+): PresetDraftState {
+  switch (action.type) {
+    case 'SET_ENABLED':
+      return {
+        ...state,
+        enabled: action.payload,
+      };
+    case 'SET_NAME':
+      return {
+        ...state,
+        name: action.payload,
+        isCustomName: true,
+      };
+    case 'SYNC_DEFAULT_NAME':
+      if (state.isCustomName) return state;
+      return {
+        ...state,
+        name: action.payload,
+      };
+    case 'RESET':
+      return {
+        enabled: false,
+        name: action.payload?.defaultName || '',
+        isCustomName: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function SelectMealPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -75,7 +119,11 @@ export default function SelectMealPage() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
-  const [saveSelectionsAsPreset, setSaveSelectionsAsPreset] = useState(false);
+  const [presetDraft, presetDraftDispatch] = useReducer(presetDraftReducer, {
+    enabled: false,
+    name: '',
+    isCustomName: false,
+  });
   const [toast, setToast] = useState<{
     isOpen: boolean;
     type: ToastType;
@@ -142,13 +190,21 @@ export default function SelectMealPage() {
   const createMealSelectionsMutation = useCreateMealSelectionsMutation();
   const adminOverrideSelectionsMutation = useAdminOverrideSelectionsMutation();
   const createPresetMutation = useCreatePresetMutation();
-  const userPresetsQuery = usePresetsByUserQuery(targetUserId || currentUserId);
 
   const users = useMemo(
     () => (Array.isArray(usersQuery.data) ? usersQuery.data : []),
     [usersQuery.data],
   );
   const weekMenuSchedule = weekMenuScheduleQuery.data;
+  const defaultPresetName = useMemo(() => {
+    const menuTitle = weekMenuSchedule?.menu?.title || 'Menu';
+    return `Week ${week} ${menuTitle} Preset`;
+  }, [week, weekMenuSchedule?.menu?.title]);
+
+  useEffect(() => {
+    presetDraftDispatch({ type: 'SYNC_DEFAULT_NAME', payload: defaultPresetName });
+  }, [defaultPresetName]);
+
   const menuDays: MenuDay[] = useMemo(
     () => (Array.isArray(menuDaysQuery.data) ? menuDaysQuery.data : []),
     [menuDaysQuery.data],
@@ -887,7 +943,7 @@ export default function SelectMealPage() {
         await createMealSelectionsMutation.mutateAsync(payload);
       }
 
-      if (saveSelectionsAsPreset && !isGuest && (targetUserId || currentUserId) && menuId) {
+      if (presetDraft.enabled && !isGuest && (targetUserId || currentUserId) && menuId) {
         const presetItems: CreatePresetItemData[] = [];
         for (const [mDayIdStr, val] of Object.entries(selections)) {
           if (typeof val === 'number') {
@@ -899,10 +955,7 @@ export default function SelectMealPage() {
         }
 
         if (presetItems.length > 0) {
-          const menuTitle = weekMenuSchedule?.menu?.title || 'Menu';
-          const existingMenuPresets = (userPresetsQuery.data ?? []).filter((p) => p.menuId === menuId);
-          const presetNumber = existingMenuPresets.length + 1;
-          const presetTitle = `${menuTitle} Preset ${presetNumber}`;
+          const presetTitle = presetDraft.name.trim() || defaultPresetName;
 
           try {
             await createPresetMutation.mutateAsync({
@@ -919,7 +972,7 @@ export default function SelectMealPage() {
 
       setIsConfirmed(true);
       setIsConfirmModalOpen(false);
-      setSaveSelectionsAsPreset(false);
+      presetDraftDispatch({ type: 'RESET', payload: { defaultName: defaultPresetName } });
     } catch (error) {
       const err = error as {
         response?: { data?: { message?: string; error?: string } };
@@ -1370,8 +1423,15 @@ export default function SelectMealPage() {
         }
         directSelections={confirmModalSelections}
         showSaveAsPresetCheckbox={!isGuest && selectedUsers.length <= 1}
-        saveAsPresetChecked={saveSelectionsAsPreset}
-        onSaveAsPresetChange={setSaveSelectionsAsPreset}
+        saveAsPresetChecked={presetDraft.enabled}
+        onSaveAsPresetChange={(checked) =>
+          presetDraftDispatch({ type: 'SET_ENABLED', payload: checked })
+        }
+        presetName={presetDraft.name}
+        onPresetNameChange={(name) =>
+          presetDraftDispatch({ type: 'SET_NAME', payload: name })
+        }
+        defaultPresetName={defaultPresetName}
         confirmButton={{
           label: 'Confirm',
           onClick: submitSelections,
