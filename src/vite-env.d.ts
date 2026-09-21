@@ -1,5 +1,6 @@
 interface ImportMetaEnv {
   readonly VITE_MEAL_APP_CORE?: string;
+  readonly VITE_VAPID_PUBLIC_KEY?: string;
 }
 
 interface ImportMeta {

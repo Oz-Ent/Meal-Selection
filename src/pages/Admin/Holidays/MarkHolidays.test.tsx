@@ -230,7 +230,7 @@ describe('MarkHolidays Page', () => {
     fireEvent.click(weekTab);
     expect(screen.getAllByText(/Meal Selection Week/i).length).toBeGreaterThan(0);
 
-    const companyTab = screen.getByRole('button', { name: /^Company \(/i });
+    const companyTab = screen.getByRole('button', { name: /^Company/i });
     fireEvent.click(companyTab);
     expect(screen.getByText('Future End of Year Break')).toBeInTheDocument();
   });

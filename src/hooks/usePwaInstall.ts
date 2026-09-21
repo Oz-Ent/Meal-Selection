@@ -1,81 +1,107 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useBrowserInfo } from './useBrowserInfo';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+// Standard BeforeInstallPromptEvent interface
+export interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
 }
 
 export function usePwaInstall() {
+  const browserInfo = useBrowserInfo();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return (
-      (typeof window.matchMedia === 'function' &&
-        window.matchMedia('(display-mode: standalone)').matches) ||
-      Boolean((window.navigator as unknown as { standalone?: boolean }).standalone) ||
-      document.referrer.includes('android-app://')
-    );
-  });
+  const [isInstallable, setIsInstallable] = useState<boolean>(false);
+  const [isInstalled, setIsInstalled] = useState<boolean>(browserInfo.isStandalone);
+  const [isPrompting, setIsPrompting] = useState<boolean>(false);
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
+
+  const promptRef = useRef<BeforeInstallPromptEvent | null>(null);
+  promptRef.current = deferredPrompt;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    setIsInstalled(browserInfo.isStandalone);
+  }, [browserInfo.isStandalone]);
 
-    const mediaQuery =
-      typeof window.matchMedia === 'function'
-        ? window.matchMedia('(display-mode: standalone)')
-        : null;
-    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
-      setIsStandalone(e.matches);
-    };
-
-    if (mediaQuery?.addEventListener) {
-      mediaQuery.addEventListener('change', handleDisplayModeChange);
+  useEffect(() => {
+    // If already installed in standalone mode, no installation needed
+    if (browserInfo.isStandalone) {
+      setIsInstalled(true);
+      setIsInstallable(false);
+      return;
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent automatic browser mini-infobar on mobile
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
       setIsInstallable(true);
     };
 
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
       setIsInstallable(false);
-      setIsStandalone(true);
+      setIsInstalled(true);
+      setIsGuideOpen(false);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      if (mediaQuery?.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleDisplayModeChange);
-      }
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
+  }, [browserInfo.isStandalone]);
+
+  const promptInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | 'guide' | 'unsupported'> => {
+    const activePrompt = promptRef.current;
+
+    // 1. If native Chromium install prompt is ready, trigger it directly
+    if (activePrompt) {
+      setIsPrompting(true);
+      try {
+        await activePrompt.prompt();
+        const choice = await activePrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          setDeferredPrompt(null);
+          setIsInstallable(false);
+          setIsInstalled(true);
+        }
+        return choice.outcome;
+      } catch (err) {
+        console.warn('Native PWA install prompt failed:', err);
+        return 'unsupported';
+      } finally {
+        setIsPrompting(false);
+      }
+    }
+
+    // 2. If on iOS Safari or manual browser, open step-by-step installation guide
+    if (browserInfo.os === 'iOS' || browserInfo.installMethod === 'ios-share' || browserInfo.installMethod === 'manual-menu') {
+      setIsGuideOpen(true);
+      return 'guide';
+    }
+
+    return 'unsupported';
+  }, [browserInfo.os, browserInfo.installMethod]);
+
+  const closeGuide = useCallback(() => {
+    setIsGuideOpen(false);
   }, []);
 
-  const promptInstall = useCallback(async (): Promise<{ outcome: 'accepted' | 'dismissed' | 'manual' }> => {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
-        setDeferredPrompt(null);
-        setIsInstallable(false);
-      }
-      return { outcome: choice.outcome };
-    }
-    return { outcome: 'manual' };
-  }, [deferredPrompt]);
-
-  const isIos = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
-
   return {
-    isStandalone,
-    isInstallable,
-    isIos,
+    isInstallable: isInstallable || (!isInstalled && browserInfo.os === 'iOS'),
+    isInstalled,
+    isPrompting,
+    isGuideOpen,
+    browserInfo,
     promptInstall,
+    closeGuide,
+    setIsGuideOpen,
   };
 }

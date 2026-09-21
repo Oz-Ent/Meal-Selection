@@ -387,25 +387,25 @@ export function MarkHolidays() {
             <Tabs.Options>
               <Tabs.Option
                 value="all"
-                badge={`(${displayedCompanyHolidays.length + displayedPublicHolidays.length})`}
+                badge={`${displayedCompanyHolidays.length + displayedPublicHolidays.length}`}
               >
                 All
               </Tabs.Option>
               <Tabs.Option
                 value="week"
-                badge={`(${weeklyEffectiveHolidays.length})`}
+                badge={`${weeklyEffectiveHolidays.length}`}
               >
                 Selection Week
               </Tabs.Option>
               <Tabs.Option
                 value="public"
-                badge={`(${displayedPublicHolidays.length})`}
+                badge={`${displayedPublicHolidays.length}`}
               >
                 Public
               </Tabs.Option>
               <Tabs.Option
                 value="company"
-                badge={`(${displayedCompanyHolidays.length})`}
+                badge={`${displayedCompanyHolidays.length}`}
               >
                 Company
               </Tabs.Option>

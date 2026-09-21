@@ -23,5 +23,6 @@ describe('MasterLayout Component', () => {
     expect(main).toHaveClass('flex-col');
     expect(main).toHaveClass('min-h-screen');
     expect(main).toHaveClass('bg-app-bg');
+    expect(main).toHaveClass('text-text-primary');
   });
 });

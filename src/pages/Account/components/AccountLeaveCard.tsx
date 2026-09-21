@@ -6,6 +6,8 @@ import EmptyState from '../../../components/EmptyState/EmptyState';
 import InfoBanner from '../../../components/Banner/InfoBanner';
 import StatCard from '../../../components/StatCard/StatCard';
 
+import { formatDate } from '../../../utils/dateHelpers';
+
 interface AccountLeaveCardProps {
   leaves: UserLeave[];
   upcomingOrActiveLeaves: UserLeave[];
@@ -17,18 +19,6 @@ export const AccountLeaveCard = ({
   upcomingOrActiveLeaves = [],
   totalLeaveDays = 0,
 }: AccountLeaveCardProps) => {
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
 
   const isCurrentlyOnLeave = upcomingOrActiveLeaves.some((leave) => {
     const now = new Date();

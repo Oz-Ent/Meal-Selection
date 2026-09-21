@@ -113,7 +113,7 @@ export const AccountSecurityCard = () => {
 
         <PasswordValidationChecklist password={newPassword} collapse={true} />
 
-        <div className="pt-1 flex justify-end">
+        <div className="pt-1 flex justify-end self-baseline">
           <Button
             type="submit"
             disabled={!currentPassword || !newPassword || !confirmPassword || changePasswordMutation.isPending}

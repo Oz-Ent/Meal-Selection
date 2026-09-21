@@ -421,7 +421,7 @@ export function SelectionActivity() {
                     >
                       <Badge
                         variant="secondary"
-                        size="xs"
+                        size="md"
                         icon={<UserRoundCheck size={13} />}
                         label={selectionCount}
                       />
