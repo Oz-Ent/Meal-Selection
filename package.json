@@ -15,8 +15,9 @@
     "test:cypress:watch": "cypress open --component --pass-with-no-tests",
     "e2e": "cypress open",
     "e2e:run": "cypress run",
-    "test:all": "npm run test:coverage && npm run e2e:run",
-    "test:cypress:all": "npm run test:cypress && npm run e2e:run"
+    "test:e2e": "node scripts/run-e2e.js",
+    "test:all": "npm run test:coverage && npm run test:e2e",
+    "test:cypress:all": "npm run test:cypress && npm run test:e2e"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

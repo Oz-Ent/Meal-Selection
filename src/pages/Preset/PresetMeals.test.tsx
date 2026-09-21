@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PresetMeals } from './PresetMeals';
+import type { Preset } from '../../api/Services/PresetServices';
 
 const mockNavigate = jest.fn();
 
@@ -22,7 +23,7 @@ const mockMenus = [
   { id: 2, title: 'Menu 2', isActive: true },
 ];
 
-const mockPresets: any[] = [];
+const mockPresets: Preset[] = [];
 
 jest.mock('../../api/useApiQueries', () => ({
   useMenusQuery: () => ({ data: mockMenus, isLoading: false }),

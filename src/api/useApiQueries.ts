@@ -389,7 +389,12 @@ export const useCreatePresetMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreatePresetRequest) => presetService.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.presets }),
+    onSuccess: (createdPreset) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.presets });
+      if (createdPreset?.id) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.preset(createdPreset.id) });
+      }
+    },
   });
 };
 
@@ -409,8 +414,9 @@ export const useDeletePresetMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => presetService.delete(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.presets });
+      queryClient.removeQueries({ queryKey: queryKeys.preset(id) });
     },
   });
 };
@@ -419,8 +425,10 @@ export const useSetDefaultPresetMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => presetService.setDefault(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.presets });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.preset(id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userPreferences() });
     },
   });
 };

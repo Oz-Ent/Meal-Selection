@@ -1,4 +1,4 @@
-﻿import { ArrowDownToLine, LogOut, RefreshCw, Share, PlusSquare, X } from 'lucide-react';
+import { ArrowDownToLine, LogOut, RefreshCw, Share, PlusSquare, X } from 'lucide-react';
 import AppIcon from '../../assets/App Icon.svg';
 import { LogoutConfirmModal } from '../../pages/Account/components/LogoutConfirmModal';
 import { useState, type ReactNode } from 'react';
@@ -16,11 +16,13 @@ export interface TitleBarProps {
 export function TitleBar({ isLoading, extraActions, refetchAction, banner }: TitleBarProps) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
   const [showManualInstallModal, setShowManualInstallModal] = useState<boolean>(false);
-  const { isStandalone, promptInstall, isIos } = usePwaInstall();
+  const { isInstalled, promptInstall, browserInfo } = usePwaInstall();
+  const isStandalone = isInstalled || browserInfo.isStandalone;
+  const isIos = browserInfo.os === 'iOS';
 
   const handleInstallClick = async () => {
-    const { outcome } = await promptInstall();
-    if (outcome === 'manual') {
+    const outcome = await promptInstall();
+    if (outcome === 'guide') {
       setShowManualInstallModal(true);
     }
   };

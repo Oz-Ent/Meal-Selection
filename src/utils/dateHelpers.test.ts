@@ -7,6 +7,8 @@ import {
   isMenuDayToday,
   isMenuDayPast,
   getMenuDayPastStatus,
+  formatDate,
+  formatDateRange,
 } from './dateHelpers';
 
 describe('dateHelpers', () => {
@@ -86,6 +88,24 @@ describe('dateHelpers', () => {
 
     const statusWedAfter10 = getMenuDayPastStatus(35, 2026, 'WEDNESDAY', refWedAfter10);
     expect(statusWedAfter10).toEqual({ isPast: true, isToday: true, isUpcoming: false, isClosedToday: true });
+  });
+
+  it('formats single dates with formatDate', () => {
+    expect(formatDate('2026-09-01')).toBe('Sep 1, 2026');
+    expect(formatDate('2026-12-25T00:00:00.000Z')).toBe('Dec 25, 2026');
+    expect(formatDate(null)).toBe('');
+    expect(formatDate('')).toBe('');
+  });
+
+  it('formats date ranges with formatDateRange across same and different months/years', () => {
+    // Same month
+    expect(formatDateRange('2026-09-01', '2026-09-30')).toBe('Sep 1 - 30, 2026');
+    // Same day
+    expect(formatDateRange('2026-09-01', '2026-09-01')).toBe('Sep 1, 2026');
+    // Different months, same year
+    expect(formatDateRange('2026-08-15', '2026-09-15')).toBe('Aug 15 - Sep 15, 2026');
+    // Different years
+    expect(formatDateRange('2025-12-20', '2026-01-10')).toBe('Dec 20, 2025 - Jan 10, 2026');
   });
 });
 

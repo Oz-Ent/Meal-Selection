@@ -1,6 +1,7 @@
 import menuIcon from '../assets/admin/MenuIcon.webp';
 import mealIcon from '../assets/admin/MenuFood.webp';
 import reportIcon from '../assets/admin/SelectionsReports.webp';
+import selectionStatusIcon from '../assets/admin/SelectionStatus.webp'
 import budgetsIcon from '../assets/admin/budgetsIcon.webp';
 import holidaysIcon from '../assets/admin/HolidaySchedules.webp';
 import foodAssignmentIcon from '../assets/admin/FoodAssignment.webp';
@@ -49,7 +50,7 @@ export const adminActivitiesConfig: readonly AdminActivityConfig[] = [
     id: 'selection-status',
     title: 'Selection Status',
     description: 'Track users pending meal choices and toggle weekly selection closure.',
-    image: reportIcon,
+    image: selectionStatusIcon,
     path: '/admin/selection-status',
     roles: [Role.admin, Role.hr, Role.manager],
   },

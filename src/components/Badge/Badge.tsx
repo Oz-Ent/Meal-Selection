@@ -80,7 +80,7 @@ export default function Badge({
           }`}
         />
       )}
-      {icon && <span className="-ml-1.5">{icon}</span>}
+      {icon && <span className="-ml-1">{icon}</span>}
       {content && <span className="truncate">{content}</span>}
     </span>
   );

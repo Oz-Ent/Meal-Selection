@@ -159,7 +159,8 @@ describe('Account Page', () => {
     expect(screen.getByRole('heading', { name: /Dietary Preferences/i })).toBeInTheDocument();
     expect(screen.getByText('Pork')).toBeInTheDocument();
     expect(screen.getByText('Mushrooms')).toBeInTheDocument();
-    expect(screen.getByText(/3 active presets/i)).toBeInTheDocument();
+    expect(screen.getByText('Saved Presets')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 
   it('validates password change submission button state', () => {

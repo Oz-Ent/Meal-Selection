@@ -12,7 +12,7 @@ jest.mock('react-router-dom', () => ({
 const mockPreferences = {
   dislikes: {
     foodItems: ['PK'],
-    meals: [10],
+    meals: [20],
   },
   excludedMealIds: [10],
 };
@@ -60,11 +60,16 @@ describe('AccountPreferencesCard Component', () => {
     );
 
     expect(screen.getByText('Dietary Preferences')).toBeInTheDocument();
-    expect(screen.getByText('2 exclusions active')).toBeInTheDocument();
     expect(screen.getByText('Pork')).toBeInTheDocument();
+    expect(screen.getByText('Saved Presets')).toBeInTheDocument();
+    expect(screen.getByText('Total Selections')).toBeInTheDocument();
+
+    const excludedMealsToggle = screen.getByRole('button', {
+      name: 'Meals excluded from selections (1)',
+    });
+    expect(excludedMealsToggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(excludedMealsToggle);
     expect(screen.getByText('Pork Fried Rice')).toBeInTheDocument();
-    expect(screen.getByText('3 active presets')).toBeInTheDocument();
-    expect(screen.getByText('12 meals chosen')).toBeInTheDocument();
   });
 
   it('navigates when clicking preset meals shortcut', () => {
@@ -74,10 +79,7 @@ describe('AccountPreferencesCard Component', () => {
       </MemoryRouter>
     );
 
-    const presetBtn = screen.getByText('Saved Preset Meals').closest('button');
-    expect(presetBtn).toBeInTheDocument();
-    fireEvent.click(presetBtn!);
-
+    fireEvent.click(screen.getByText('Saved Presets'));
     expect(mockNavigate).toHaveBeenCalledWith('/preset-meals');
   });
 
@@ -88,11 +90,8 @@ describe('AccountPreferencesCard Component', () => {
       </MemoryRouter>
     );
 
-    const selectionBtn = screen.getByText('Weekly Selection').closest('button');
-    expect(selectionBtn).toBeInTheDocument();
-    fireEvent.click(selectionBtn!);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/select-meal');
+    fireEvent.click(screen.getByText('Total Selections'));
+    expect(mockNavigate).toHaveBeenCalledWith('/history');
   });
 
   it('opens configuration modal when Configure button is clicked', () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -15,7 +15,7 @@ import PresetIllustration from '../../assets/Preset Illustration.svg';
 import Button from '../../components/Button/Button';
 import Badge from '../../components/Badge/Badge';
 import InputField from '../../components/InputField/InputField';
-import { useQueryClient } from '@tanstack/react-query';
+import NavBar from '../../components/NavBar/NavBar';
 import {
   useCreatePresetMutation,
   useDeletePresetMutation,
@@ -29,37 +29,193 @@ import { menuService } from '../../api/Services/MenuServices';
 import ActionMenu from '../../components/ActionMenu/ActionMenu';
 import { DefaultPresetWarningModal } from './components/DefaultPresetWarningModal';
 import { useAuth } from '../Auth/useAuth/useAuth';
+import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+
+// --- State and Reducer Definitions ---
+
+interface PresetMealsState {
+  isSelectMenuModalOpen: boolean;
+  renameModal: {
+    isOpen: boolean;
+    preset: Preset | null;
+    input: string;
+    isRenaming: boolean;
+  };
+  warningModal: {
+    isOpen: boolean;
+    preset: Preset | null;
+    emptyDays: string[];
+    isLoading: boolean;
+  };
+  loadingOverlay: {
+    isLoading: boolean;
+    message: string;
+  };
+  toast: {
+    isOpen: boolean;
+    type: ToastType;
+    message: string;
+  };
+}
+
+const initialState: PresetMealsState = {
+  isSelectMenuModalOpen: false,
+  renameModal: {
+    isOpen: false,
+    preset: null,
+    input: '',
+    isRenaming: false,
+  },
+  warningModal: {
+    isOpen: false,
+    preset: null,
+    emptyDays: [],
+    isLoading: false,
+  },
+  loadingOverlay: {
+    isLoading: false,
+    message: '',
+  },
+  toast: {
+    isOpen: false,
+    type: 'success',
+    message: '',
+  },
+};
+
+type PresetMealsAction =
+  | { type: 'OPEN_SELECT_MENU' }
+  | { type: 'CLOSE_SELECT_MENU' }
+  | { type: 'OPEN_RENAME'; preset: Preset }
+  | { type: 'SET_RENAME_INPUT'; input: string }
+  | { type: 'START_RENAMING' }
+  | { type: 'FINISH_RENAMING' }
+  | { type: 'CLOSE_RENAME' }
+  | { type: 'OPEN_WARNING_MODAL'; preset: Preset; emptyDays: string[] }
+  | { type: 'SET_WARNING_LOADING'; isLoading: boolean }
+  | { type: 'CLOSE_WARNING_MODAL' }
+  | { type: 'SET_LOADING_OVERLAY'; isLoading: boolean; message?: string }
+  | { type: 'SHOW_TOAST'; toastType: ToastType; message: string }
+  | { type: 'HIDE_TOAST' };
+
+function presetMealsReducer(
+  state: PresetMealsState,
+  action: PresetMealsAction,
+): PresetMealsState {
+  switch (action.type) {
+    case 'OPEN_SELECT_MENU':
+      return { ...state, isSelectMenuModalOpen: true };
+    case 'CLOSE_SELECT_MENU':
+      return { ...state, isSelectMenuModalOpen: false };
+    case 'OPEN_RENAME':
+      return {
+        ...state,
+        renameModal: {
+          isOpen: true,
+          preset: action.preset,
+          input: action.preset.name || '',
+          isRenaming: false,
+        },
+      };
+    case 'SET_RENAME_INPUT':
+      return {
+        ...state,
+        renameModal: {
+          ...state.renameModal,
+          input: action.input,
+        },
+      };
+    case 'START_RENAMING':
+      return {
+        ...state,
+        renameModal: {
+          ...state.renameModal,
+          isRenaming: true,
+        },
+      };
+    case 'FINISH_RENAMING':
+      return {
+        ...state,
+        renameModal: {
+          ...state.renameModal,
+          isRenaming: false,
+          isOpen: false,
+        },
+      };
+    case 'CLOSE_RENAME':
+      return {
+        ...state,
+        renameModal: {
+          isOpen: false,
+          preset: null,
+          input: '',
+          isRenaming: false,
+        },
+      };
+    case 'OPEN_WARNING_MODAL':
+      return {
+        ...state,
+        warningModal: {
+          isOpen: true,
+          preset: action.preset,
+          emptyDays: action.emptyDays,
+          isLoading: false,
+        },
+      };
+    case 'SET_WARNING_LOADING':
+      return {
+        ...state,
+        warningModal: {
+          ...state.warningModal,
+          isLoading: action.isLoading,
+        },
+      };
+    case 'CLOSE_WARNING_MODAL':
+      return {
+        ...state,
+        warningModal: {
+          isOpen: false,
+          preset: null,
+          emptyDays: [],
+          isLoading: false,
+        },
+      };
+    case 'SET_LOADING_OVERLAY':
+      return {
+        ...state,
+        loadingOverlay: {
+          isLoading: action.isLoading,
+          message: action.message ?? '',
+        },
+      };
+    case 'SHOW_TOAST':
+      return {
+        ...state,
+        toast: {
+          isOpen: true,
+          type: action.toastType,
+          message: action.message,
+        },
+      };
+    case 'HIDE_TOAST':
+      return {
+        ...state,
+        toast: {
+          ...state.toast,
+          isOpen: false,
+        },
+      };
+    default:
+      return state;
+  }
+}
 
 export function PresetMeals() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const userId = profile?.user?.id;
 
-  const [isSelectMenuModalOpen, setIsSelectMenuModalOpen] = useState(false);
-
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-  const [renameInput, setRenameInput] = useState('');
-  const [presetToRename, setPresetToRename] = useState<Preset | null>(null);
-
-  const [loadingOverlay, setLoadingOverlay] = useState<{
-    isLoading: boolean;
-    message: string;
-  }>({
-    isLoading: false,
-    message: '',
-  });
-
-  const [isRenaming, setIsRenaming] = useState(false);
-
-  const [toast, setToast] = useState<{
-    isOpen: boolean;
-    type: ToastType;
-    message: string;
-  }>({
-    isOpen: false,
-    type: 'success',
-    message: '',
-  });
+  const [state, dispatch] = useReducer(presetMealsReducer, initialState);
 
   const menusQuery = useMenusQuery();
   const menus = menusQuery.data ?? [];
@@ -73,76 +229,85 @@ export function PresetMeals() {
   const deletePresetMutation = useDeletePresetMutation();
   const createPresetMutation = useCreatePresetMutation();
 
+  const isQueryLoading = presetsQuery.isLoading || menusQuery.isLoading;
+
   const handleSelectMenu = (menuId: number) => {
-    setIsSelectMenuModalOpen(false);
+    dispatch({ type: 'CLOSE_SELECT_MENU' });
     navigate(`/preset-meals/create/${menuId}`);
   };
 
   const handleOpenRename = (preset: Preset) => {
-    setPresetToRename(preset);
-    setRenameInput(preset.name || '');
-    setIsRenameModalOpen(true);
+    dispatch({ type: 'OPEN_RENAME', preset });
   };
 
   const handleConfirmRename = async () => {
-    if (!presetToRename || !renameInput.trim()) return;
-    setIsRenaming(true);
+    const { preset, input } = state.renameModal;
+    if (!preset || !input.trim()) return;
+
+    dispatch({ type: 'START_RENAMING' });
     try {
       await updatePresetMutation.mutateAsync({
-        id: presetToRename.id,
-        data: { name: renameInput.trim() },
+        id: preset.id,
+        data: { name: input.trim() },
       });
-      setIsRenameModalOpen(false);
-      setToast({
-        isOpen: true,
-        type: 'success',
+      dispatch({ type: 'FINISH_RENAMING' });
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'success',
         message: 'Preset meal renamed successfully',
       });
     } catch (error) {
       console.error('Failed to rename preset:', error);
-      setIsRenameModalOpen(false);
-      setToast({
-        isOpen: true,
-        type: 'error',
+      dispatch({ type: 'CLOSE_RENAME' });
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'error',
         message: 'Something went wrong while renaming preset meal. Please try again.',
       });
-    } finally {
-      setIsRenaming(false);
     }
   };
 
-  const handleSetDefault = async (preset: Preset) => {
-    setActiveMenuPresetId(null);
-    setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
+  const executeSetDefault = async (presetId: number) => {
     try {
-      await setDefaultPresetMutation.mutateAsync(preset.id);
-      setToast({
-        isOpen: true,
-        type: 'success',
+      await setDefaultPresetMutation.mutateAsync(presetId);
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'success',
         message: 'Preset meal set as default successfully',
       });
     } catch (error) {
       console.error('Failed to set default preset:', error);
-      setToast({
-        isOpen: true,
-        type: 'error',
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'error',
         message: 'Something went wrong while setting preset meal as default. Please try again.',
       });
     }
   };
 
+  const handleConfirmDefaultWarning = async () => {
+    if (!state.warningModal.preset) return;
+    dispatch({ type: 'SET_WARNING_LOADING', isLoading: true });
+    try {
+      await executeSetDefault(state.warningModal.preset.id);
+      dispatch({ type: 'CLOSE_WARNING_MODAL' });
+    } catch (error) {
+      console.error('Failed to confirm default preset warning:', error);
+      dispatch({ type: 'SET_WARNING_LOADING', isLoading: false });
+    }
+  };
+
   const handleSetDefault = async (preset: Preset) => {
-    setLoadingOverlay({ isLoading: true, message: 'Checking preset details...' });
+    dispatch({
+      type: 'SET_LOADING_OVERLAY',
+      isLoading: true,
+      message: 'Checking preset details...',
+    });
+
     try {
       const [details, menuDays] = await Promise.all([
-        queryClient.fetchQuery({
-          queryKey: queryKeys.preset(preset.id),
-          queryFn: () => presetService.getWithDetails(preset.id),
-        }),
-        queryClient.fetchQuery({
-          queryKey: queryKeys.menuDays(preset.menuId),
-          queryFn: () => menuService.getDays(preset.menuId),
-        }),
+        presetService.getWithDetails(preset.id),
+        menuService.getDays(preset.menuId),
       ]);
 
       const selectedDayIds = new Set<number>();
@@ -161,7 +326,7 @@ export function PresetMeals() {
         }
       }
 
-      // Check items object fallback
+      // Fallback: check items object
       const presetRecord = details as { items?: Record<string, { dayMealId?: number }> } | undefined;
       if (
         selectedDayIds.size === 0 &&
@@ -186,31 +351,39 @@ export function PresetMeals() {
         .filter((day) => !selectedDayIds.has(day.id))
         .map((day) => day.day);
 
-      setLoadingOverlay({ isLoading: false, message: '' });
+      dispatch({ type: 'SET_LOADING_OVERLAY', isLoading: false });
 
       if (emptyDays.length > 0) {
-        setWarningPresetModal({
-          isOpen: true,
-          preset,
-          emptyDays,
-          isLoading: false,
-        });
+        dispatch({ type: 'OPEN_WARNING_MODAL', preset, emptyDays });
       } else {
-        setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
+        dispatch({
+          type: 'SET_LOADING_OVERLAY',
+          isLoading: true,
+          message: 'Setting default preset...',
+        });
         await executeSetDefault(preset.id);
-        setLoadingOverlay({ isLoading: false, message: '' });
+        dispatch({ type: 'SET_LOADING_OVERLAY', isLoading: false });
       }
     } catch (error) {
-      setLoadingOverlay({ isLoading: false, message: '' });
+      dispatch({ type: 'SET_LOADING_OVERLAY', isLoading: false });
       console.error('Failed to check preset details:', error);
-      setLoadingOverlay({ isLoading: true, message: 'Setting default preset...' });
+      dispatch({
+        type: 'SET_LOADING_OVERLAY',
+        isLoading: true,
+        message: 'Setting default preset...',
+      });
       await executeSetDefault(preset.id);
-      setLoadingOverlay({ isLoading: false, message: '' });
+      dispatch({ type: 'SET_LOADING_OVERLAY', isLoading: false });
     }
   };
 
   const handleDuplicate = async (preset: Preset) => {
-    setLoadingOverlay({ isLoading: true, message: 'Duplicating preset meal...' });
+    dispatch({
+      type: 'SET_LOADING_OVERLAY',
+      isLoading: true,
+      message: 'Duplicating preset meal...',
+    });
+
     try {
       const details = await presetService.getWithDetails(preset.id);
       const itemsToDuplicate =
@@ -227,62 +400,56 @@ export function PresetMeals() {
         presetItems: itemsToDuplicate,
       });
 
-      setToast({
-        isOpen: true,
-        type: 'success',
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'success',
         message: `${presetName} duplicated successfully`,
       });
     } catch (error) {
       console.error('Failed to duplicate preset:', error);
-      setToast({
-        isOpen: true,
-        type: 'error',
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'error',
         message: 'Something went wrong while duplicating preset meal. Please try again.',
       });
     } finally {
-      setLoadingOverlay({ isLoading: false, message: '' });
+      dispatch({ type: 'SET_LOADING_OVERLAY', isLoading: false });
     }
   };
 
   const handleDelete = async (preset: Preset) => {
-    setLoadingOverlay({ isLoading: true, message: 'Deleting preset meal...' });
+    dispatch({
+      type: 'SET_LOADING_OVERLAY',
+      isLoading: true,
+      message: 'Deleting preset meal...',
+    });
+
     try {
       await deletePresetMutation.mutateAsync(preset.id);
-      setToast({
-        isOpen: true,
-        type: 'success',
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'success',
         message: 'Preset meal deleted successfully',
       });
     } catch (error) {
       console.error('Failed to delete preset:', error);
-      setToast({
-        isOpen: true,
-        type: 'error',
+      dispatch({
+        type: 'SHOW_TOAST',
+        toastType: 'error',
         message: 'Something went wrong while deleting preset meal. Please try again.',
       });
     } finally {
-      setLoadingOverlay({ isLoading: false, message: '' });
+      dispatch({ type: 'SET_LOADING_OVERLAY', isLoading: false });
     }
   };
 
   return (
-    <div className="min-h-screen w-full max-w-md mx-auto bg-[#f8fafc] text-msTextPrimary flex flex-col font-sans relative pb-20">
-      {/* Header */}
-      <header className="flex h-14 items-center justify-between bg-white px-4 border-b border-slate-100 sticky top-0 z-10 shadow-2xs">
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => navigate('/activities')}
-          className="p-1.5 rounded-full text-[#10384f] hover:bg-slate-100 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <h1 className="text-base font-bold text-slate-900 text-center flex-1 pr-6">Preset Meals</h1>
-      </header>
+    <div className="min-h-screen w-full max-w-5xl mx-auto bg-app-bg text-text-primary flex flex-col font-sans relative pb-20">
+      {/* Navigation Header using standard NavBar component */}
+      <NavBar title="Preset Meals" backUrl="/activities" />
 
       {/* Main Content */}
-      <main className="p-4 sm:p-6">
+      <main className="p-4 sm:p-6 flex-1 flex flex-col">
         {isQueryLoading ? (
           <div className="flex min-h-64 flex-col items-center justify-center gap-3 my-auto py-16">
             <div className="h-8 w-8">
@@ -303,7 +470,7 @@ export function PresetMeals() {
             </p>
           </div>
         ) : (
-          <div className="w-full flex flex-col gap-3 text-left">
+          <div className="w-full grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
             {presets.map((preset) => {
               const menuObj = menus.find((m) => m.id === preset.menuId);
               const menuLabel = menuObj?.title || `Menu ${preset.menuId}`;
@@ -353,7 +520,7 @@ export function PresetMeals() {
                           divider
                           onClick={() => handleDuplicate(preset)}
                         >
-                          Duplicate preset meal
+                          Duplicate preset
                         </ActionMenu.Item>
 
                         <ActionMenu.Item
@@ -362,7 +529,7 @@ export function PresetMeals() {
                           divider
                           onClick={() => handleDelete(preset)}
                         >
-                          Delete preset meal
+                          Delete preset
                         </ActionMenu.Item>
                       </ActionMenu>
                     </div>
@@ -376,21 +543,21 @@ export function PresetMeals() {
 
       {/* Floating Action Button "+ Add" */}
       <div className="fixed bottom-6 right-6 z-20">
-        <button
+        <Button
+          variant="secondary"
+          icon={<Plus size={18} />}
+          label="Add"
           type="button"
           aria-label="Add new preset menu"
-          onClick={() => setIsSelectMenuModalOpen(true)}
-          className="flex items-center gap-2 bg-[#20475b] hover:bg-[#183a4a] text-white px-5 py-3 rounded-full shadow-lg font-semibold text-sm transition-transform active:scale-95"
-        >
-          <Plus size={18} />
-          <span>Add</span>
-        </button>
+          onClick={() => dispatch({ type: 'OPEN_SELECT_MENU' })}
+          className="hover:scale-95"         
+        />
       </div>
 
       {/* Bottom Sheet Modal: Select Menu */}
       <Modal
-        isOpen={isSelectMenuModalOpen}
-        onClose={() => setIsSelectMenuModalOpen(false)}
+        isOpen={state.isSelectMenuModalOpen}
+        onClose={() => dispatch({ type: 'CLOSE_SELECT_MENU' })}
         variant="bottom"
         showCloseButton={true}
       >
@@ -436,8 +603,8 @@ export function PresetMeals() {
 
       {/* Modal: Rename preset menu */}
       <Modal
-        isOpen={isRenameModalOpen}
-        onClose={() => setIsRenameModalOpen(false)}
+        isOpen={state.renameModal.isOpen}
+        onClose={() => dispatch({ type: 'CLOSE_RENAME' })}
         variant="bottom"
         showCloseButton={true}
       >
@@ -445,8 +612,10 @@ export function PresetMeals() {
           <h2 className="text-base font-bold text-text-primary text-left">Rename preset menu</h2>
 
           <InputField
-            value={renameInput}
-            onChange={(e) => setRenameInput(e.target.value)}
+            value={state.renameModal.input}
+            onChange={(e) =>
+              dispatch({ type: 'SET_RENAME_INPUT', input: e.target.value })
+            }
             placeholder="Enter preset menu name"
             autoFocus
           />
@@ -454,8 +623,8 @@ export function PresetMeals() {
           <Button
             variant="secondary"
             className="w-full"
-            disabled={!renameInput.trim() || isRenaming}
-            pending={isRenaming}
+            disabled={!state.renameModal.input.trim() || state.renameModal.isRenaming}
+            pending={state.renameModal.isRenaming}
             label="Confirm"
             onClick={handleConfirmRename}
           />
@@ -464,30 +633,26 @@ export function PresetMeals() {
 
       {/* Modal: Warning for Incomplete Default Preset */}
       <DefaultPresetWarningModal
-        isOpen={warningPresetModal.isOpen}
-        onClose={() =>
-          setWarningPresetModal({
-            isOpen: false,
-            preset: null,
-            emptyDays: [],
-            isLoading: false,
-          })
-        }
+        isOpen={state.warningModal.isOpen}
+        onClose={() => dispatch({ type: 'CLOSE_WARNING_MODAL' })}
         onConfirm={handleConfirmDefaultWarning}
-        presetName={warningPresetModal.preset?.name || 'Preset'}
-        emptyDays={warningPresetModal.emptyDays}
-        isLoading={warningPresetModal.isLoading}
+        presetName={state.warningModal.preset?.name || 'Preset'}
+        emptyDays={state.warningModal.emptyDays}
+        isLoading={state.warningModal.isLoading}
       />
 
       {/* Global Loading Overlay */}
-      <LoadingOverlay isLoading={loadingOverlay.isLoading} message={loadingOverlay.message} />
+      <LoadingOverlay
+        isLoading={state.loadingOverlay.isLoading}
+        message={state.loadingOverlay.message}
+      />
 
       {/* Bottom Toast Banner */}
       <BottomToast
-        isOpen={toast.isOpen}
-        type={toast.type}
-        message={toast.message}
-        onClose={() => setToast((prev) => ({ ...prev, isOpen: false }))}
+        isOpen={state.toast.isOpen}
+        type={state.toast.type}
+        message={state.toast.message}
+        onClose={() => dispatch({ type: 'HIDE_TOAST' })}
       />
     </div>
   );

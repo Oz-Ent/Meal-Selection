@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
   Wallet,
   Utensils,
@@ -33,6 +33,7 @@ import type {
   ExpenditurePeriod,
   CreateExpenditureDto,
 } from '../../../api/Services/BudgetServices';
+import { formatDateRange } from '../../../utils/dateHelpers';
 
 export function Budgets() {
   const [activeTab, setActiveTab] = useState<'budgets' | 'rates'>('budgets');
@@ -199,7 +200,7 @@ export function Budgets() {
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-28 text-text-primary font-sans">
       <NavBar
         backUrl="/admin/activities"
-        title="Budgets & Expenditure Rates"
+        title="Budgets"
       />
 
       <div className="px-4 sm:px-6 pt-4 flex flex-col gap-6">
@@ -214,7 +215,7 @@ export function Budgets() {
             }
             subtitle={
               activeBudget
-                ? `${activeBudget.title} (${activeBudget.startPeriod.split('T')[0]} to ${activeBudget.endPeriod.split('T')[0]})`
+                ? `${activeBudget.title} (${formatDateRange(activeBudget.startPeriod, activeBudget.endPeriod)})`
                 : 'Configure a budget period for analytics tracking'
             }
             icon={<Wallet className="h-5 w-5" />}
@@ -249,7 +250,7 @@ export function Budgets() {
             }
             subtitle={
               activeExpenditure
-                ? `Effective ${activeExpenditure.startDate.split('T')[0]} to ${activeExpenditure.endDate.split('T')[0]}`
+                ? `Effective ${formatDateRange(activeExpenditure.startDate, activeExpenditure.endDate)}`
                 : 'Set vendor catering unit price for cost calculations'
             }
             icon={<Utensils className="h-5 w-5" />}
