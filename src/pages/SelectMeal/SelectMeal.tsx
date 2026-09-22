@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react';
 import { NavBar } from '../../components/NavBar/NavBar';
-import NotificationBanner from '../../components/NotificationBanner/NotificationBanner';
 import Modal from '../../components/Modal/Modal';
 import { SuccessModal } from './SuccessModal';
+import { MiscSuccessfulSelectionModal } from './MiscSuccessfulSelectionModal';
 import { SelectPresetModal } from './SelectPresetModal';
 import { TitleBar } from '../../components/TitleBar/TitleBar';
 import { BottomToast, type ToastType } from '../../components/BottomToast/BottomToast';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import NotificationBanner from '../../components/NotificationBanner/NotificationBanner';
 import { MealSelectionView, type DaySelectionValue, type GuestDaySelection } from '../../components/MealSelectionView/MealSelectionView';
 import SearchBar from '../../components/SearchBar/SearchBar';
 import { navigateBack } from '../../utils/navigation';
@@ -1276,13 +1277,13 @@ export default function SelectMealPage() {
         variant="center"
         showCloseButton={true}
       >
-        <div className="p-6 text-center space-y-4 text-slate-900 font-sans">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+        <div className="p-6 text-center space-y-4 text-text-primary font-sans">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warning-light text-warning-dark">
             <AlertCircle size={28} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">User On Leave</h3>
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <h3 className="text-lg font-bold text-text-primary">User On Leave</h3>
+            <p className="mt-2 text-xs sm:text-sm text-text-secondary leading-relaxed">
               {selectedUsers.length === 1 && selectedUsers[0].id !== currentUserId
                 ? `${selectedUsers[0].name} is on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`
                 : `You are on approved leave for all ${menuDays.length} days of Week ${week}. Meal selection is unavailable.`}
@@ -1316,9 +1317,9 @@ export default function SelectMealPage() {
         variant="bottom"
         showCloseButton={true}
       >
-        <div className="p-4 pt-6 flex flex-col w-full text-slate-900 font-sans">
+        <div className="p-4 pt-6 flex flex-col w-full text-text-primary font-sans">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-slate-900 text-left">
+            <h3 className="text-lg font-bold text-text-primary text-left">
               {isAdminOrHr ? 'Select user(s)' : 'Select user'}
             </h3>
             {isAdminOrHr && filteredUsersForModal.length > 0 && (
@@ -1340,7 +1341,7 @@ export default function SelectMealPage() {
             className="mb-3 w-full"
           />
 
-          <div className="w-full flex-1 overflow-y-auto max-h-[50vh] divide-y divide-slate-100 pr-1 space-y-1">
+          <div className="w-full flex-1 overflow-y-auto max-h-[50vh] divide-y divide-border pr-1 space-y-1">
             {filteredUsersForModal.map((user) => {
               const isSelected = tempModalSelectedUsers.some((u) => u.id === user.id);
               return (
@@ -1349,7 +1350,7 @@ export default function SelectMealPage() {
                   type="button"
                   onClick={() => handleToggleModalUser(user)}
                   className={`flex w-full items-center justify-between p-3 rounded-lg text-left transition-colors cursor-pointer ${
-                    isSelected ? 'bg-primary-light/40 hover:bg-primary-light/50' : 'hover:bg-slate-50'
+                    isSelected ? 'bg-primary-light/40 hover:bg-primary-light/50' : 'hover:bg-surface-muted'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
@@ -1357,21 +1358,21 @@ export default function SelectMealPage() {
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
                         isSelected
                           ? 'border-primary bg-primary text-white'
-                          : 'border-slate-300 bg-white text-transparent'
+                          : 'border-border bg-surface text-transparent'
                       }`}
                     >
                       <Check size={12} strokeWidth={3} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{user.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{user.email || user.referenceEmail}</p>
+                      <p className="text-sm font-semibold text-text-primary truncate">{user.name}</p>
+                      <p className="text-xs text-text-muted truncate">{user.email || user.referenceEmail}</p>
                     </div>
                   </div>
                 </button>
               );
             })}
             {filteredUsersForModal.length === 0 && (
-              <p className="text-sm text-slate-500 py-6 text-center">No users found.</p>
+              <p className="text-sm text-text-muted py-6 text-center">No users found.</p>
             )}
           </div>
 
@@ -1443,22 +1444,31 @@ export default function SelectMealPage() {
 
       {/* Success Modal */}
       {isConfirmed && (
-        <SuccessModal
-          selectedMeals={overviewMeals}
-          targetName={
-            isGuest
-              ? 'guests'
-              : selectedUsers.length > 1
-                ? `${selectedUsers.length} users`
-                : selectedUsers[0]
-                  ? selectedUsers[0].name
-                  : undefined
-          }
-          onClose={() => {
-            setIsConfirmed(false);
-            navigate('/activities');
-          }}
-        />
+        (Number(targetUserId ?? currentUserId) === 122 || String(targetUserId ?? currentUserId) === '122') ? (
+          <MiscSuccessfulSelectionModal
+            onClose={() => {
+              setIsConfirmed(false);
+              navigate('/activities');
+            }}
+          />
+        ) : (
+          <SuccessModal
+            selectedMeals={overviewMeals}
+            targetName={
+              isGuest
+                ? 'guests'
+                : selectedUsers.length > 1
+                  ? `${selectedUsers.length} users`
+                  : selectedUsers[0]
+                    ? selectedUsers[0].name
+                    : undefined
+            }
+            onClose={() => {
+              setIsConfirmed(false);
+              navigate('/activities');
+            }}
+          />
+        )
       )}
 
       {/* Bottom Toast Banner */}

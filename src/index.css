@@ -6,7 +6,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  :root {
+  :root,
+  html {
+    color-scheme: light;
+
     /* -------------------------------------------------------
        Typography
        ------------------------------------------------------- */
@@ -122,6 +125,48 @@
     --color-wheel-label-6: #dc2626;
 
     /* -------------------------------------------------------
+       Badge Component Tokens
+       ------------------------------------------------------- */
+    /* Badge - Solid */
+    --color-badge-primary-solid-bg: #00633d;
+    --color-badge-primary-solid-text: #ffffff;
+    --color-badge-secondary-solid-bg: #1e465e;
+    --color-badge-secondary-solid-text: #ffffff;
+    --color-badge-success-solid-bg: #00633d;
+    --color-badge-success-solid-text: #ffffff;
+    --color-badge-warning-solid-bg: #d97706;
+    --color-badge-warning-solid-text: #ffffff;
+    --color-badge-danger-solid-bg: #dc2626;
+    --color-badge-danger-solid-text: #ffffff;
+    --color-badge-info-solid-bg: #2563eb;
+    --color-badge-info-solid-text: #ffffff;
+    --color-badge-neutral-solid-bg: #475569;
+    --color-badge-neutral-solid-text: #ffffff;
+
+    /* Badge - Outline (Hollow) */
+    --color-badge-primary-outline-bg: #edf7f2;
+    --color-badge-primary-outline-text: #00633d;
+    --color-badge-primary-outline-border: rgba(0, 99, 61, 0.25);
+    --color-badge-secondary-outline-bg: #edf6fa;
+    --color-badge-secondary-outline-text: #1e465e;
+    --color-badge-secondary-outline-border: rgba(30, 70, 94, 0.25);
+    --color-badge-success-outline-bg: #e9f6ef;
+    --color-badge-success-outline-text: #138f58;
+    --color-badge-success-outline-border: rgba(19, 143, 88, 0.25);
+    --color-badge-warning-outline-bg: #fef3c7;
+    --color-badge-warning-outline-text: #b45309;
+    --color-badge-warning-outline-border: rgba(217, 119, 6, 0.25);
+    --color-badge-danger-outline-bg: #fee2e2;
+    --color-badge-danger-outline-text: #b91c1c;
+    --color-badge-danger-outline-border: rgba(220, 38, 38, 0.25);
+    --color-badge-info-outline-bg: #eef4fc;
+    --color-badge-info-outline-text: #1d4ed8;
+    --color-badge-info-outline-border: rgba(37, 99, 235, 0.25);
+    --color-badge-neutral-outline-bg: #f1f5f9;
+    --color-badge-neutral-outline-text: #475569;
+    --color-badge-neutral-outline-border: #e2e8f0;
+
+    /* -------------------------------------------------------
        Misc
        ------------------------------------------------------- */
     --color-overlay: rgb(15 23 42 / 0.5);
@@ -143,7 +188,11 @@
     --msDescription: var(--color-text-secondary);
   }
 
-  .dark {
+  .dark,
+  :root.dark,
+  html.dark {
+    color-scheme: dark;
+
     /* -------------------------------------------------------
        Brand Palette
        ------------------------------------------------------- */
@@ -247,6 +296,48 @@
     --color-wheel-label-6: #f87171;
 
     /* -------------------------------------------------------
+       Badge Component Tokens
+       ------------------------------------------------------- */
+    /* Badge - Solid (Dark Mode) */
+    --color-badge-primary-solid-bg: #077245;
+    --color-badge-primary-solid-text: #ffffff;
+    --color-badge-secondary-solid-bg: #286286;
+    --color-badge-secondary-solid-text: #ffffff;
+    --color-badge-success-solid-bg: #15803d;
+    --color-badge-success-solid-text: #ffffff;
+    --color-badge-warning-solid-bg: #b45309;
+    --color-badge-warning-solid-text: #ffffff;
+    --color-badge-danger-solid-bg: #b91c1c;
+    --color-badge-danger-solid-text: #ffffff;
+    --color-badge-info-solid-bg: #1d4ed8;
+    --color-badge-info-solid-text: #ffffff;
+    --color-badge-neutral-solid-bg: #334155;
+    --color-badge-neutral-solid-text: #f1f5f9;
+
+    /* Badge - Outline (Hollow) (Dark Mode) */
+    --color-badge-primary-outline-bg: rgba(7, 114, 69, 0.15);
+    --color-badge-primary-outline-text: #34d399;
+    --color-badge-primary-outline-border: rgba(52, 211, 153, 0.35);
+    --color-badge-secondary-outline-bg: rgba(40, 98, 134, 0.18);
+    --color-badge-secondary-outline-text: #7dd3fc;
+    --color-badge-secondary-outline-border: rgba(125, 211, 252, 0.35);
+    --color-badge-success-outline-bg: rgba(34, 197, 94, 0.15);
+    --color-badge-success-outline-text: #4ade80;
+    --color-badge-success-outline-border: rgba(74, 222, 128, 0.35);
+    --color-badge-warning-outline-bg: rgba(245, 158, 11, 0.15);
+    --color-badge-warning-outline-text: #fbbf24;
+    --color-badge-warning-outline-border: rgba(251, 191, 36, 0.35);
+    --color-badge-danger-outline-bg: rgba(239, 68, 68, 0.15);
+    --color-badge-danger-outline-text: #f87171;
+    --color-badge-danger-outline-border: rgba(248, 113, 113, 0.35);
+    --color-badge-info-outline-bg: rgba(59, 130, 246, 0.15);
+    --color-badge-info-outline-text: #60a5fa;
+    --color-badge-info-outline-border: rgba(96, 165, 250, 0.35);
+    --color-badge-neutral-outline-bg: rgba(148, 163, 184, 0.12);
+    --color-badge-neutral-outline-text: #cbd5e1;
+    --color-badge-neutral-outline-border: rgba(148, 163, 184, 0.25);
+
+    /* -------------------------------------------------------
        Misc
        ------------------------------------------------------- */
     --color-overlay: rgb(0 0 0 / 0.65);
@@ -289,6 +380,15 @@
     overflow-y: auto;
     background-color: var(--color-app-bg);
     color: var(--color-text-primary);
+  }
+
+  /* Prevent mobile browser auto-zooming on input focus */
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   h1 {
@@ -424,3 +524,29 @@
   --color-msBoldText: var(--color-text-primary);
   --color-msDescription: var(--color-text-secondary);
 }
+
+/* -------------------------------------------------------
+   MUI X-Charts Design Tokens Override
+   ------------------------------------------------------- */
+.MuiChartsAxis-line {
+  stroke: var(--color-border) !important;
+}
+
+.MuiChartsAxis-tick {
+  stroke: var(--color-border) !important;
+}
+
+.MuiChartsAxis-tickLabel,
+.MuiChartsAxis-tickLabel tspan,
+.MuiChartsAxis-label,
+.MuiChartsAxis-label tspan,
+.MuiChartsLegend-root text,
+.MuiChartsLegend-label {
+  fill: var(--color-text-primary) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.MuiChartsGrid-line {
+  stroke: var(--color-border) !important;
+}
+

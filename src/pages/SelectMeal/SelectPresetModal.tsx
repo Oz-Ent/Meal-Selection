@@ -80,7 +80,7 @@ export function SelectPresetModal({
             <div className="w-7 h-7">
               <LoadingSpinner />
             </div>
-            <p className="text-xs text-slate-500">Loading presets...</p>
+            <p className="text-xs text-text-muted">Loading presets...</p>
           </div>
         ) : filteredPresets.length === 0 ? (
           /* Empty State */
@@ -90,7 +90,7 @@ export function SelectPresetModal({
               alt="No presets available"
               className="w-28 h-28 object-contain mb-3"
             />
-            <p className="text-xs font-medium text-slate-500">No preset meals available.</p>
+            <p className="text-xs font-medium text-text-muted">No preset meals available.</p>
           </div>
         ) : (
           /* Preset List */
@@ -102,14 +102,14 @@ export function SelectPresetModal({
                   key={preset.id}
                   type="button"
                   onClick={() => setSelectedPreset(isSelected ? null : preset)}
-                  className={`flex items-center justify-between w-full p-3.5 rounded-xl text-left transition-colors ${
-                    isSelected ? 'bg-slate-100' : 'hover:bg-slate-50'
+                  className={`flex items-center justify-between w-full p-3.5 rounded-xl text-left transition-colors cursor-pointer ${
+                    isSelected ? 'bg-surface-muted border border-border' : 'hover:bg-surface-muted'
                   }`}
                 >
-                  <span className="text-sm font-semibold text-slate-800">
+                  <span className="text-sm font-semibold text-text-primary">
                     {preset.name || `Preset ${preset.id}`}
                   </span>
-                  {isSelected && <Check size={18} className="text-slate-800 shrink-0" />}
+                  {isSelected && <Check size={18} className="text-primary shrink-0" />}
                 </button>
               );
             })}

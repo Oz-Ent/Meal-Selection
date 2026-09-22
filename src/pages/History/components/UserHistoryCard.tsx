@@ -59,7 +59,6 @@ export function UserHistoryCard({ weekItem, onOpenSavePreset }: UserHistoryCardP
         <div className="flex items-center gap-2">
           <Button
             icon={<BookmarkPlus size={13}/>}
-            label="Save as preset"
             size="sm"
             variant="outline"
             onClick={() => onOpenSavePreset(weekItem)}

@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import {
   Ban,
   Bookmark,
-  Check,
   ChevronLeft,
   ChevronRight,
   CircleX,
@@ -17,6 +16,8 @@ import type { HolidayItem } from '../../api/Services/HolidayServices';
 import MealButton from '../MealButton/MealButton';
 import MealDetailsModal from './MealDetailsModal';
 import Badge from '../Badge/Badge';
+import InfoBanner from '../Banner/InfoBanner';
+import Checkbox from '../Checkbox/Checkbox';
 
 export type DaySelectionValue = number | 'UNAVAILABLE' | 'HOLIDAY';
 
@@ -146,77 +147,105 @@ export function MealSelectionView({
     onToast?.('success', 'All choices have been cleared.');
   };
 
+  const toggleUnavailable = () => {
+    if (mode !== 'select' || isDayDisabled || !currentDay) return;
+    if (isGuestMode) {
+      onGuestNonMealChange?.(currentDay.id, isUnavailableSelected ? undefined : 'UNAVAILABLE');
+    } else if (selectedChoice === 'UNAVAILABLE') {
+      if (onClearDaySelection) {
+        onClearDaySelection(currentDay.id);
+      } else {
+        onSelectionChange(currentDay.id, undefined);
+      }
+    } else {
+      onSelectionChange(currentDay.id, 'UNAVAILABLE');
+    }
+  };
+
+  const toggleHoliday = () => {
+    if (mode !== 'select' || isDayDisabled || !currentDay) return;
+    if (isGuestMode) {
+      onGuestNonMealChange?.(currentDay.id, isHolidaySelected ? undefined : 'HOLIDAY');
+    } else if (selectedChoice === 'HOLIDAY') {
+      if (onClearDaySelection) {
+        onClearDaySelection(currentDay.id);
+      } else {
+        onSelectionChange(currentDay.id, undefined);
+      }
+    } else {
+      onSelectionChange(currentDay.id, 'HOLIDAY');
+    }
+  };
+
   return (
     <>
       {/* Meal Items Card Container */}
       <main className="flex-1 px-4 pt-4 overflow-y-auto font-sans">
         {/* Closed Schedule Notice Banner */}
         {isScheduleClosed && closedMessage && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-banner-closed-bg border border-banner-closed-border p-3.5 text-xs text-banner-closed-text shadow-2xs">
-            <Ban size={20} className="text-banner-closed-text shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <span className="font-bold text-text-primary">Meal Selection Closed</span>
-              <p className="mt-0.5 text-[11px] text-text-secondary leading-relaxed">
-                {closedMessage}
-              </p>
-            </div>
-          </div>
+          <InfoBanner
+            className="mb-3"
+            variant="danger"
+            icon={<Ban size={20} />}
+            title="Meal Selection Closed"
+            description={closedMessage}
+          />
         )}
 
         {/* Active Holiday Information Banner */}
         {activeHoliday && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-meal-holiday-bg border border-meal-holiday-border p-3.5 text-xs text-meal-holiday-text shadow-2xs">
-            <Sparkles size={20} className="text-warning-dark shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-text-primary">{activeHoliday.title}</span>
+          <InfoBanner
+            className="mb-3"
+            variant="warning"
+            icon={<Sparkles size={20} />}
+            title={
+              <span className="flex items-center gap-2 flex-wrap">
+                {activeHoliday.title}
                 <Badge
                   variant="warning"
                   size="xs"
                   label={activeHoliday.source === 'COMPANY' ? 'Company Holiday' : 'Public Holiday'}
                 />
-              </div>
-              <p className="mt-0.5 text-[11px] text-text-secondary leading-relaxed">
-                This day is recognized as a holiday. Menu selection is closed and automatically set to Holiday.
-              </p>
-            </div>
-          </div>
+              </span>
+            }
+            description="This day is recognized as a holiday. Menu selection is closed and automatically set to Holiday."
+          />
         )}
 
         {/* On Leave Information Banner */}
         {isLeaveDay && !isHolidayDay && !isScheduleClosed && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-meal-holiday-bg border border-meal-holiday-border p-3.5 text-xs text-meal-holiday-text shadow-2xs">
-            <Ban size={18} className="text-warning-dark shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-text-primary">On Approved Leave</span>
+          <InfoBanner
+            className="mb-3"
+            variant="warning"
+            icon={<Ban size={18} />}
+            title={
+              <span className="flex items-center gap-2">
+                On Approved Leave
                 <Badge variant="warning" size="xs" label="Unavailable" />
-              </div>
-              <p className="mt-0.5 text-[11px] text-text-secondary leading-relaxed">
-                This day is within an approved leave period. Automatically set to Unavailable.
-              </p>
-            </div>
-          </div>
+              </span>
+            }
+            description="This day is within an approved leave period. Automatically set to Unavailable."
+          />
         )}
 
         {/* Past Day / Closed Today Information Banner */}
         {isPastDay && !isHolidayDay && !isLeaveDay && !isScheduleClosed && (
-          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-surface-muted border border-border p-3.5 text-xs text-text-secondary shadow-2xs">
-            <Ban size={18} className="text-text-muted shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-text-primary">
-                  {isTodayClosed ? 'Closed for Today' : 'Past Day'}
-                </span>
+          <InfoBanner
+            className="mb-3"
+            variant="info"
+            icon={<Ban size={18} />}
+            title={
+              <span className="flex items-center gap-2">
+                {isTodayClosed ? 'Closed for Today' : 'Past Day'}
                 <Badge variant="neutral" size="xs" label="Locked" />
-              </div>
-              <p className="mt-0.5 text-[11px] text-text-muted leading-relaxed">
-                {isTodayClosed
-                  ? 'Meal selection for today closed at 10:00 AM. Selections cannot be modified.'
-                  : 'This day has passed. Selections for this day cannot be modified.'}
-              </p>
-            </div>
-          </div>
+              </span>
+            }
+            description={
+              isTodayClosed
+                ? 'Meal selection for today closed at 10:00 AM. Selections cannot be modified.'
+                : 'This day has passed. Selections for this day cannot be modified.'
+            }
+          />
         )}
 
         {/* Guest Mode Summary Header */}
@@ -306,33 +335,18 @@ export function MealSelectionView({
                 role={isGuestMode ? undefined : 'radio'}
                 aria-checked={isUnavailableSelected}
                 disabled={isDayDisabled}
-                onClick={() => {
-                  if (mode !== 'select' || isDayDisabled || !currentDay) return;
-                  if (isGuestMode) {
-                    onGuestNonMealChange?.(currentDay.id, isUnavailableSelected ? undefined : 'UNAVAILABLE');
-                  } else {
-                    if (selectedChoice === 'UNAVAILABLE') {
-                      if (onClearDaySelection) {
-                        onClearDaySelection(currentDay.id);
-                      } else {
-                        onSelectionChange(currentDay.id, undefined);
-                      }
-                    } else {
-                      onSelectionChange(currentDay.id, 'UNAVAILABLE');
-                    }
-                  }
-                }}
-                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-border-subtle last:border-b-0 text-left transition-colors ${
+                onClick={toggleUnavailable}
+                className={`flex w-full items-center justify-between p-3 rounded-2xl border-b border-border-subtle last:border-b-0 bg-surface-elevated/10 text-left transition-colors ${
                   isDayDisabled
                     ? shouldDim
                       ? isUnavailableSelected
-                        ? 'bg-primary-light/60 opacity-80 cursor-not-allowed'
+                        ? 'bg-surface-elevated opacity-80 cursor-not-allowed'
                         : 'opacity-40 cursor-not-allowed'
                       : isUnavailableSelected
-                      ? 'bg-primary-light cursor-default'
+                      ? 'bg-surface-elevated cursor-default'
                       : 'cursor-default'
                     : isUnavailableSelected
-                    ? 'bg-primary-light'
+                    ? 'bg-surface-elevated'
                     : mode === 'select'
                     ? 'hover:bg-surface-muted cursor-pointer'
                     : ''
@@ -346,7 +360,7 @@ export function MealSelectionView({
                     <span
                       className={`text-sm leading-snug ${
                         isUnavailableSelected
-                          ? 'font-semibold text-primary'
+                          ? 'font-semibold text-text-primary'
                           : 'font-medium text-text-primary'
                       }`}
                     >
@@ -360,23 +374,16 @@ export function MealSelectionView({
                   </div>
                 </div>
 
-                {mode === 'view' || isDayDisabled ? (
-                  isUnavailableSelected && (
-                    <Check size={18} className="text-primary shrink-0 font-bold" />
-                  )
-                ) : (
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                      isUnavailableSelected
-                        ? 'border-primary bg-surface'
-                        : 'border-border bg-surface'
-                    }`}
-                  >
-                    {isUnavailableSelected && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                    )}
-                  </div>
-                )}
+                <span onClick={(event) => event.stopPropagation()}>
+                  <Checkbox
+                    checked={isUnavailableSelected}
+                    onChange={toggleUnavailable}
+                    variant="radio"
+                    color="neutral"
+                    radioSize="lg"
+                    disabled={mode === 'view' || isDayDisabled}
+                  />
+                </span>
               </button>
 
               {/* Option: HOLIDAY */}
@@ -385,22 +392,7 @@ export function MealSelectionView({
                 role={isGuestMode ? undefined : 'radio'}
                 aria-checked={isHolidaySelected || isHolidayDay}
                 disabled={isDayDisabled}
-                onClick={() => {
-                  if (mode !== 'select' || isDayDisabled || !currentDay) return;
-                  if (isGuestMode) {
-                    onGuestNonMealChange?.(currentDay.id, isHolidaySelected ? undefined : 'HOLIDAY');
-                  } else {
-                    if (selectedChoice === 'HOLIDAY') {
-                      if (onClearDaySelection) {
-                        onClearDaySelection(currentDay.id);
-                      } else {
-                        onSelectionChange(currentDay.id, undefined);
-                      }
-                    } else {
-                      onSelectionChange(currentDay.id, 'HOLIDAY');
-                    }
-                  }
-                }}
+                onClick={toggleHoliday}
                 className={`flex w-full items-center justify-between p-3 rounded-2xl text-left transition-colors ${
                   isHolidaySelected || isHolidayDay
                     ? 'bg-meal-holiday-bg border border-meal-holiday-border'
@@ -438,23 +430,16 @@ export function MealSelectionView({
                   </div>
                 </div>
 
-                {mode === 'view' || isDayDisabled ? (
-                  (isHolidaySelected || isHolidayDay) && (
-                    <Check size={18} className="text-warning-dark shrink-0 font-bold" />
-                  )
-                ) : (
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                      isHolidaySelected || isHolidayDay
-                        ? 'border-warning-dark bg-surface'
-                        : 'border-border bg-surface'
-                    }`}
-                  >
-                    {(isHolidaySelected || isHolidayDay) && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-warning-dark" />
-                    )}
-                  </div>
-                )}
+                <span onClick={(event) => event.stopPropagation()}>
+                  <Checkbox
+                    checked={isHolidaySelected || isHolidayDay}
+                    onChange={toggleHoliday}
+                    variant="radio"
+                    radioSize="lg"
+                    color="amber"
+                    disabled={mode === 'view' || isDayDisabled}
+                  />
+                </span>
               </button>
             </>
           )}

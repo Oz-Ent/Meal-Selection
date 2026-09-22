@@ -1,5 +1,5 @@
-﻿import { useState, useMemo } from 'react';
-import { Volume2, X, Search, CheckCircle2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Volume2, X, Search } from 'lucide-react';
 import Modal from '../../../../components/Modal/Modal';
 import Button from '../../../../components/Button/Button';
 import Badge from '../../../../components/Badge/Badge';
@@ -91,15 +91,13 @@ export default function AnnounceFoodArrivalModal({
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-border pb-3.5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary">
-              <Volume2 size={20} />
-            </div>
+
             <div>
               <h2 className="text-base font-bold text-text-primary">
                 Announce Food Arrival
               </h2>
               <p className="text-xs text-text-secondary">
-                Broadcast arrival for {dayName} and update meal fulfillment
+                Broadcast arrival for {dayName} and update meal status
               </p>
             </div>
           </div>
@@ -115,27 +113,19 @@ export default function AnnounceFoodArrivalModal({
         </div>
 
         {/* Status summary banner */}
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-surface-muted p-3 border border-border text-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={15} className="text-success" />
+        {unfulfilledIds.length > 0 && <div className="mt-3 flex items-center justify-between rounded-xl bg-surface-muted p-3 border border-border text-xs">
+           <div className="flex items-center gap-2">
             <span className="font-semibold text-text-primary">
-              {fulfilledCount} will be marked Fulfilled
+              {unfulfilledIds.length} Selection Unfulfilled
             </span>
           </div>
-          {unfulfilledIds.length > 0 && (
-            <Badge
-              variant="danger"
-              size="xs"
-              label={`${unfulfilledIds.length} Missing / Not Fulfilled`}
-            />
-          )}
-        </div>
+        </div>}
 
         {/* Unfulfilled Selection Tagging Section */}
         <div className="mt-4 flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-text-primary uppercase tracking-wider">
-              Which selections did not come? (Tag missing items)
+            <label className="text-xs text-text-secondary">
+              Which selections did not come?
             </label>
             {unfulfilledIds.length > 0 && (
               <button
@@ -143,7 +133,7 @@ export default function AnnounceFoodArrivalModal({
                 onClick={() => setUnfulfilledIds([])}
                 className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
               >
-                Clear all tags
+                Clear all
               </button>
             )}
           </div>
@@ -174,13 +164,15 @@ export default function AnnounceFoodArrivalModal({
                     key={s.id}
                     onClick={() => toggleSelectionUnfulfilled(s.id)}
                     className={`flex items-center justify-between p-2.5 text-xs transition-colors cursor-pointer hover:bg-surface-muted ${
-                      isTagged ? 'bg-danger-light/30' : ''
+                      isTagged ? 'bg-rose-500/5' : ''
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <Checkbox
+                        color="warning"
+                        variant='radio'
                         checked={isTagged}
-                        onChange={() => toggleSelectionUnfulfilled(s.id)}
+                        onChange={() => {toggleSelectionUnfulfilled(s.id)}}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
@@ -197,13 +189,6 @@ export default function AnnounceFoodArrivalModal({
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-semibold shrink-0 ml-2">
-                      {isTagged ? (
-                        <span className="text-danger">Not Fulfilled</span>
-                      ) : (
-                        <span className="text-success">Will Fulfill</span>
-                      )}
-                    </span>
                   </div>
                 );
               })
@@ -233,7 +218,7 @@ export default function AnnounceFoodArrivalModal({
             type="button"
             variant="primary"
             icon={<Volume2 size={15} />}
-            label="Announce Food Arrival"
+            label="Announce"
             disabled={foodArrivalMutation.isPending || selections.length === 0}
             onClick={handleSubmit}
           />

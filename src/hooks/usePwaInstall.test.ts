@@ -29,4 +29,28 @@ describe('usePwaInstall hook', () => {
     expect(outcome).toBe('accepted');
     expect(result.current.isInstalled).toBe(true);
   });
+
+  it('falls back to guide when beforeinstallprompt is not received within timeout', async () => {
+    jest.useFakeTimers();
+    const { result } = renderHook(() => usePwaInstall());
+
+    let outcomePromise: Promise<string>;
+    act(() => {
+      outcomePromise = result.current.promptInstall();
+    });
+
+    // Advance past the 800ms wait window
+    act(() => {
+      jest.advanceTimersByTime(850);
+    });
+
+    let outcome: string | undefined;
+    await act(async () => {
+      outcome = await outcomePromise;
+    });
+
+    expect(outcome).toBe('guide');
+    expect(result.current.isGuideOpen).toBe(true);
+    jest.useRealTimers();
+  });
 });

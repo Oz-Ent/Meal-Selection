@@ -6,6 +6,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
 export default defineConfig({
+  envPrefix: ['VITE_', 'PUSH_CONFIG_'],
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -18,7 +19,11 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         importScripts: ['/push-sw.js'],
       },
+      manifestFilename: 'manifest.json',
       manifest: {
+        id: '/',
+        start_url: '/',
+        scope: '/',
         name: 'Meal Selection',
         short_name: 'Edziban',
         description: 'Meal Selection & Daily Operations',
@@ -28,8 +33,26 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: '/AppIcon.svg',
+            src: '/AppIcon-192.png',
             sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/AppIcon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/AppIcon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: '/AppIcon.svg',
+            sizes: '192x192 512x512',
             type: 'image/svg+xml',
             purpose: 'any',
           },
@@ -38,6 +61,18 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'maskable',
+          },
+          {
+            src: '/notification.svg',
+            sizes: '96x96 128x128 192x192',
+            type: 'image/svg+xml',
+            purpose: 'monochrome',
+          },
+          {
+            src: '/NotificationSVG.svg',
+            sizes: '96x96 128x128 192x192',
+            type: 'image/svg+xml',
+            purpose: 'monochrome',
           },
         ],
       },

@@ -18,7 +18,7 @@ import PageHeader from '../../components/PageHeader/PageHeader';
 
 export function Account() {
   const { profile: authContextProfile } = useAuth();
-  const { data: userProfile, isLoading, error, refetch } = useUserProfileQuery();
+  const { data: userProfile, isLoading, isFetching, error, refetch } = useUserProfileQuery();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // Fallback profile from authContext if query is loading or offline
@@ -43,7 +43,7 @@ export function Account() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-32 text-text-primary font-sans">
       {/* Top Bar Header */}
-      <TitleBar isLoading={isLoading} refetchAction={()=>refetch()}/>
+      <TitleBar isLoading={isLoading || isFetching} refetchAction={() => refetch()} />
 
       {/* Main Container */}
       <div className="px-4 sm:px-6 py-6 space-y-6">

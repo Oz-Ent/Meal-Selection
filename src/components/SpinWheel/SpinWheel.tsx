@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPieSlice } from '../../helpers/pieConvertor';
 import { parseMealName } from '../../helpers/parsers';
 import { LoaderCircleIcon } from 'lucide-react';
@@ -40,9 +40,30 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
 
   const segmentAngle = 360 / options.length;
 
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const triggerHaptic = (pattern: number | number[]) => {
+    try {
+      if (typeof window !== 'undefined' && 'vibrate' in navigator && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(pattern);
+      }
+    } catch {
+      // Safe fallback if vibration is unsupported or restricted
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach((t) => clearTimeout(t));
+      timeoutsRef.current = [];
+    };
+  }, []);
+
   const spin = () => {
     if (spinning) return;
 
+    // Subtle tactile tap on button press
+    triggerHaptic(15);
     setSpinning(true);
 
     const n = options.length;
@@ -58,11 +79,31 @@ export default function SpinWheel({ options, onSpinComplete }: ISpinWheelProps) 
 
     setRotation((prev) => prev + rotationDelta);
 
-    setTimeout(() => {
+    // Schedule polished decelerating peg ticks during the 5s spin
+    timeoutsRef.current.forEach((t) => clearTimeout(t));
+    timeoutsRef.current = [];
+
+    const tickDelays = [
+      80, 160, 250, 350, 460, 580, 720, 880, 1060, 1260, 1490, 1750, 2040, 2370, 2740, 3150, 3600,
+      4100, 4650,
+    ];
+
+    tickDelays.forEach((delay) => {
+      const timeoutId = setTimeout(() => {
+        triggerHaptic(6);
+      }, delay);
+      timeoutsRef.current.push(timeoutId);
+    });
+
+    const completionTimeout = setTimeout(() => {
       setSpinning(false);
       setWinner(options[index]);
       onSpinComplete(options[index].value);
+      // Subtle double pulse celebratory landing feedback
+      triggerHaptic([20, 50, 30]);
     }, 5000);
+
+    timeoutsRef.current.push(completionTimeout);
   };
 
   return (

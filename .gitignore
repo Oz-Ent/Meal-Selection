@@ -14,8 +14,15 @@ dev-dist
 *.local
 
 # Test artifacts
+coverage/
 coverage
 jest-results.json
+
+# Cypress
+cypress/tsconfig.json
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
 
 # Environment
 .env

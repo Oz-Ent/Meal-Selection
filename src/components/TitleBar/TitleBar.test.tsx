@@ -30,5 +30,19 @@ describe('TitleBar Component', () => {
     fireEvent.click(logoutBtn);
     expect(screen.getByText(/Sign Out of Account\?/i)).toBeInTheDocument();
   });
+
+  it('renders refetch button and spins when clicked', async () => {
+    const refetchAction = jest.fn().mockResolvedValue(true);
+    render(
+      <MemoryRouter>
+        <TitleBar refetchAction={refetchAction} />
+      </MemoryRouter>,
+    );
+    const refreshBtn = screen.getByRole('button', { name: /refresh/i });
+    expect(refreshBtn).toBeInTheDocument();
+    fireEvent.click(refreshBtn);
+    expect(refetchAction).toHaveBeenCalledTimes(1);
+    expect(refreshBtn.querySelector('.animate-spin')).toBeInTheDocument();
+  });
 });
 

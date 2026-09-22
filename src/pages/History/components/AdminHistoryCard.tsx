@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Download, UserCircle, Utensils } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Utensils } from 'lucide-react';
 import Badge from '../../../components/Badge/Badge';
 import type {
   WeeklyHistoryReportItem,
@@ -140,22 +140,24 @@ export function AdminHistoryCard({ weekItem }: AdminHistoryCardProps) {
           <span className="flex items-center gap-1.5 rounded-full text-[15px] font-bold text-text-secondary">
             <span className="flex flex-col">
               Week {weekItem.week} • {weekItem.menu.title}
+              <div className="flex items-center gap-2">
               <span className="text-xs text-text-muted">
                 {formatWeekDateRange(weekItem.week, weekItem.year)}
               </span>
+                 <Badge
+                  variant="secondary"
+                  size="sm"
+                  icon={<Utensils size={11}/>}
+                  label={weekItem.totalResponses}
+              />
+              </div>
             </span>
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge
-            variant="secondary"
-            size="sm"
-            icon={<UserCircle size={13}/>}
-            label={`${weekItem.totalResponses} Total Orders`}
-          />
           <Button
-          label="Export PDF"
+          label="PDF"
           size='sm'
           variant='outline'
           icon={<Download size={13} />}

@@ -1,4 +1,4 @@
-﻿self.addEventListener('push', (event) => {
+self.addEventListener('push', (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
@@ -9,8 +9,8 @@
   const title = data.title || 'Meal App';
   const options = {
     body: data.body || '',
-    icon: '/AppIcon.svg',
-    badge: '/AppIcon.svg',
+    icon: '/AppIcon-192.png',
+    badge: '/notification.svg',
     data: data.data || {},
     vibrate: [100, 50, 100],
   };

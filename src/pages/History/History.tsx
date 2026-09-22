@@ -140,7 +140,7 @@ export function History() {
                 My Selection History
               </Tabs.Option>
               <Tabs.Option value="admin-report" icon={<Users size={16} />}>
-                Admin Report History
+                Report History
               </Tabs.Option>
             </Tabs.Options>
           </Tabs>

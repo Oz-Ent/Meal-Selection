@@ -49,7 +49,7 @@ export default function InputField({
 
   const bgClass = disabled ? 'bg-surface-muted cursor-not-allowed text-text-muted' : 'bg-surface text-text-primary';
 
-  const inputClasses = `w-full h-full rounded-xl border ${borderClass} px-3.5 ${label ? 'pt-5 pb-1.5' : 'py-3'} text-sm outline-none focus:outline-none focus:ring-0 transition-colors placeholder:text-text-muted ${bgClass} ${className}`;
+  const inputClasses = `w-full h-full rounded-xl border ${borderClass} px-3.5 ${label ? 'pt-5 pb-1.5' : 'py-3'} text-base sm:text-sm outline-none focus:outline-none focus:ring-0 transition-colors placeholder:text-text-muted ${bgClass} ${className}`;
 
   return (
     <div className={`relative w-full ${disabled ? 'opacity-65' : ''}`}>

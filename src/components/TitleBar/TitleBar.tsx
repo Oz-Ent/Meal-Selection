@@ -9,20 +9,35 @@ import { usePwaInstall } from '../../hooks/usePwaInstall';
 export interface TitleBarProps {
   isLoading?: boolean;
   extraActions?: ReactNode;
-  refetchAction?: () => void;
+  refetchAction?: () => void | Promise<unknown>;
   banner?: ReactNode;
 }
 
 export function TitleBar({ isLoading, extraActions, refetchAction, banner }: TitleBarProps) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
   const [showManualInstallModal, setShowManualInstallModal] = useState<boolean>(false);
-  const { isInstalled, promptInstall, browserInfo } = usePwaInstall();
+  const [isManualRefreshing, setIsManualRefreshing] = useState<boolean>(false);
+  const { isInstalled, isPrompting, promptInstall, browserInfo } = usePwaInstall();
   const isStandalone = isInstalled || browserInfo.isStandalone;
   const isIos = browserInfo.os === 'iOS';
 
+  const handleRefetch = async () => {
+    if (!refetchAction || isManualRefreshing) return;
+    setIsManualRefreshing(true);
+    try {
+      await Promise.resolve(refetchAction());
+    } finally {
+      setTimeout(() => {
+        setIsManualRefreshing(false);
+      }, 600);
+    }
+  };
+
+  const isSpinning = Boolean(isLoading || isManualRefreshing);
+
   const handleInstallClick = async () => {
     const outcome = await promptInstall();
-    if (outcome === 'guide') {
+    if (outcome === 'guide' || outcome === 'unsupported') {
       setShowManualInstallModal(true);
     }
   };
@@ -107,24 +122,31 @@ export function TitleBar({ isLoading, extraActions, refetchAction, banner }: Tit
               <button
                 type="button"
                 onClick={handleInstallClick}
+                disabled={isPrompting}
                 title="Install Edziban App"
                 aria-label="Install App"
-                className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-surface border-b-3 hover:border-b-1 text-primary border border-primary/20 text-xs font-semibold active:scale-95 cursor-pointer "
+                className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-surface border-b-3 hover:border-b-1 text-primary border border-primary/20 text-xs font-semibold active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <ArrowDownToLine className="h-4 w-4 shrink-0" />
-                <span className="hidden sm:inline">Install</span>
+                {isPrompting ? (
+                  <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
+                ) : (
+                  <ArrowDownToLine className="h-4 w-4 shrink-0" />
+                )}
+                <span className="hidden sm:inline">{isPrompting ? 'Installing...' : 'Install'}</span>
               </button>
             )}
 
             {extraActions}
             {!!refetchAction && (
               <Button
-              iconOnly
-              icon={<RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />}
-              onClick={refetchAction}
-              aria-label="Refresh"
-              variant='tertiary'
-              size='sm'
+                iconOnly
+                icon={<RefreshCw className={`h-4 w-4 ${isSpinning ? 'animate-spin' : ''}`} />}
+                onClick={handleRefetch}
+                disabled={isSpinning}
+                aria-label="Refresh"
+                title="Refresh"
+                variant="tertiary"
+                size="sm"
               />
             )}
 

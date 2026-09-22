@@ -5,8 +5,8 @@ export type BannerVariant = 'none' | 'success' | 'warning' | 'danger' | 'info' |
 
 export interface IBannerProps {
   icon?: React.ReactNode;
-  title?: string;
-  description?: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
   variant?: BannerVariant;
   children?: React.ReactNode;
   className?: string;

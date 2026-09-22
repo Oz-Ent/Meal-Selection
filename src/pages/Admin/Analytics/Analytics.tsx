@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import {
   BarChart3,
   CheckCircle2,
-  RefreshCw,
   TrendingUp,
   Wallet,
 } from 'lucide-react';
@@ -21,7 +20,7 @@ import { formatDateRange, getDateFromISOWeek } from '../../../utils/dateHelpers'
 type ChartTab = 'per-week' | 'per-month' | 'accumulated';
 
 export function Analytics() {
-  const [selectedDate, setSelectedDate] = useState<string>(
+  const [selectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
   const [chartTab, setChartTab] = useState<ChartTab>('accumulated');
@@ -111,21 +110,21 @@ export function Analytics() {
           id: 'total-cost',
           label: chartTab === 'accumulated' ? 'Accumulated Cost' : 'Total Cost',
           data: costs.map((cost) => Number(cost.toFixed(2))),
-          color: '#00633d',
+          color: 'var(--color-primary)',
           curve: 'monotoneX' as const,
         },
         {
           id: 'unit-cost',
           label: 'Unit Cost',
           data: unitCosts.map((cost) => Number(cost.toFixed(2))),
-          color: '#3b82f6',
+          color: 'var(--color-info)',
           curve: 'monotoneX' as const,
         },
         {
           id: 'budget',
           label: budgetLabel,
           data: expenditure.map(() => Number(budgetTarget.toFixed(2))),
-          color: '#e11d48',
+          color: 'var(--color-danger)',
           showMark: false,
         },
       ],
@@ -156,7 +155,7 @@ export function Analytics() {
           id: 'day-cost',
           label: 'Catered Cost',
           data: costs,
-          color: '#00633d', // Primary brand green
+          color: 'var(--color-primary)',
           valueFormatter: (val: number | null) =>
             val != null ? `¢${val.toFixed(2)}` : '',
         },
@@ -169,25 +168,8 @@ export function Analytics() {
       <NavBar
         backUrl="/admin/activities"
         title="Analytics"
-        rightElement={
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              aria-label="Filter Analytics Date"
-              className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-semibold text-text-primary outline-none cursor-pointer"
-            />
-            <button
-              type="button"
-              onClick={() => refetch()}
-              aria-label="Refresh analytics"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-            >
-              <RefreshCw size={14} className={isRefetching ? 'animate-spin' : ''} />
-            </button>
-          </div>
-        }
+        onRefreshClick={() => refetch()}
+        isRefreshing={isRefetching}
       />
 
       <div className="px-4 sm:px-6 pt-4 flex flex-col gap-6">
@@ -255,7 +237,7 @@ export function Analytics() {
                 icon={<CheckCircle2 className="h-5 w-5" />}
                 iconVariant="success"
                 children={
-                  <div className="flex flex-col gap-2 items-start w-full ">
+                  <div className="flex flex-col gap-2 pt-4 items-start w-full ">
                     <dl className="flex flex-col gap-2 sm:self-auto w-full">
                       <dt className='flex flex-row items-baseline gap-2 border-b pb-2 border-border'>
                         <span className="text-lg font-semibold">
@@ -334,28 +316,41 @@ export function Analytics() {
                         scaleType: 'point',
                         data: chartConfig.xLabels,
                         valueFormatter: (val) => String(val),
+                        tickLabelStyle: {
+                          fill: 'var(--color-text-primary)',
+                        },
                       },
                     ]}
                     yAxis={[
                       {
                         valueFormatter: (val: number | null) =>
                           val != null ? `¢${Number(val).toLocaleString()}` : '',
+                        tickLabelStyle: {
+                          fill: 'var(--color-text-primary)',
+                        },
                       },
                     ]}
                     series={chartConfig.series}
                     height={300}
                     grid={{ horizontal: true }}
-                    margin={{ top: 24, right: 16, bottom: 24, left:0 }}
+                    margin={{ top: 24, right: 16, bottom: 24, left: 0 }}
                     slotProps={{
                       legend: {
                         position: { vertical: 'top', horizontal: 'start' },
                       },
                     }}
                     sx={{
-                      '& .MuiChartsAxis-line': { stroke: 'var(--color-border)' },
-                      '& .MuiChartsAxis-tick': { stroke: 'var(--color-border)' },
-                      '& .MuiChartsAxis-tickLabel': { fill: 'var(--color-text-secondary)' },
-                      '& .MuiChartsGrid-line': { stroke: 'var(--color-border)', strokeDasharray: '3 3' },
+                      '& .MuiChartsAxis-line': { stroke: 'var(--color-border) !important' },
+                      '& .MuiChartsAxis-tick': { stroke: 'var(--color-border) !important' },
+                      '& .MuiChartsAxis-tickLabel': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsAxis-tickLabel tspan': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsAxis-label': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsAxis-label tspan': { fill: 'var(--color-text-primary) !important' },
+                      '& text': { fill: 'var(--color-text-primary) !important' },
+                      '& tspan': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsLegend-root text': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsLegend-label': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsGrid-line': { stroke: 'var(--color-border) !important', strokeDasharray: '3 3' },
                     }}
                   />
                 </div>
@@ -369,13 +364,7 @@ export function Analytics() {
                   <h2 className="text-sm font-bold text-text-primary">Daily Expenditure Breakdown</h2>
                   <p className="text-xs text-text-secondary">Catered daily expenditure from Monday through Friday</p>
                 </div>
-                {dayOfWeekConfig.series.length > 0 && (
-                  <Badge
-                    variant="neutral"
-                    size="xs"
-                    label={`${dayOfWeekConfig.xLabels.length} Weekdays`}
-                  />
-                )}
+
               </div>
 
               {dayOfWeekConfig.series.length === 0 ? (
@@ -390,12 +379,18 @@ export function Analytics() {
                         scaleType: 'band',
                         data: dayOfWeekConfig.xLabels,
                         categoryGapRatio: 0.65,
+                        tickLabelStyle: {
+                          fill: 'var(--color-text-primary)',
+                        },
                       },
                     ]}
                     yAxis={[
                       {
                         valueFormatter: (val: number | null) =>
                           val != null ? `¢${Number(val).toLocaleString()}` : '',
+                        tickLabelStyle: {
+                          fill: 'var(--color-text-primary)',
+                        },
                       },
                     ]}
                     series={dayOfWeekConfig.series}
@@ -409,10 +404,17 @@ export function Analytics() {
                       },
                     }}
                     sx={{
-                      '& .MuiChartsAxis-line': { stroke: 'var(--color-border)' },
-                      '& .MuiChartsAxis-tick': { stroke: 'var(--color-border)' },
-                      '& .MuiChartsAxis-tickLabel': { fill: 'var(--color-text-secondary)' },
-                      '& .MuiChartsGrid-line': { stroke: 'var(--color-border)', strokeDasharray: '3 3' },
+                      '& .MuiChartsAxis-line': { stroke: 'var(--color-border) !important' },
+                      '& .MuiChartsAxis-tick': { stroke: 'var(--color-border) !important' },
+                      '& .MuiChartsAxis-tickLabel': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsAxis-tickLabel tspan': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsAxis-label': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsAxis-label tspan': { fill: 'var(--color-text-primary) !important' },
+                      '& text': { fill: 'var(--color-text-primary) !important' },
+                      '& tspan': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsLegend-root text': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsLegend-label': { fill: 'var(--color-text-primary) !important' },
+                      '& .MuiChartsGrid-line': { stroke: 'var(--color-border) !important', strokeDasharray: '3 3' },
                       '& .MuiBarElement-root': {
                         rx: 12,
                         ry: 12,
