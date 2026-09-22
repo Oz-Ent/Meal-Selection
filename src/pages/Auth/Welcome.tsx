@@ -7,7 +7,7 @@ import AppIcon from '../../assets/App Icon.svg';
 function Welcome() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-linear-to-br from-slate-50 via-slate-100/60 to-slate-200/50">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-app-bg">
       <div className="w-full max-w-md lg:max-w-lg bg-surface rounded-3xl p-6 sm:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-border flex flex-col items-center gap-6 text-center font-sans">
         <div className="flex items-center gap-2">
           <img src={AppIcon} alt="Edziban" className="h-9 w-9 object-contain" />

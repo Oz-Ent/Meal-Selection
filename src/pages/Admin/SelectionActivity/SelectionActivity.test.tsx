@@ -6,6 +6,7 @@ import {
   useMenuDaysQuery,
   useMenuMealsQuery,
   useReplaceWeeklyMealMutation,
+  useSubmitWeeklySelectionsMutation,
   useWeeklyHolidaysQuery,
   useWeekScheduleQuery,
   useWeeklyMealReportQuery,
@@ -20,6 +21,7 @@ jest.mock('../../../api/useApiQueries', () => ({
   useWeeklyHolidaysQuery: jest.fn(),
   useWeeklyMealReportQuery: jest.fn(),
   useReplaceWeeklyMealMutation: jest.fn(),
+  useSubmitWeeklySelectionsMutation: jest.fn(),
   useFoodArrivalMutation: jest.fn(() => ({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -33,6 +35,7 @@ const mockedUseMealsQuery = useMealsQuery as jest.Mock;
 const mockedUseWeeklyHolidaysQuery = useWeeklyHolidaysQuery as jest.Mock;
 const mockedUseWeeklyMealReportQuery = useWeeklyMealReportQuery as jest.Mock;
 const mockedUseReplaceWeeklyMealMutation = useReplaceWeeklyMealMutation as jest.Mock;
+const mockedUseSubmitWeeklySelectionsMutation = useSubmitWeeklySelectionsMutation as jest.Mock;
 
 const sampleSchedule = {
   id: 1,
@@ -141,6 +144,7 @@ const renderComponent = () =>
 
 describe('SelectionActivity (Food Assignment)', () => {
   const mutateAsyncMock = jest.fn();
+  const mockSubmitWeekly = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -177,6 +181,10 @@ describe('SelectionActivity (Food Assignment)', () => {
     });
     mockedUseReplaceWeeklyMealMutation.mockReturnValue({
       mutateAsync: mutateAsyncMock,
+      isPending: false,
+    });
+    mockedUseSubmitWeeklySelectionsMutation.mockReturnValue({
+      mutateAsync: mockSubmitWeekly,
       isPending: false,
     });
   });
@@ -270,10 +278,11 @@ describe('SelectionActivity (Food Assignment)', () => {
       }),
     );
     expect(screen.getByText('Menu exported successfully.')).toBeInTheDocument();
+    expect(mockSubmitWeekly).not.toHaveBeenCalled();
     exportSpy.mockRestore();
   });
 
-  it('opens export modal and triggers PDF export for the week', () => {
+  it('opens export modal and triggers PDF export for the week', async () => {
     const exportSpy = jest.spyOn(exportPdfModule, 'exportWeeklyReportToPdf').mockImplementation(() => {});
     renderComponent();
 
@@ -293,6 +302,15 @@ describe('SelectionActivity (Food Assignment)', () => {
       }),
     );
     expect(screen.getByText('Menu exported successfully.')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockSubmitWeekly).toHaveBeenCalledWith({
+        weekNumber: sampleSchedule.week,
+        year: sampleSchedule.year,
+        status: 'SUBMITTED',
+      });
+    });
+
     exportSpy.mockRestore();
   });
 
