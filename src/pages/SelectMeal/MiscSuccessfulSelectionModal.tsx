@@ -80,6 +80,4 @@ export function MiscSuccessfulSelectionModal({ onClose }: MiscSuccessfulSelectio
   );
 }
 
-// Support alias casing as requested
-export const miscSuccessfulSelectionModal = MiscSuccessfulSelectionModal;
 export default MiscSuccessfulSelectionModal;

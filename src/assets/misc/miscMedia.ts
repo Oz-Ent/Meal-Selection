@@ -1,14 +1,13 @@
 // Collect all media dynamically from src/assets/misc
 interface MediaModule {
   default?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-const miscMediaModules = (
-  typeof import.meta !== 'undefined' && typeof (import.meta as any).glob === 'function'
-    ? (import.meta as any).glob('./*.{mp4,webm,ogg,gif,png,jpg,jpeg,webp,svg}', { eager: true })
-    : {}
-) as Record<string, MediaModule | string>;
+const miscMediaModules = import.meta.glob?.<MediaModule | string>(
+  './*.{mp4,webm,ogg,gif,png,jpg,jpeg,webp,svg}',
+  { eager: true },
+) ?? {};
 
 export const miscMediaList: string[] = Object.values(miscMediaModules)
   .map((mod) => (typeof mod === 'string' ? mod : mod?.default ?? ''))
