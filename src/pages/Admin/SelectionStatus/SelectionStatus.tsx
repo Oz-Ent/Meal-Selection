@@ -7,8 +7,8 @@ import {
   Eye,
   Loader2,
   Lock,
+  Pencil,
   Plus,
-  RefreshCw,
   Trash2,
   Unlock,
   UserCheck,
@@ -49,6 +49,7 @@ import type { WeeklyGuestSelectionItem, UserWithoutWeeklySelections } from '../.
 import { DeleteGuestSelectionModal } from './DeleteGuestSelectionModal';
 import { ViewUserSelectionsModal } from './ViewUserSelectionsModal';
 import Tabs from '../../../components/Tabs/Tabs';
+import Checkbox from '../../../components/Checkbox/Checkbox';
 
 type ActiveStatusTab = 'pending' | 'submitted' | 'guests';
 
@@ -382,24 +383,21 @@ export function SelectionStatus() {
     withSelectionsQuery.isLoading ||
     guestSelectionsQuery.isLoading;
 
+  const isRefreshing =
+    weekScheduleQuery.isFetching ||
+    noSelectionsQuery.isFetching ||
+    withSelectionsQuery.isFetching ||
+    guestSelectionsQuery.isFetching ||
+    allUsersQuery.isFetching;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col bg-app-bg pb-28 text-text-primary font-sans">
       {/* Top Navigation */}
       <NavBar
         title="Selection Status"
         backUrl="/admin/activities"
-        rightElement={
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="flex items-center gap-1 p-1 text-secondary hover:text-text-primary transition-colors disabled:opacity-50 cursor-pointer"
-            aria-label="Refresh Status"
-            title="Refresh"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-        }
+        onRefreshClick={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
       <div className="px-4 sm:px-6 pt-4 flex flex-col gap-5">
@@ -522,24 +520,24 @@ export function SelectionStatus() {
           <Tabs.Options>
             <Tabs.Option
               value="pending"
-              icon={<UserX size={15} />}
+              icon={<UserX size={13} />}
               count={rawPendingUsers.length}
             >
               Pending
             </Tabs.Option>
             <Tabs.Option
               value="submitted"
-              icon={<UserCheck size={15} />}
+              icon={<UserCheck size={13} />}
               count={rawSubmittedUsers.length}
             >
               Submitted
             </Tabs.Option>
             <Tabs.Option
               value="guests"
-              icon={<Users size={15} />}
+              icon={<Users size={13} />}
               count={totalGuestMealsCount}
             >
-              Guest Meals
+              Guests
             </Tabs.Option>
           </Tabs.Options>
         </Tabs>
@@ -567,7 +565,7 @@ export function SelectionStatus() {
                   />
 
                   <Button
-                    variant="outline"
+                    variant="tertiary"
                     size="sm"
                     icon={<Copy size={14} className={isCopied ? 'text-primary' : 'text-text-muted'} />}
                     label={isCopied ? 'Copied!' : 'Copy Names'}
@@ -632,24 +630,16 @@ export function SelectionStatus() {
                     return (
                       <div
                         key={user.id}
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 transition-colors ${
+                        className={`flex  sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 transition-colors ${
                           isSelected ? 'bg-primary-light/40 hover:bg-primary-light/50' : 'hover:bg-surface-muted/60'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSelectUser(user.id)}
-                            aria-label={`Select ${user.name}`}
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors cursor-pointer ${
-                              isSelected
-                                ? 'border-primary bg-primary text-white'
-                                : 'border-border bg-surface hover:border-primary text-transparent'
-                            }`}
-                          >
-                            <Check size={12} strokeWidth={3} />
-                          </button>
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary font-bold text-xs sm:text-sm border border-primary/20">
+                          <Checkbox
+                          checked={isSelected}
+                          onChange={() => handleToggleSelectUser(user.id)}
+                          />
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary font-bold text-xs sm:text-sm border border-primary/20">
                             {initials || <Users size={16} />}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -746,7 +736,7 @@ export function SelectionStatus() {
                     return (
                       <div
                         key={user.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 hover:bg-surface-muted/60 transition-colors"
+                        className="flex sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 hover:bg-surface-muted/60 transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary font-bold text-xs sm:text-sm border border-primary/20">
@@ -756,26 +746,25 @@ export function SelectionStatus() {
                             <h4 className="text-sm font-bold text-text-primary truncate">
                               {user.name}
                             </h4>
-                            <span className="text-xs text-text-muted truncate block">
-                              {user.email}
-                            </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 self-end sm:self-center">
+                        <div className="flex items-center sm:self-center">
                           <Button
-                            variant="outline"
+                            variant="tertiary"
                             size="sm"
                             icon={<Eye size={13} />}
-                            label="View Selections"
+                            
+                            className='rounded-r-none border-r-0'
                             onClick={() => setViewingUser(user)}
                           />
 
                           <Button
-                            variant="primary"
+                            variant="tertiary"
                             size="sm"
-                            icon={<Utensils size={13} />}
-                            label="Edit"
+                            icon={<Pencil size={13} />}
+                            
+                            className='rounded-l-none'
                             onClick={() =>
                               navigate(
                                 `/select-meal?forSomeone=true&userId=${user.id}&week=${selectedWeek}&year=${selectedYear}`,

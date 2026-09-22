@@ -57,9 +57,9 @@ export default function StatusModal({
             showCloseButton={showCloseButton}
         >
             <div className="p-4 flex flex-col items-center justify-center w-55">
-               {isSuccess ? <BadgeCheck role="img" className="w-23 h-23 mt-9 text-msGreen" aria-label="Success"/> : <BadgeAlert role="img" className="w-23 h-23 mt-9 text-msError" aria-label="Error" />}
-                {title && <h3 className="text-msTextPrimary font-semibold text-base mb-1">{title}</h3>}
-                <p className="text-gray-600 text-center">{message}</p>
+               {isSuccess ? <BadgeCheck role="img" className="w-23 h-23 mt-9 text-success" aria-label="Success"/> : <BadgeAlert role="img" className="w-23 h-23 mt-9 text-danger" aria-label="Error" />}
+                {title && <h3 className="text-text-primary font-semibold text-base mb-1">{title}</h3>}
+                <p className="text-text-secondary text-center">{message}</p>
                 {children}
                 {(primaryActionLabel || secondaryActionLabel) && (
                     <div className="w-full flex mt-4 space-x-2 items-center justify-center">

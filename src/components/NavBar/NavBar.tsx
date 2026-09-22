@@ -1,14 +1,15 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Download, RefreshCw } from 'lucide-react';
 import { navigateBack } from '../../utils/navigation';
-import Button from '../Button/Button';
+import Button, { type ButtonVariant, type ButtonSize } from '../Button/Button';
 
 export interface INavBarActionButton {
   label: string;
   icon?: ReactNode;
   onClick: () => void;
-  variant?: 'primary' | 'outline' | 'none';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   disabled?: boolean;
   pending?: boolean;
   className?: string;
@@ -20,6 +21,8 @@ export interface INavBar {
   title?: string;
   onAddButtonClick?: () => void;
   onExportClick?: () => void;
+  onRefreshClick?: () => void | Promise<unknown>;
+  isRefreshing?: boolean;
   actionButton?: INavBarActionButton;
   rightElement?: ReactNode;
   banner?: ReactNode;
@@ -31,11 +34,28 @@ export function NavBar({
   title,
   onAddButtonClick,
   onExportClick,
+  onRefreshClick,
+  isRefreshing,
   actionButton,
   rightElement,
   banner,
 }: INavBar) {
   const navigate = useNavigate();
+  const [internalRefreshing, setInternalRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefreshClick || internalRefreshing) return;
+    setInternalRefreshing(true);
+    try {
+      await Promise.resolve(onRefreshClick());
+    } finally {
+      setTimeout(() => {
+        setInternalRefreshing(false);
+      }, 600);
+    }
+  };
+
+  const isSpinning = Boolean(isRefreshing || internalRefreshing);
 
   const handleBack = () => {
     if (onBackClick) {
@@ -47,65 +67,76 @@ export function NavBar({
 
   return (
     <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-border bg-surface/95 backdrop-blur-md font-sans shadow-2xs">
-      <div className="relative flex min-h-7 w-full items-center justify-between px-4 sm:px-6 py-3">
-        <Button
-          iconOnly
-          icon={<ArrowLeft className="h-5 w-5 stroke-current" />}
-          onClick={handleBack}
-          aria-label="Back"
-          variant='secondary'
-        />
+      <div className="relative flex min-h-14 w-full items-center justify-between px-4 sm:px-6 py-2.5">
+        <div className="flex items-center z-10">
+          <Button
+            iconOnly
+            icon={<ArrowLeft className="h-5 w-5 stroke-current" />}
+            onClick={handleBack}
+            aria-label="Back"
+            variant="tertiary"
+            size="sm"
+            className="rounded-xl hover:bg-surface-muted transition-colors"
+          />
+        </div>
+
         {title && (
-          <h3 className="absolute inset-x-0 text-center text-base sm:text-lg font-bold text-text-primary px-16 truncate pointer-events-none">
-            {title}
-          </h3>
+          <div className="absolute inset-x-0 flex items-center justify-center px-14 sm:px-20 pointer-events-none">
+            <h1 className="text-base sm:text-lg font-bold text-text-primary truncate text-center tracking-tight">
+              {title}
+            </h1>
+          </div>
         )}
 
         <div className="flex items-center gap-2 z-10 ml-auto">
           {actionButton && (
-            <button
-              type="button"
+            <Button
+              label={actionButton.label}
+              icon={actionButton.icon}
               onClick={actionButton.onClick}
-              disabled={actionButton.disabled || actionButton.pending}
-              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                actionButton.className ??
-                (actionButton.variant === 'outline'
-                  ? 'border border-border text-text-primary bg-surface hover:bg-surface-muted disabled:opacity-40 shadow-2xs'
-                  : 'bg-primary text-white hover:bg-primary-hover disabled:opacity-40 shadow-2xs')
-              }`}
-            >
-              {actionButton.pending ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent shrink-0" />
-              ) : (
-                actionButton.icon
-              )}
-              <span>{actionButton.label}</span>
-            </button>
+              variant={actionButton.variant ?? 'primary'}
+              size={actionButton.size ?? 'sm'}
+              disabled={actionButton.disabled}
+              pending={actionButton.pending}
+              className={actionButton.className}
+            />
+          )}
+
+          {onRefreshClick && (
+            <Button
+              iconOnly
+              icon={<RefreshCw className={`h-4 w-4 ${isSpinning ? 'animate-spin' : ''}`} />}
+              onClick={handleRefresh}
+              disabled={isSpinning}
+              aria-label="Refresh"
+              title="Refresh"
+              variant="tertiary"
+              size="sm"
+            />
           )}
 
           {!actionButton && rightElement && (
-            <div className="flex items-center">{rightElement}</div>
+            <div className="flex items-center gap-2">{rightElement}</div>
           )}
 
           {!actionButton && !rightElement && onAddButtonClick && (
-            <button
+            <Button
+              label="Add"
+              icon={<Plus className="h-4 w-4 stroke-current" />}
               onClick={onAddButtonClick}
-              className="p-1 text-secondary hover:text-text-primary flex items-center gap-1 transition-colors cursor-pointer"
-              type="button"
-            >
-              <Plus className="stroke-current h-4 w-4" />{' '}
-              <span className="text-sm font-medium">Add</span>
-            </button>
+              variant="tertiary"
+              size="sm"
+            />
           )}
 
           {!actionButton && !rightElement && !onAddButtonClick && onExportClick && (
-            <button
+            <Button
+              label="Export"
+              icon={<Download className="h-4 w-4 stroke-current" />}
               onClick={onExportClick}
-              className="p-1 text-secondary hover:text-text-primary flex items-center gap-1 transition-colors cursor-pointer"
-              type="button"
-            >
-              <Download className="stroke-current h-4 w-4" /> <span className="text-sm">Export</span>
-            </button>
+              variant="tertiary"
+              size="sm"
+            />
           )}
         </div>
       </div>
@@ -116,3 +147,4 @@ export function NavBar({
 }
 
 export default NavBar;
+

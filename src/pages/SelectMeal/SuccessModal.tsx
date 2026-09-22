@@ -41,10 +41,10 @@ export function SuccessModal({ targetName, onClose }: SuccessModalProps) {
         </div>
 
         {/* Title */}
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Meals Locked In!!</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-2">Meals Locked In!!</h2>
 
         {/* Subtitle */}
-        <p className="text-sm text-slate-500 max-w-xs leading-relaxed mb-6">
+        <p className="text-sm text-text-secondary max-w-xs leading-relaxed mb-6">
           {targetName
             ? `Weekly selection for ${targetName} is submitted. You can update choices until the selection window closes.`
             : 'Your weekly selection is submitted. You can update choices until the selection window closes.'}

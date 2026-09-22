@@ -69,4 +69,33 @@ describe('SpinWheel Component', () => {
 
     expect(onSpinComplete).toHaveBeenCalledTimes(1);
   });
+
+  it('triggers subtle haptics when navigator.vibrate is available', () => {
+    const vibrateMock = jest.fn();
+    Object.defineProperty(navigator, 'vibrate', {
+      value: vibrateMock,
+      writable: true,
+      configurable: true,
+    });
+
+    render(<SpinWheel options={options} onSpinComplete={jest.fn()} />);
+
+    const spinButton = screen.getByRole('button', { name: 'Spin' });
+    fireEvent.click(spinButton);
+
+    // Button click tactile tap
+    expect(vibrateMock).toHaveBeenCalledWith(15);
+
+    // Advance halfway through the spin to trigger peg tick haptics
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(vibrateMock).toHaveBeenCalledWith(6);
+
+    // Advance to completion for landing pulse
+    act(() => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(vibrateMock).toHaveBeenCalledWith([20, 50, 30]);
+  });
 });

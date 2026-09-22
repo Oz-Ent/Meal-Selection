@@ -16,8 +16,9 @@ export default {
   moduleNameMapper: {
     '^swiper/css.*$': 'identity-obj-proxy',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg|png|jpg|jpeg|webp)$': '<rootDir>/src/__mocks__/fileMock.js',
+    '\\.(gif|ttf|eot|svg|png|jpg|jpeg|webp|mp4|webm|ogg)$': '<rootDir>/src/__mocks__/fileMock.js',
     'utils/misc/config$': '<rootDir>/src/utils/misc/config.jest.ts',
+    'assets/misc/miscMedia$': '<rootDir>/src/assets/misc/miscMedia.jest.ts',
   },
   // Unit-coverage scope: reusable library, hooks, helpers, utils, layouts, router
   // and auth logic. The data-fetching layer (api/**) and page flows (pages/**) are

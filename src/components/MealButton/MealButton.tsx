@@ -3,6 +3,7 @@ import { Minus, Plus } from 'lucide-react';
 import type { MenuDayMeal } from '../../api/Services/MenuServices';
 import { FALLBACK_MEAL_IMAGE_URL } from '../../helpers/mealDefaults';
 import { useLongPress } from '../../hooks/useLongPress';
+import Checkbox from '../Checkbox/Checkbox';
 
 interface MealButtonProps {
   meal: MenuDayMeal;
@@ -108,13 +109,16 @@ export default function MealButton({
         className={containerClasses}
       >
         {renderMealInfo()}
-        <div
-          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-            isSelected ? 'border-primary bg-surface' : 'border-border bg-surface'
-          }`}
-        >
-          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-        </div>
+        <span onClick={(event) => event.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onChange={onSelect}
+            variant="radio"
+            color="primary"
+            radioSize="lg"
+            disabled={isDisabled}
+          />
+        </span>
       </button>
     );
   }

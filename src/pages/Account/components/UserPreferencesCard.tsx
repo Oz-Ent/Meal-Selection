@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { Settings2, Smartphone, Download, RefreshCw } from 'lucide-react';
 import { Card } from '../../../components/Card/Card';
 import Checkbox from '../../../components/Checkbox/Checkbox';
@@ -291,10 +291,7 @@ export default function UserPreferencesCard() {
         { !isInstalled && (
             <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
               <div className="flex flex-col min-w-0 flex-1">
-                <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-text-primary">Install Application</span>
-                  <Badge variant="neutral" size="xs" label={`${browserInfo.name} on ${browserInfo.os}`} />
-              </div>
               <span className="text-xs text-text-secondary leading-relaxed mt-0.5">
                 Install Edziban on your device for one-click access
               </span>

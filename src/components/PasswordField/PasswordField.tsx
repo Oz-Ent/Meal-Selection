@@ -51,7 +51,7 @@ export function PasswordField({
           type={show ? 'text' : 'password'}
           placeholder={isFloating ? placeholder : undefined}
           autoComplete={autoComplete}
-          className={`h-full w-full rounded-xl border ${borderClass} bg-surface px-3.5 pb-2 pt-5 pr-10 outline-none focus:outline-none focus:ring-0 text-text-primary text-sm transition-colors placeholder:text-text-muted ${className}`}
+          className={`h-full w-full rounded-xl border ${borderClass} bg-surface px-3.5 pb-2 pt-5 pr-10 outline-none focus:outline-none focus:ring-0 text-text-primary text-base sm:text-sm transition-colors placeholder:text-text-muted ${className}`}
           value={value}
           onChange={onChange}
           onFocus={() => setFocused(true)}

@@ -81,4 +81,58 @@ describe('NavBar Component', () => {
         fireEvent.click(exportButton);
         expect(onExportClick).toHaveBeenCalledTimes(1);
     });
+
+    it('renders actionButton and handles click', () => {
+        const onActionClick = jest.fn();
+        render(
+            <MemoryRouter>
+                <NavBar
+                    title="Dashboard"
+                    actionButton={{
+                        label: 'Save Changes',
+                        onClick: onActionClick,
+                    }}
+                />
+            </MemoryRouter>
+        );
+        const actionBtn = screen.getByRole('button', { name: /save changes/i });
+        expect(actionBtn).toBeInTheDocument();
+        fireEvent.click(actionBtn);
+        expect(onActionClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders disabled or pending actionButton', () => {
+        const onActionClick = jest.fn();
+        render(
+            <MemoryRouter>
+                <NavBar
+                    title="Dashboard"
+                    actionButton={{
+                        label: 'Saving',
+                        onClick: onActionClick,
+                        pending: true,
+                    }}
+                />
+            </MemoryRouter>
+        );
+        const actionBtn = screen.getByRole('button', { name: /saving/i });
+        expect(actionBtn).toBeDisabled();
+        fireEvent.click(actionBtn);
+        expect(onActionClick).not.toHaveBeenCalled();
+    });
+
+    it('renders rightElement and banner correctly', () => {
+        render(
+            <MemoryRouter>
+                <NavBar
+                    title="Dashboard"
+                    rightElement={<span data-testid="custom-right">Custom</span>}
+                    banner={<div data-testid="custom-banner">Banner Info</div>}
+                />
+            </MemoryRouter>
+        );
+        expect(screen.getByTestId('custom-right')).toBeInTheDocument();
+        expect(screen.getByTestId('custom-banner')).toBeInTheDocument();
+    });
 });
+

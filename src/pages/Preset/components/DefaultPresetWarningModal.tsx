@@ -33,21 +33,21 @@ export function DefaultPresetWarningModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} variant="center">
       <div className="flex flex-col items-center text-center p-3 sm:p-4 max-w-sm mx-auto">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-4 border border-amber-100">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-warning-light text-warning-dark mb-4 border border-warning/20">
           <AlertTriangle className="h-7 w-7" />
         </div>
 
-        <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
+        <h3 className="text-base sm:text-lg font-bold text-text-primary mb-2">
           Set Incomplete Preset as Default?
         </h3>
 
-        <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-          <span className="font-semibold text-slate-800">{presetName || 'This preset'}</span> does
+        <p className="text-xs text-text-secondary mb-3 leading-relaxed">
+          <span className="font-semibold text-text-primary">{presetName || 'This preset'}</span> does
           not have meal choices for{' '}
-          <span className="font-semibold text-amber-700">{formattedDays || 'some days'}</span>.
+          <span className="font-semibold text-warning-dark">{formattedDays || 'some days'}</span>.
         </p>
 
-        <p className="text-xs text-slate-500 mb-6 leading-relaxed bg-amber-50/70 border border-amber-100/80 rounded-xl p-2.5 text-amber-900">
+        <p className="text-xs mb-6 leading-relaxed bg-warning-light border border-warning/20 rounded-xl p-2.5 text-warning-dark">
           If set as default, any unselected days will automatically be prefilled as{' '}
           <span className="font-bold">Unavailable</span> during meal selection.
         </p>
@@ -57,7 +57,7 @@ export function DefaultPresetWarningModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex-1 rounded-xl border border-border bg-surface py-2.5 text-xs font-bold text-text-primary hover:bg-surface-muted transition-colors disabled:opacity-50 cursor-pointer"
           >
             Cancel
           </button>
@@ -65,7 +65,7 @@ export function DefaultPresetWarningModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-warning hover:bg-warning-dark py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <>

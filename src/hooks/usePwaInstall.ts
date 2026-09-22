@@ -59,7 +59,28 @@ export function usePwaInstall() {
   }, [browserInfo.isStandalone]);
 
   const promptInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | 'guide' | 'unsupported'> => {
-    const activePrompt = promptRef.current;
+    let activePrompt = promptRef.current;
+
+    // If native prompt is not yet ready, wait briefly for beforeinstallprompt before falling back
+    if (!activePrompt && typeof window !== 'undefined') {
+      setIsPrompting(true);
+      activePrompt = await new Promise<BeforeInstallPromptEvent | null>((resolve) => {
+        const timeoutId = setTimeout(() => {
+          window.removeEventListener('beforeinstallprompt', onPromptReceived);
+          resolve(null);
+        }, 800);
+
+        const onPromptReceived = (e: Event) => {
+          clearTimeout(timeoutId);
+          window.removeEventListener('beforeinstallprompt', onPromptReceived);
+          const promptEvent = e as BeforeInstallPromptEvent;
+          setDeferredPrompt(promptEvent);
+          resolve(promptEvent);
+        };
+
+        window.addEventListener('beforeinstallprompt', onPromptReceived, { once: true });
+      });
+    }
 
     // 1. If native Chromium install prompt is ready, trigger it directly
     if (activePrompt) {
@@ -75,20 +96,19 @@ export function usePwaInstall() {
         return choice.outcome;
       } catch (err) {
         console.warn('Native PWA install prompt failed:', err);
-        return 'unsupported';
+        setIsGuideOpen(true);
+        return 'guide';
       } finally {
         setIsPrompting(false);
       }
     }
 
-    // 2. If on iOS Safari or manual browser, open step-by-step installation guide
-    if (browserInfo.os === 'iOS' || browserInfo.installMethod === 'ios-share' || browserInfo.installMethod === 'manual-menu') {
-      setIsGuideOpen(true);
-      return 'guide';
-    }
+    setIsPrompting(false);
 
-    return 'unsupported';
-  }, [browserInfo.os, browserInfo.installMethod]);
+    // 2. Always fallback to step-by-step install guide modal so user gets immediate response
+    setIsGuideOpen(true);
+    return 'guide';
+  }, []);
 
   const closeGuide = useCallback(() => {
     setIsGuideOpen(false);

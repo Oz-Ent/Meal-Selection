@@ -85,7 +85,7 @@ export const AccountPreferencesCard = ({
         <div className="flex flex-col gap-4 h-full">
           <div className="pt-2 grid grid-cols-2 gap-3.5">
             <StatCard
-              title="Saved Presets"
+              title="Presets"
               subtitle="View your presets"
               value={stats?.totalPresets || 0}
               icon={<Bookmark className="h-4 w-4" />}
@@ -93,7 +93,7 @@ export const AccountPreferencesCard = ({
             />
             
             <StatCard
-            title="Total Selections"
+            title="Selections"
             subtitle="View your meal history"
             value={stats?.totalSelections || 0}
             icon={<Sparkles className="h-4 w-4" />}

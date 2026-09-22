@@ -14,8 +14,8 @@ export function BottomStatusModal({ type = 'success', message, onClose, retry }:
   return (
     <Modal isOpen={true} onClose={onClose} variant="bottom">
       <div className="p-4 h-86 flex flex-col items-center">
-        {type === 'success' ? <BadgeCheck role="img" className="w-23 h-23 mt-9 text-msGreen" aria-label="Success" /> : <BadgeAlert role="img" className="w-23 h-23 mt-9 text-msError" aria-label="Error" />}
-        <p className="text-msTextPrimary mt-2 text-[14px]">{message}</p>
+        {type === 'success' ? <BadgeCheck role="img" className="w-23 h-23 mt-9 text-success" aria-label="Success" /> : <BadgeAlert role="img" className="w-23 h-23 mt-9 text-danger" aria-label="Error" />}
+        <p className="text-text-primary mt-2 text-[14px]">{message}</p>
         {type === 'success' && (
           <div className="h-12 mt-auto w-full">
             <Button variant="primary" onClick={onClose} label="Close" />
