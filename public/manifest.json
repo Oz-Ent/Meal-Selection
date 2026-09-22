@@ -59,12 +59,6 @@
       "sizes": "96x96",
       "type": "image/svg+xml",
       "purpose": "monochrome"
-    },
-    {
-      "src": "/NotificationSVG.svg",
-      "sizes": "96x96",
-      "type": "image/svg+xml",
-      "purpose": "monochrome"
     }
   ]
 }

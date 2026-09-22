@@ -58,7 +58,7 @@ export function MiscSuccessfulSelectionModal({ onClose }: MiscSuccessfulSelectio
 
         {/* Title */}
         <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1">
-          This is for Fidel
+          Fuck You!
         </h2>
 
         {/* Description */}

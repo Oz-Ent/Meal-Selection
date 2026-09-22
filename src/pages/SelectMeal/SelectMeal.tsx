@@ -1444,7 +1444,7 @@ export default function SelectMealPage() {
 
       {/* Success Modal */}
       {isConfirmed && (
-        (Number(targetUserId ?? currentUserId) === 122 || String(targetUserId ?? currentUserId) === '122') ? (
+        currentUserId === 122 ? (
           <MiscSuccessfulSelectionModal
             onClose={() => {
               setIsConfirmed(false);
