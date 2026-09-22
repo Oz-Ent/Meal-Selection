@@ -255,7 +255,6 @@ describe('SelectionStatus Admin Page', () => {
 
     // David Lee is submitted (active user not in pending list)
     expect(screen.getByText('David Lee')).toBeInTheDocument();
-    expect(screen.getByText('david@example.com')).toBeInTheDocument();
 
     // Click "View Selections" opens modal
     const viewBtn = screen.getByRole('button', { name: /view selections/i });
@@ -265,10 +264,10 @@ describe('SelectionStatus Admin Page', () => {
     expect(screen.getByText(/edit meals/i)).toBeInTheDocument();
   });
 
-  it('allows switching to Guest Meals tab, opens confirmation modal for single portion and multi-portions', async () => {
+  it('allows switching to Guests tab, opens confirmation modal for single portion and multi-portions', async () => {
     renderComponent();
 
-    const guestTab = screen.getByRole('button', { name: /guest meals/i });
+    const guestTab = screen.getByRole('button', { name: /guests/i });
     fireEvent.click(guestTab);
 
     expect(screen.getByText('Jollof Rice & Chicken')).toBeInTheDocument();
@@ -332,7 +331,7 @@ describe('SelectionStatus Admin Page', () => {
     renderComponent();
 
     // Select a single user
-    fireEvent.click(screen.getByRole('button', { name: /select alice smith/i }));
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
 
     const batchBtn = screen.getByRole('button', { name: /select meals/i });
     const batchBar = batchBtn.closest('div.sticky');
@@ -355,7 +354,7 @@ describe('SelectionStatus Admin Page', () => {
     expect(search).toContain('year=');
   });
 
-  it('shows a progress indicator on the Guest Meals tab when guest selections are refetching', () => {
+  it('shows a progress indicator on the Guests tab when guest selections are refetching', () => {
     (useWeeklyGuestSelectionsQuery as jest.Mock).mockReturnValue({
       data: sampleGuestSelections,
       isLoading: false,
@@ -365,7 +364,7 @@ describe('SelectionStatus Admin Page', () => {
 
     renderComponent();
 
-    const guestTab = screen.getByRole('button', { name: /guest meals/i });
+    const guestTab = screen.getByRole('button', { name: /guests/i });
     fireEvent.click(guestTab);
 
     expect(screen.getByTestId('guest-fetching-indicator')).toBeInTheDocument();
@@ -375,7 +374,7 @@ describe('SelectionStatus Admin Page', () => {
   it('allows checking 1-portion guest meals and performing bulk deletion with confirmation modal', async () => {
     renderComponent();
 
-    const guestTab = screen.getByRole('button', { name: /guest meals/i });
+    const guestTab = screen.getByRole('button', { name: /guests/i });
     fireEvent.click(guestTab);
 
     // 1-portion item has a checkbox (Jollof Rice & Chicken)

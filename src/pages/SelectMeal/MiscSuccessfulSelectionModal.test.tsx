@@ -3,14 +3,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { MiscSuccessfulSelectionModal } from './MiscSuccessfulSelectionModal';
 
 describe('MiscSuccessfulSelectionModal Component', () => {
-  it('renders "This is for Fidel" header and "from Glorious" description', () => {
+  it('renders the success heading and attribution', () => {
     render(
       <MemoryRouter>
         <MiscSuccessfulSelectionModal />
       </MemoryRouter>
     );
 
-    expect(screen.getByText('This is for Fidel')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fuck You!' })).toBeInTheDocument();
     expect(screen.getByText('from Glorious')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument();
   });
