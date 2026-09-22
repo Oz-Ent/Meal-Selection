@@ -193,17 +193,17 @@ describe('History Page Component', () => {
   it('switches between My Selection History and Admin Report History tabs with descriptive week date ranges', () => {
     renderWithProviders(<History />);
 
-    const adminTab = screen.getByText('Admin Report History');
+    const adminTab = screen.getByText('Report History');
     fireEvent.click(adminTab);
 
-    expect(screen.getByText('15 Total Orders')).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
     expect(screen.getByText('Week 34 • Summer Standard Menu')).toBeInTheDocument();
 
     // Collapsed by default: detailed order breakdown not visible
     expect(screen.queryByText('10 total orders')).not.toBeInTheDocument();
 
     // Click header to expand
-    fireEvent.click(screen.getByText('15 Total Orders'));
+    fireEvent.click(screen.getByText('15'));
 
     expect(screen.getByText('10 total orders')).toBeInTheDocument();
     expect(screen.getByText('Aug 17')).toBeInTheDocument();

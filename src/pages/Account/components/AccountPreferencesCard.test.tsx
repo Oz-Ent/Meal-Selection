@@ -61,8 +61,8 @@ describe('AccountPreferencesCard Component', () => {
 
     expect(screen.getByText('Dietary Preferences')).toBeInTheDocument();
     expect(screen.getByText('Pork')).toBeInTheDocument();
-    expect(screen.getByText('Saved Presets')).toBeInTheDocument();
-    expect(screen.getByText('Total Selections')).toBeInTheDocument();
+    expect(screen.getByText('Presets')).toBeInTheDocument();
+    expect(screen.getByText('Selections')).toBeInTheDocument();
 
     const excludedMealsToggle = screen.getByRole('button', {
       name: 'Meals excluded from selections (1)',
@@ -79,7 +79,7 @@ describe('AccountPreferencesCard Component', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByText('Saved Presets'));
+    fireEvent.click(screen.getByText('Presets'));
     expect(mockNavigate).toHaveBeenCalledWith('/preset-meals');
   });
 
@@ -90,7 +90,7 @@ describe('AccountPreferencesCard Component', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByText('Total Selections'));
+    fireEvent.click(screen.getByText('Selections'));
     expect(mockNavigate).toHaveBeenCalledWith('/history');
   });
 

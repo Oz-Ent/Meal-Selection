@@ -61,6 +61,7 @@ export function UserHistoryCard({ weekItem, onOpenSavePreset }: UserHistoryCardP
             icon={<BookmarkPlus size={13}/>}
             size="sm"
             variant="outline"
+            aria-label="Save as preset"
             onClick={() => onOpenSavePreset(weekItem)}
           />
           <button

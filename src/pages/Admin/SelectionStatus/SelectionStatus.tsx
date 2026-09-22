@@ -754,7 +754,7 @@ export function SelectionStatus() {
                             variant="tertiary"
                             size="sm"
                             icon={<Eye size={13} />}
-                            
+                            aria-label="View selections"
                             className='rounded-r-none border-r-0'
                             onClick={() => setViewingUser(user)}
                           />
