@@ -209,7 +209,7 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-linear-to-br from-slate-50 via-slate-100/60 to-slate-200/50">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-app-bg">
       <div className="w-full max-w-md lg:max-w-4xl bg-surface rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-border overflow-hidden grid grid-cols-1 lg:grid-cols-2 font-sans">
         {/* Branding */}
         <div className="hidden lg:flex flex-col justify-between bg-linear-to-br from-primary via-primary-hover to-secondary p-10 text-white relative overflow-hidden">

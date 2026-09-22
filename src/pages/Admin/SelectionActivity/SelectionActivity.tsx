@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Ban,
   ChevronLeft,
@@ -37,6 +37,7 @@ import {
   useMenuDaysQuery,
   useMenuMealsQuery,
   useReplaceWeeklyMealMutation,
+  useSubmitWeeklySelectionsMutation,
   useWeeklyHolidaysQuery,
   useWeekScheduleQuery,
   useWeeklyMealReportQuery,
@@ -99,6 +100,7 @@ export function SelectionActivity() {
   const reportDate = useMemo(() => new Date().toISOString(), []);
   const reportQuery = useWeeklyMealReportQuery(reportDate);
   const replaceMealMutation = useReplaceWeeklyMealMutation();
+  const submitWeeklyMutation = useSubmitWeeklySelectionsMutation();
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToastState({ isOpen: true, type, message });
@@ -244,11 +246,11 @@ export function SelectionActivity() {
     return list;
   }, [currentDayReport]);
 
-  const executeExport = (selectedDay: string) => {
+  const executeExport = (selectedDay: string): boolean => {
     if (Object.keys(weeklyReport).length === 0) {
       setIsExportModalOpen(false);
       showToast('error', 'Something went wrong while exporting meal. Please try again.');
-      return;
+      return false;
     }
 
     try {
@@ -259,9 +261,11 @@ export function SelectionActivity() {
       });
       setIsExportModalOpen(false);
       showToast('success', 'Menu exported successfully.');
+      return true;
     } catch {
       setIsExportModalOpen(false);
       showToast('error', 'Something went wrong while exporting meal. Please try again.');
+      return false;
     }
   };
 
@@ -269,8 +273,22 @@ export function SelectionActivity() {
     executeExport(currentDay ? currentDay.day.toUpperCase() : 'ALL');
   };
 
-  const handleExportWeek = () => {
-    executeExport('ALL');
+  const handleExportWeek = async () => {
+    const exported = executeExport('ALL');
+    if (!exported) return;
+
+    const targetWeek = scheduleQuery.data?.week ?? week;
+    const targetYear = scheduleQuery.data?.year ?? year;
+
+    try {
+      await submitWeeklyMutation.mutateAsync({
+        weekNumber: targetWeek,
+        year: targetYear,
+        status: 'SUBMITTED',
+      });
+    } catch {
+      // Non-blocking close attempt
+    }
   };
 
   const handleConfirmChangeMeal = async () => {
@@ -710,7 +728,8 @@ export function SelectionActivity() {
             <button
               type="button"
               onClick={handleExportWeek}
-              className="flex w-full items-center justify-between p-4 rounded-2xl border border-border bg-surface hover:bg-surface-muted text-text-primary text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group"
+              disabled={submitWeeklyMutation.isPending}
+              className="flex w-full items-center justify-between p-4 rounded-2xl border border-border bg-surface hover:bg-surface-muted text-text-primary text-xs sm:text-sm font-medium transition-colors cursor-pointer shadow-2xs group disabled:opacity-50"
             >
               <span>For the week</span>
               <ChevronRight size={18} className="text-text-muted group-hover:text-text-primary transition-colors" />
