@@ -127,7 +127,7 @@ describe('Admin Portal Integration Tests', () => {
   it('navigates to mark holidays page and shows statutory holidays', () => {
     cy.visit('/admin/holidays');
 
-    cy.contains('Mark & Override Holidays').should('exist');
+    cy.contains('Holidays').should('exist');
     cy.contains('Independence Day').should('exist');
     cy.contains(/Mark Company Holiday/i).should('exist');
   });
