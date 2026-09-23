@@ -159,7 +159,7 @@ describe('MarkHolidays Page', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Mark & Override Holidays')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Holidays' })).toBeInTheDocument();
     // In upcoming mode, future holidays are shown
     expect(screen.getByText('Christmas Day')).toBeInTheDocument();
     expect(screen.getByText('Future End of Year Break')).toBeInTheDocument();
