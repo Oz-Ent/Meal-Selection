@@ -520,21 +520,18 @@ export function SelectionStatus() {
           <Tabs.Options>
             <Tabs.Option
               value="pending"
-              icon={<UserX size={13} />}
               count={rawPendingUsers.length}
             >
               Pending
             </Tabs.Option>
             <Tabs.Option
               value="submitted"
-              icon={<UserCheck size={13} />}
               count={rawSubmittedUsers.length}
             >
               Submitted
             </Tabs.Option>
             <Tabs.Option
               value="guests"
-              icon={<Users size={13} />}
               count={totalGuestMealsCount}
             >
               Guests

@@ -17,6 +17,7 @@ import InputField from '../../../components/InputField/InputField';
 import LoadingSpinner from '../../../components/LoadingSpinner/LoadingSpinner';
 import EmptyState from '../../../components/EmptyState/EmptyState';
 import { BottomToast } from '../../../components/BottomToast/BottomToast';
+import { Tabs } from '../../../components/Tabs/Tabs';
 import {
   useBudgetsQuery,
   useActiveBudgetQuery,
@@ -279,30 +280,20 @@ export function Budgets() {
 
         {/* Tab Controls & Add Action */}
         <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-3">
-          <div className="flex rounded-xl bg-surface-muted p-1 border border-border">
-            <button
-              type="button"
-              onClick={() => setActiveTab('budgets')}
-              className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'budgets'
-                  ? 'bg-surface text-text-primary shadow-2xs'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              Budgets ({budgets.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('rates')}
-              className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'rates'
-                  ? 'bg-surface text-text-primary shadow-2xs'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              Catering Rates ({expenditures.length})
-            </button>
-          </div>
+          <Tabs
+            value={activeTab}
+            onChange={(value) => setActiveTab(value as 'budgets' | 'rates')}
+            className="w-full sm:w-auto"
+          >
+            <Tabs.Options>
+              <Tabs.Option value="budgets" count={budgets.length}>
+                Budgets
+              </Tabs.Option>
+              <Tabs.Option value="rates" count={expenditures.length}>
+                Catering Rates
+              </Tabs.Option>
+            </Tabs.Options>
+          </Tabs>
 
           <Button
             size="sm"
