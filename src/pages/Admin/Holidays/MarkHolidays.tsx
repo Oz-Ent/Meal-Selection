@@ -322,7 +322,7 @@ export function MarkHolidays() {
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl bg-app-bg pb-28 text-text-primary font-sans relative">
-      <NavBar title="Mark & Override Holidays" backUrl="/admin/activities" />
+      <NavBar title="Holidays" backUrl="/admin/activities" />
 
       {/* Header Controls */}
       <section className="px-4 sm:px-6 pt-4">

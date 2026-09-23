@@ -107,7 +107,7 @@ export default function Checkbox({
           className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
         />
         {/* Unchecked: surface bg + primary border */}
-        <div className="w-4 h-4 bg-surface border-2 border-primary rounded-xs peer-checked:hidden transition-colors" />
+        <div className="w-4 h-4 bg-surface border-border border rounded-xs peer-checked:hidden transition-colors" />
         {/* Checked: primary bg + primary border + white tick */}
         <div className="hidden w-4 h-4 bg-primary border-2 border-primary rounded-xs items-center justify-center peer-checked:flex transition-colors">
           <svg
