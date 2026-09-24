@@ -50,18 +50,6 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'maskable',
           },
-          {
-            src: '/AppIcon.svg',
-            sizes: '192x192 512x512',
-            type: 'image/svg+xml',
-            purpose: 'any',
-          },
-          {
-            src: '/AppIcon.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'maskable',
-          },
         ],
       },
     }),
