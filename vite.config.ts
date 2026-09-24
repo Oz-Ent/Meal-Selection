@@ -62,18 +62,6 @@ export default defineConfig({
             type: 'image/svg+xml',
             purpose: 'maskable',
           },
-          {
-            src: '/notification.svg',
-            sizes: '96x96 128x128 192x192',
-            type: 'image/svg+xml',
-            purpose: 'monochrome',
-          },
-          {
-            src: '/NotificationSVG.svg',
-            sizes: '96x96 128x128 192x192',
-            type: 'image/svg+xml',
-            purpose: 'monochrome',
-          },
         ],
       },
     }),
